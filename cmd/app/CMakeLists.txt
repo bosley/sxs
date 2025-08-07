@@ -1,9 +1,9 @@
-add_executable(ytho_app main.cpp)
+add_executable(app main.cpp)
 
-target_link_libraries(ytho_app PRIVATE
+target_link_libraries(app PRIVATE
     fmt::fmt
 )
 
-set_target_properties(ytho_app PROPERTIES
+set_target_properties(app PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )

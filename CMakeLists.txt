@@ -59,6 +59,8 @@ include(${PROJECT_SOURCE_DIR}/cmake/Platform.cmake)
 #
 # External code setup
 #
+# Bring in external dependencies
+add_subdirectory(${PROJECT_SOURCE_DIR}/extern)
 add_subdirectory(${PROJECT_SOURCE_DIR}/pkg)
 add_subdirectory(${PROJECT_SOURCE_DIR}/cmd)
 add_subdirectory(${PROJECT_SOURCE_DIR}/examples)
