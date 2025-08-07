@@ -4,3 +4,6 @@
 [submodule "extern/snitch"]
 	path = extern/snitch
 	url = https://github.com/snitch-org/snitch.git
+[submodule "extern/json"]
+	path = extern/json
+	url = https://github.com/nlohmann/json
