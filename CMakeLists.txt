@@ -47,7 +47,9 @@ endif()
 # Add special definitions for specific debugging functions
 #
 if (RUN_TESTS)
-  message(STATUS "Running tests") # TODO: Add tests
+  message(STATUS "Running tests")
+  enable_testing()
+  add_subdirectory(${PROJECT_SOURCE_DIR}/tests)
 endif()
 
 #

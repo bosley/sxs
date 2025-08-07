@@ -1,3 +1,6 @@
 [submodule "extern/cpp-httplib"]
 	path = extern/cpp-httplib
 	url = https://github.com/yhirose/cpp-httplib.git
+[submodule "extern/snitch"]
+	path = extern/snitch
+	url = https://github.com/snitch-org/snitch.git
