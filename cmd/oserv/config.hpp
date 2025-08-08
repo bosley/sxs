@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <optional>
@@ -16,11 +17,21 @@ constexpr uint64_t DEFAULT_HTTP_MAX_REQUEST_SIZE = 1024ULL * 1024ULL * 10ULL;
 constexpr uint64_t DEFAULT_HTTP_MAX_RESPONSE_SIZE = 1024ULL * 1024ULL * 10ULL;
 constexpr uint32_t DEFAULT_HTTP_TIMEOUT = 10;
 
+#if defined(_WIN32)
+inline constexpr const char *DEFAULT_DATA_PATH = "C:\\Windows\\Temp\\data";
+#elif defined(__APPLE__)
+inline constexpr const char *DEFAULT_DATA_PATH = "/tmp/data";
+#else
+inline constexpr const char *DEFAULT_DATA_PATH = "/tmp/data";
+#endif
+
 class config_c {
 
 public:
   std::optional<std::string> get_cert_path() const;
   std::optional<std::string> get_key_path() const;
+  std::string get_data_path() const;
+  bool ensure_data_dir() const;
   std::string get_http_address() const;
   uint16_t get_http_port() const;
   uint32_t get_http_threads() const;
@@ -48,6 +59,31 @@ inline bool load_config(const std::string &path, config_c &config) {
     return false;
   }
   return true;
+}
+
+inline std::string config_c::get_data_path() const {
+  auto it = config_.find("data");
+  if (it == config_.end() || !it->is_string()) {
+    return std::string(DEFAULT_DATA_PATH);
+  }
+  return it->get<std::string>();
+}
+
+inline bool config_c::ensure_data_dir() const {
+  const std::string data_path = get_data_path();
+  if (data_path.empty())
+    return false;
+  std::error_code ec;
+  std::filesystem::path p(data_path);
+  if (std::filesystem::exists(p, ec)) {
+    if (ec)
+      return false;
+    return std::filesystem::is_directory(p, ec) && !ec;
+  }
+  std::filesystem::create_directories(p, ec);
+  if (ec)
+    return false;
+  return std::filesystem::is_directory(p, ec) && !ec;
 }
 
 inline std::optional<std::string> config_c::get_cert_path() const {
@@ -291,6 +327,7 @@ inline bool new_config(const std::string &path) {
   config["http"]["keep_alive"] = true;
   config["http"]["keep_alive_timeout"] = DEFAULT_HTTP_TIMEOUT;
   config["http"]["keep_alive_max_connections"] = DEFAULT_HTTP_MAX_CONNECTIONS;
+  config["data"] = DEFAULT_DATA_PATH;
   std::ofstream file(path);
   if (!file.is_open()) {
     return false;
