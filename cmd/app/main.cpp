@@ -2,8 +2,7 @@
 
 int main() {
 
-
-    fmt::print("Build hash > {}\n", BUILD_HASH);
-    fmt::print("app\n");
-    return 0;
+  fmt::print("Build hash > {}\n", BUILD_HASH);
+  fmt::print("app\n");
+  return 0;
 }

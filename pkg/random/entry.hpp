@@ -16,8 +16,7 @@ public:
 
   //! \brief Get a value from the range of given values
   //! \returns Random entry of type T from given list
-  T get_value()
-  {
+  T get_value() {
     generate_random_c<std::size_t> r;
     auto idx = r.get_range(0, _values.size() - 1);
     return _values[idx];
@@ -27,4 +26,3 @@ private:
   std::vector<T> _values;
 };
 } // namespace pkg::random
-    

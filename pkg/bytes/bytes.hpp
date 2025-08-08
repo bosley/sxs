@@ -41,7 +41,7 @@ static inline std::optional<T> unpack(const std::vector<uint8_t> &data) {
   return {*val};
 }
 
-//! \brief Attempt to quickly unpack a vector of bytes into type T 
+//! \brief Attempt to quickly unpack a vector of bytes into type T
 //! \note  This is potentially unsafe (check that the vector is a valid T)
 template <typename T, typename = typename std::enable_if<
                           std::is_arithmetic<T>::value, T>::type>
@@ -55,7 +55,7 @@ static inline std::vector<uint8_t> pack_string(const std::string &str) {
   return std::vector<uint8_t>(str.begin(), str.end());
 }
 
-//! \brief Pack a string, and its length into a vector 
+//! \brief Pack a string, and its length into a vector
 static inline void pack_string_into(const std::string &str,
                                     std::vector<uint8_t> &target) {
   pack_into<std::size_t>(str.size(), target);
@@ -69,13 +69,19 @@ static inline void pack_string_into(const std::string &str,
   target.insert(target.end(), str.begin(), str.end());
 }
 
-//! \brief Unpack an encoded string (with prefixed len) from an index in a given data source
-static inline std::optional<std::string> unpack_string_at(const std::vector<uint8_t>& from, const std::size_t idx) {
-  if (from.size() <= (idx + sizeof(std::size_t))) { return {}; }
+//! \brief Unpack an encoded string (with prefixed len) from an index in a given
+//! data source
+static inline std::optional<std::string>
+unpack_string_at(const std::vector<uint8_t> &from, const std::size_t idx) {
+  if (from.size() <= (idx + sizeof(std::size_t))) {
+    return {};
+  }
 
-  std::size_t len = *(std::size_t*)(from.data() + idx);
+  std::size_t len = *(std::size_t *)(from.data() + idx);
 
-  if (from.size() < (idx + sizeof(std::size_t) + len)) { return {}; }
+  if (from.size() < (idx + sizeof(std::size_t) + len)) {
+    return {};
+  }
 
   std::string result(from.begin() + idx + sizeof(std::size_t),
                      from.begin() + idx + sizeof(std::size_t) + len);
@@ -93,4 +99,4 @@ static inline double real_from_uint64_t(const uint64_t &value) {
   return *reinterpret_cast<const double *>(&value);
 }
 
-} // namespace
+} // namespace pkg::bytes

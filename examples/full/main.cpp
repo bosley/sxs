@@ -1,21 +1,20 @@
 #include <iostream>
 
-#include "types/view.hpp"
-#include "types/shared_obj.hpp"
+#include "bytes/bytes.hpp"
 #include "types/lifetime.hpp"
 #include "types/monotonic_counter.hpp"
-#include "bytes/bytes.hpp"
-
+#include "types/shared_obj.hpp"
+#include "types/view.hpp"
 
 void views() {
 
-  if(EXTRA_DEBUG) {
+  if (EXTRA_DEBUG) {
     std::cout << "EXTRA_DEBUG is enabled" << std::endl;
   }
 
   std::cout << __func__ << std::endl;
 
-  uint16_t* x = new uint16_t[10]();
+  uint16_t *x = new uint16_t[10]();
 
   x[5] = 99;
   x[9] = 1;
@@ -24,8 +23,8 @@ void views() {
 
   auto iter = v.iter();
 
-  while(iter->has_next()) {
-    auto* xv = iter->next();
+  while (iter->has_next()) {
+    auto *xv = iter->next();
     std::cout << "cur=" << *xv << std::endl;
   }
 
@@ -38,13 +37,10 @@ void shared() {
 
   class some_object_c : public pkg::types::shared_c {
   public:
-    some_object_c(const std::size_t id)
-      : id(id){
-        std::cout << id << " has been created" << std::endl;
-      }
-    ~some_object_c() {
-      std::cout << id << " has been deleted" << std::endl;
+    some_object_c(const std::size_t id) : id(id) {
+      std::cout << id << " has been created" << std::endl;
     }
+    ~some_object_c() { std::cout << id << " has been deleted" << std::endl; }
     const std::size_t id{0};
   };
 
@@ -57,9 +53,8 @@ void shared() {
 
   std::vector<so_ptr> created;
 
-  for(auto x = 0; x < 10; x++) {
-    created.emplace_back(
-      pkg::types::make_shared<some_object_c>(x + 10));
+  for (auto x = 0; x < 10; x++) {
+    created.emplace_back(pkg::types::make_shared<some_object_c>(x + 10));
   }
 
   std::cout << "Leaving " << __func__ << std::endl;
@@ -68,30 +63,32 @@ void shared() {
 void lifetime() {
   class cb_c final : public pkg::types::lifetime_c::observer_if {
   public:
-    void death_ind() override { std::cout << "anonymous lifetime end\n"; } 
+    void death_ind() override { std::cout << "anonymous lifetime end\n"; }
   };
 
   class tagged_cb_c final : public pkg::types::lifetime_tagged_c::observer_if {
   public:
-    void death_ind(const std::size_t tag) override { std::cout << "tagged lifetime end: " << tag  << "\n"; } 
+    void death_ind(const std::size_t tag) override {
+      std::cout << "tagged lifetime end: " << tag << "\n";
+    }
   };
 
   class a_c final : public pkg::types::lifetime_c {
   public:
     a_c() = delete;
     a_c(pkg::types::lifetime_c::observer_if &obs)
-      : pkg::types::lifetime_c(obs){
-        std::cout << "Created anonymous lifetime\n";
-      }
+        : pkg::types::lifetime_c(obs) {
+      std::cout << "Created anonymous lifetime\n";
+    }
   };
 
   class b_c final : public pkg::types::lifetime_tagged_c {
   public:
     b_c() = delete;
     b_c(pkg::types::lifetime_tagged_c::observer_if &obs, const std::size_t id)
-      : pkg::types::lifetime_tagged_c(obs, id){
-        std::cout << "Created tagged lifetime: " << id << "\n";
-      }
+        : pkg::types::lifetime_tagged_c(obs, id) {
+      std::cout << "Created tagged lifetime: " << id << "\n";
+    }
   };
 
   cb_c cba;
@@ -119,12 +116,12 @@ void byte_tool_stuff() {
 
 void counter() {
   pkg::types::monotonic_counter_c<uint8_t, 1> counter(250);
-  for(uint16_t i = 250; i < std::numeric_limits<uint8_t>::max() + 5; i++) {
+  for (uint16_t i = 250; i < std::numeric_limits<uint8_t>::max() + 5; i++) {
     std::cout << (int)counter.next() << std::endl;
   }
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
 
   std::cout << "Basic example...\n";
   views();

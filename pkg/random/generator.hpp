@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <random>
 
 namespace pkg::random {
@@ -17,8 +16,7 @@ public:
   //! \param min Minimum value
   //! \param max Maximum Value
   //! \return    Return the randomly generated type T value
-  T get_range(T min, T max)
-  {
+  T get_range(T min, T max) {
     std::uniform_int_distribution<T> dist(min, max);
     return dist(eng);
   }
@@ -27,8 +25,7 @@ public:
   //! \param min Minimum value
   //! \param max Maximum Value
   //! \return    Return the randomly generated type T value
-  T get_floating_point_range(T min, T max)
-  {
+  T get_floating_point_range(T min, T max) {
     static_assert(std::is_floating_point<T>::value);
     std::uniform_real_distribution<T> dist(min, max);
     return dist(eng);
@@ -38,4 +35,4 @@ private:
   std::random_device rd;
   std::default_random_engine eng;
 };
-} // namespace
+} // namespace pkg::random

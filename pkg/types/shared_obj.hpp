@@ -1,7 +1,8 @@
 
 /*
-  Sometiems we need a shared pointer, but we don't want the size of the shared pointer.
-  This implementation is smaller than std::shared_pointer, and not as "safe to use".. technically
+  Sometiems we need a shared pointer, but we don't want the size of the shared
+  pointer. This implementation is smaller than std::shared_pointer, and not as
+  "safe to use".. technically
 */
 
 #pragma once
@@ -38,9 +39,7 @@ public:
 
   shared_obj_c(T *object) { acquire(object); }
 
-  shared_obj_c(const shared_obj_c &rhs) : object_(0) {
-    acquire(rhs.object_);
-  }
+  shared_obj_c(const shared_obj_c &rhs) : object_(0) { acquire(rhs.object_); }
 
   const shared_obj_c &operator=(const shared_obj_c &rhs) {
     if (this != &rhs) {
@@ -87,9 +86,8 @@ private:
   T *object_{nullptr};
 };
 
-template<typename T>
-auto make_shared = [](auto... args) -> shared_obj_c<T> {
-  return new T(args...);
-};
+template <typename T>
+auto make_shared =
+    [](auto... args) -> shared_obj_c<T> { return new T(args...); };
 
 } // namespace pkg::types
