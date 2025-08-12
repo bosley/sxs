@@ -20,6 +20,8 @@ target_include_directories(pkg_bytes INTERFACE
 
 add_library(pkg::bytes ALIAS pkg_bytes)
 
+# Types 
+
 add_library(pkg_types INTERFACE)
 
 target_include_directories(pkg_types INTERFACE
@@ -27,3 +29,15 @@ target_include_directories(pkg_types INTERFACE
 )
 
 add_library(pkg::types ALIAS pkg_types)
+
+# Parser
+
+add_library(pkg_parser STATIC
+    parser/parser.cpp
+)
+
+target_include_directories(pkg_parser PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+add_library(pkg::parser ALIAS pkg_parser)
