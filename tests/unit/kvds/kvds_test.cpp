@@ -1,13 +1,29 @@
 #include <snitch/snitch.hpp>
-#include <kvds/kvds.hpp>
+#include <kvds/datastore.hpp>
 #include <filesystem>
 #include <map>
+#include <thread>
+#include <chrono>
+#include <atomic>
+
+namespace {
+    void ensure_db_cleanup(const std::string& path) {
+        std::filesystem::remove_all(path);
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+    
+    std::string get_unique_test_path(const std::string& base) {
+        static std::atomic<int> counter{0};
+        return base + "_" + std::to_string(counter.fetch_add(1)) + "_" + 
+               std::to_string(std::chrono::steady_clock::now().time_since_epoch().count());
+    }
+}
 
 TEST_CASE("kvds basic operations", "[unit][kvds]") {
     kvds::datastore_c ds;
-    std::string test_db_path = "/tmp/kvds_test_basic";
+    std::string test_db_path = get_unique_test_path("/tmp/kvds_test_basic");
     
-    std::filesystem::remove_all(test_db_path);
+    ensure_db_cleanup(test_db_path);
     
     SECTION("open and close database") {
         CHECK(ds.open(test_db_path));
@@ -34,14 +50,14 @@ TEST_CASE("kvds basic operations", "[unit][kvds]") {
         ds.close();
     }
     
-    std::filesystem::remove_all(test_db_path);
+    ensure_db_cleanup(test_db_path);
 }
 
 TEST_CASE("kvds with manual prefix management", "[unit][kvds]") {
     kvds::datastore_c ds;
-    std::string test_db_path = "/tmp/kvds_test_prefix";
+    std::string test_db_path = get_unique_test_path("/tmp/kvds_test_prefix");
     
-    std::filesystem::remove_all(test_db_path);
+    ensure_db_cleanup(test_db_path);
     CHECK(ds.open(test_db_path));
     
     SECTION("manual prefix key construction") {
@@ -61,14 +77,14 @@ TEST_CASE("kvds with manual prefix management", "[unit][kvds]") {
     }
     
     ds.close();
-    std::filesystem::remove_all(test_db_path);
+    ensure_db_cleanup(test_db_path);
 }
 
 TEST_CASE("kvds batch operations", "[unit][kvds]") {
     kvds::datastore_c ds;
-    std::string test_db_path = "/tmp/kvds_test_batch";
+    std::string test_db_path = get_unique_test_path("/tmp/kvds_test_batch");
     
-    std::filesystem::remove_all(test_db_path);
+    ensure_db_cleanup(test_db_path);
     CHECK(ds.open(test_db_path));
     
     SECTION("batch set operations") {
@@ -90,14 +106,14 @@ TEST_CASE("kvds batch operations", "[unit][kvds]") {
     }
     
     ds.close();
-    std::filesystem::remove_all(test_db_path);
+    ensure_db_cleanup(test_db_path);
 }
 
 TEST_CASE("kvds iteration", "[unit][kvds]") {
     kvds::datastore_c ds;
-    std::string test_db_path = "/tmp/kvds_test_iteration";
+    std::string test_db_path = get_unique_test_path("/tmp/kvds_test_iteration");
     
-    std::filesystem::remove_all(test_db_path);
+    ensure_db_cleanup(test_db_path);
     CHECK(ds.open(test_db_path));
     
     SECTION("iterate with prefix") {
@@ -149,7 +165,7 @@ TEST_CASE("kvds iteration", "[unit][kvds]") {
     }
     
     ds.close();
-    std::filesystem::remove_all(test_db_path);
+    ensure_db_cleanup(test_db_path);
 }
 
 TEST_CASE("kvds error conditions", "[unit][kvds]") {
@@ -174,8 +190,8 @@ TEST_CASE("kvds error conditions", "[unit][kvds]") {
     }
     
     SECTION("double open/close") {
-        std::string test_db_path = "/tmp/kvds_test_error";
-        std::filesystem::remove_all(test_db_path);
+        std::string test_db_path = get_unique_test_path("/tmp/kvds_test_error");
+        ensure_db_cleanup(test_db_path);
         
         CHECK(ds.open(test_db_path));
         CHECK_FALSE(ds.open(test_db_path));
@@ -183,6 +199,6 @@ TEST_CASE("kvds error conditions", "[unit][kvds]") {
         CHECK(ds.close());
         CHECK_FALSE(ds.close());
         
-        std::filesystem::remove_all(test_db_path);
+        ensure_db_cleanup(test_db_path);
     }
 }

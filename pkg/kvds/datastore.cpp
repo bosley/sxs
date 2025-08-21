@@ -1,11 +1,18 @@
-#include "kvds/kvds.hpp"
+#include "kvds/datastore.hpp"
+#include <rocksdb/db.h>
 #include <rocksdb/options.h>
 #include <rocksdb/write_batch.h>
 #include <rocksdb/iterator.h>
 
 namespace kvds {
 
-datastore_c::datastore_c() {
+datastore_c::datastore_c() : db_(nullptr), is_open_(false) {
+}
+
+datastore_c::~datastore_c() {
+    if (is_open_) {
+        close();
+    }
 }
 
 bool datastore_c::open(const std::string& path) {
@@ -15,6 +22,9 @@ bool datastore_c::open(const std::string& path) {
 
     rocksdb::Options options;
     options.create_if_missing = true;
+    options.max_background_jobs = 2;
+    options.max_background_compactions = 1;
+    options.max_background_flushes = 1;
     
     rocksdb::DB* raw_db;
     rocksdb::Status status = rocksdb::DB::Open(options, path, &raw_db);
