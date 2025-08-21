@@ -1,10 +1,21 @@
-cmake_minimum_required (VERSION 3.8)
+cmake_minimum_required (VERSION 3.15)
 
 project(beau)
 
 set(CMAKE_CXX_STANDARD 20)
 
 find_package(fmt REQUIRED)
+find_package(RocksDB REQUIRED)
+
+# Find and configure zstd for cpp-httplib
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(zstd REQUIRED IMPORTED_TARGET libzstd)
+
+# Create the zstd::libzstd target that cpp-httplib expects
+if(TARGET PkgConfig::zstd)
+    add_library(zstd::libzstd ALIAS PkgConfig::zstd)
+    message(STATUS "Created zstd::libzstd target from pkg-config")
+endif()
 
 option(RUN_TESTS      "Run tests" ON)
 option(EXTRA_DEBUG_STMT     "Enable extra debug statements" OFF)
