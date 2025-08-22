@@ -22,6 +22,7 @@ target_include_directories(pkg_bytes INTERFACE
 
 add_library(pkg::bytes ALIAS pkg_bytes)
 
+# types
 add_library(pkg_types INTERFACE)
 
 target_include_directories(pkg_types INTERFACE
@@ -47,3 +48,17 @@ target_link_libraries(pkg_kvds PUBLIC
 
 add_library(pkg::kvds ALIAS pkg_kvds)
 
+# quanta
+add_library(pkg_quanta STATIC
+    quanta/quanta.cpp
+)
+
+target_include_directories(pkg_quanta PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(pkg_quanta PUBLIC
+    extern::json
+)
+
+add_library(pkg::quanta ALIAS pkg_quanta)

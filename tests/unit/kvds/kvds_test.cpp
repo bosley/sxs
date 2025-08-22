@@ -20,7 +20,7 @@ namespace {
 }
 
 TEST_CASE("kvds basic operations", "[unit][kvds]") {
-    kvds::datastore_c ds;
+    pkg::kvds::datastore_c ds;
     std::string test_db_path = get_unique_test_path("/tmp/kvds_test_basic");
     
     ensure_db_cleanup(test_db_path);
@@ -54,7 +54,7 @@ TEST_CASE("kvds basic operations", "[unit][kvds]") {
 }
 
 TEST_CASE("kvds with manual prefix management", "[unit][kvds]") {
-    kvds::datastore_c ds;
+    pkg::kvds::datastore_c ds;
     std::string test_db_path = get_unique_test_path("/tmp/kvds_test_prefix");
     
     ensure_db_cleanup(test_db_path);
@@ -81,7 +81,7 @@ TEST_CASE("kvds with manual prefix management", "[unit][kvds]") {
 }
 
 TEST_CASE("kvds batch operations", "[unit][kvds]") {
-    kvds::datastore_c ds;
+    pkg::kvds::datastore_c ds;
     std::string test_db_path = get_unique_test_path("/tmp/kvds_test_batch");
     
     ensure_db_cleanup(test_db_path);
@@ -110,7 +110,7 @@ TEST_CASE("kvds batch operations", "[unit][kvds]") {
 }
 
 TEST_CASE("kvds iteration", "[unit][kvds]") {
-    kvds::datastore_c ds;
+    pkg::kvds::datastore_c ds;
     std::string test_db_path = get_unique_test_path("/tmp/kvds_test_iteration");
     
     ensure_db_cleanup(test_db_path);
@@ -169,7 +169,7 @@ TEST_CASE("kvds iteration", "[unit][kvds]") {
 }
 
 TEST_CASE("kvds error conditions", "[unit][kvds]") {
-    kvds::datastore_c ds;
+    pkg::kvds::datastore_c ds;
     
     SECTION("operations on closed database") {
         CHECK_FALSE(ds.is_open());

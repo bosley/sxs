@@ -4,7 +4,7 @@
 #include <rocksdb/write_batch.h>
 #include <rocksdb/iterator.h>
 
-namespace kvds {
+namespace pkg::kvds {
 
 datastore_c::datastore_c() : db_(nullptr), is_open_(false) {
 }

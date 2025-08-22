@@ -1,7 +1,7 @@
 #include "kvds/memstore.hpp"
 #include <algorithm>
 
-namespace kvds {
+namespace pkg::kvds {
 
 memstore_c::memstore_c() : is_open_(false) {
 }

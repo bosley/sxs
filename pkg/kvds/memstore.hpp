@@ -6,7 +6,7 @@
 #include <mutex>
 #include <memory>
 
-namespace kvds {
+namespace pkg::kvds {
 
 class memstore_c : public kv_c {
 public:

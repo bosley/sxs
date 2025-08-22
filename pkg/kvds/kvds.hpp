@@ -4,7 +4,7 @@
 #include <functional>
 #include <map>
 
-namespace kvds {
+namespace pkg::kvds {
 
 class kv_stat {
 public:

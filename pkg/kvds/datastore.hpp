@@ -7,7 +7,7 @@ namespace rocksdb {
     class DB;
 }
 
-namespace kvds {
+namespace pkg::kvds {
 
 class datastore_c : public kv_c {
 public:

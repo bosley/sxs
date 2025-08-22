@@ -4,7 +4,7 @@
 #include <vector>
 
 TEST_CASE("memstore basic operations", "[unit][kvds][memstore]") {
-    kvds::memstore_c ms;
+    pkg::kvds::memstore_c ms;
     
     SECTION("open and close") {
         CHECK(ms.open("dummy_path"));
@@ -41,7 +41,7 @@ TEST_CASE("memstore basic operations", "[unit][kvds][memstore]") {
 }
 
 TEST_CASE("memstore batch operations", "[unit][kvds][memstore]") {
-    kvds::memstore_c ms;
+    pkg::kvds::memstore_c ms;
     CHECK(ms.open(""));
     
     SECTION("batch set") {
@@ -66,7 +66,7 @@ TEST_CASE("memstore batch operations", "[unit][kvds][memstore]") {
 }
 
 TEST_CASE("memstore iteration", "[unit][kvds][memstore]") {
-    kvds::memstore_c ms;
+    pkg::kvds::memstore_c ms;
     CHECK(ms.open(""));
     
     SECTION("prefix iteration") {
@@ -116,7 +116,7 @@ TEST_CASE("memstore iteration", "[unit][kvds][memstore]") {
 }
 
 TEST_CASE("memstore thread safety", "[unit][kvds][memstore]") {
-    kvds::memstore_c ms;
+    pkg::kvds::memstore_c ms;
     CHECK(ms.open(""));
     
     SECTION("concurrent reads and writes") {
@@ -155,7 +155,7 @@ TEST_CASE("memstore thread safety", "[unit][kvds][memstore]") {
 }
 
 TEST_CASE("memstore operations on closed store", "[unit][kvds][memstore]") {
-    kvds::memstore_c ms;
+    pkg::kvds::memstore_c ms;
     
     SECTION("all operations fail when closed") {
         CHECK_FALSE(ms.is_open());
