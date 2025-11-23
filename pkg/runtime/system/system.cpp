@@ -115,6 +115,11 @@ void system_c::initialize(runtime_accessor_t accessor) {
 void system_c::shutdown() {
   logger_->info("[{}] Shutting down", name_);
   
+  kv_entity_store_ = std::nullopt;
+  kv_session_store_ = std::nullopt;
+  kv_runtime_store_ = std::nullopt;
+  kv_ds_store_ = std::nullopt;
+  
   if (distributor_) {
     logger_->info("[{}] Destroying kvds distributor", name_);
     distributor_.reset();
