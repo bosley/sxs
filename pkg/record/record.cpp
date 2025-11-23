@@ -1,9 +1,14 @@
 #include "record/record.hpp"
+#include <chrono>
+#include <random>
 
 namespace record {
 
 record_manager_c::record_manager_c(kvds::kv_c& store, std::shared_ptr<spdlog::logger> logger)
-    : store_(store), logger_(logger) {}
+    : store_(store), logger_(logger) {
+    release_all_locks();
+    logger_->info("Record manager initialized, all locks released");
+}
 
 std::string record_manager_c::make_meta_key(const std::string& type_id) const {
     return "record:meta:" + type_id;
@@ -22,6 +27,28 @@ std::string record_manager_c::make_data_prefix(const std::string& type_id) const
 std::string record_manager_c::make_instance_prefix(const std::string& type_id, 
                                                    const std::string& instance_id) const {
     return "record:data:" + type_id + ":" + instance_id + ":";
+}
+
+std::string record_manager_c::make_lock_key(const std::string& type_id, 
+                                            const std::string& instance_id) const {
+    return "record:lock:" + type_id + ":" + instance_id;
+}
+
+void record_manager_c::release_all_locks() {
+    std::vector<std::string> lock_keys;
+    
+    store_.iterate("record:lock:", [&lock_keys](const std::string& key, const std::string& value) {
+        lock_keys.push_back(key);
+        return true;
+    });
+    
+    for (const auto& key : lock_keys) {
+        store_.del(key);
+    }
+    
+    if (!lock_keys.empty()) {
+        logger_->info("Released {} stale locks during initialization", lock_keys.size());
+    }
 }
 
 bool record_manager_c::ensure_schema_registered(const std::string& type_id, const std::string& schema) {
@@ -144,6 +171,119 @@ void record_manager_c::iterate_all(std::function<bool(const std::string& type_id
         
         return continue_outer;
     });
+}
+
+std::string record_base_c::generate_lock_token() {
+    auto now = std::chrono::system_clock::now().time_since_epoch();
+    auto timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(now).count();
+    
+    std::random_device rd;
+    std::mt19937_64 gen(rd());
+    std::uniform_int_distribution<uint64_t> dis;
+    uint64_t random_value = dis(gen);
+    
+    return std::to_string(timestamp) + "_" + std::to_string(random_value);
+}
+
+bool record_base_c::acquire_lock() {
+    if (!manager_) {
+        return false;
+    }
+    
+    std::string lock_key = manager_->make_lock_key(get_type_id(), instance_id_);
+    
+    if (lock_token_.empty()) {
+        lock_token_ = generate_lock_token();
+    }
+    
+    std::string existing_lock;
+    if (manager_->get_store().get(lock_key, existing_lock)) {
+        if (existing_lock == lock_token_) {
+            return true;
+        }
+        return false;
+    }
+    
+    if (!manager_->get_store().set(lock_key, lock_token_)) {
+        return false;
+    }
+    
+    return true;
+}
+
+bool record_base_c::verify_lock() {
+    if (!manager_) {
+        return false;
+    }
+    
+    std::string lock_key = manager_->make_lock_key(get_type_id(), instance_id_);
+    std::string current_lock;
+    
+    if (!manager_->get_store().get(lock_key, current_lock)) {
+        return false;
+    }
+    
+    return current_lock == lock_token_;
+}
+
+void record_base_c::release_lock() {
+    if (!manager_) {
+        return;
+    }
+    
+    std::string lock_key = manager_->make_lock_key(get_type_id(), instance_id_);
+    manager_->get_store().del(lock_key);
+    lock_token_.clear();
+}
+
+bool record_base_c::save() {
+    if (!manager_) {
+        return false;
+    }
+    
+    if (!acquire_lock()) {
+        return false;
+    }
+    
+    if (!verify_lock()) {
+        release_lock();
+        return false;
+    }
+    
+    for (size_t i = 0; i < field_count(); ++i) {
+        std::string key = manager_->make_data_key(get_type_id(), instance_id_, i);
+        if (!manager_->get_store().set(key, field_values_[i])) {
+            release_lock();
+            return false;
+        }
+    }
+    
+    release_lock();
+    return true;
+}
+
+bool record_base_c::del() {
+    if (!manager_) {
+        return false;
+    }
+    
+    if (!acquire_lock()) {
+        return false;
+    }
+    
+    for (size_t i = 0; i < field_count(); ++i) {
+        std::string key = manager_->make_data_key(get_type_id(), instance_id_, i);
+        if (!manager_->get_store().del(key)) {
+            release_lock();
+            return false;
+        }
+    }
+    
+    std::string lock_key = manager_->make_lock_key(get_type_id(), instance_id_);
+    manager_->get_store().del(lock_key);
+    lock_token_.clear();
+    
+    return true;
 }
 
 }

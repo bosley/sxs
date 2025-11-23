@@ -46,6 +46,8 @@ public:
     record_manager_c(const record_manager_c&) = delete;
     record_manager_c& operator=(const record_manager_c&) = delete;
     
+    void release_all_locks();
+    
     template<typename T>
     std::optional<std::unique_ptr<T>> get_or_create(const std::string& instance_id) {
         static_assert(std::is_base_of<record_if, T>::value, "T must inherit from record_if");
@@ -85,6 +87,7 @@ public:
     std::string make_data_key(const std::string& type_id, const std::string& instance_id, size_t field_index) const;
     std::string make_data_prefix(const std::string& type_id) const;
     std::string make_instance_prefix(const std::string& type_id, const std::string& instance_id) const;
+    std::string make_lock_key(const std::string& type_id, const std::string& instance_id) const;
     
 private:
     bool ensure_schema_registered(const std::string& type_id, const std::string& schema);
@@ -98,6 +101,9 @@ class record_base_c : public record_if {
 public:
     record_base_c() : manager_(nullptr) {}
     virtual ~record_base_c() = default;
+    
+    bool save() override;
+    bool del() override;
     
 protected:
     friend class record_manager_c;
@@ -113,6 +119,14 @@ protected:
     record_manager_c* manager_;
     std::string instance_id_;
     std::vector<std::string> field_values_;
+    
+private:
+    std::string lock_token_;
+    
+    std::string generate_lock_token();
+    bool acquire_lock();
+    bool verify_lock();
+    void release_lock();
 };
 
 }

@@ -63,21 +63,6 @@ public:
         return true;
     }
     
-    bool save() override {
-        if (!manager_) {
-            return false;
-        }
-        
-        for (size_t i = 0; i < field_count(); ++i) {
-            std::string key = manager_->make_data_key(get_type_id(), instance_id_, i);
-            if (!manager_->get_store().set(key, field_values_[i])) {
-                return false;
-            }
-        }
-        
-        return true;
-    }
-    
     bool load() override {
         if (!manager_) {
             return false;
@@ -86,21 +71,6 @@ public:
         for (size_t i = 0; i < field_count(); ++i) {
             std::string key = manager_->make_data_key(get_type_id(), instance_id_, i);
             if (!manager_->get_store().get(key, field_values_[i])) {
-                return false;
-            }
-        }
-        
-        return true;
-    }
-    
-    bool del() override {
-        if (!manager_) {
-            return false;
-        }
-        
-        for (size_t i = 0; i < field_count(); ++i) {
-            std::string key = manager_->make_data_key(get_type_id(), instance_id_, i);
-            if (!manager_->get_store().del(key)) {
                 return false;
             }
         }
@@ -151,21 +121,6 @@ public:
         return true;
     }
     
-    bool save() override {
-        if (!manager_) {
-            return false;
-        }
-        
-        for (size_t i = 0; i < field_count(); ++i) {
-            std::string key = manager_->make_data_key(get_type_id(), instance_id_, i);
-            if (!manager_->get_store().set(key, field_values_[i])) {
-                return false;
-            }
-        }
-        
-        return true;
-    }
-    
     bool load() override {
         if (!manager_) {
             return false;
@@ -174,21 +129,6 @@ public:
         for (size_t i = 0; i < field_count(); ++i) {
             std::string key = manager_->make_data_key(get_type_id(), instance_id_, i);
             if (!manager_->get_store().get(key, field_values_[i])) {
-                return false;
-            }
-        }
-        
-        return true;
-    }
-    
-    bool del() override {
-        if (!manager_) {
-            return false;
-        }
-        
-        for (size_t i = 0; i < field_count(); ++i) {
-            std::string key = manager_->make_data_key(get_type_id(), instance_id_, i);
-            if (!manager_->get_store().del(key)) {
                 return false;
             }
         }
@@ -553,6 +493,220 @@ TEST_CASE("multiple record types", "[unit][record]") {
         
         auto product_loaded = manager.get_or_create<product_record_c>("prod_300");
         CHECK((*product_loaded)->get_sku() == "SKU300");
+    }
+    
+    ds.close();
+    ensure_db_cleanup(test_db_path);
+}
+
+TEST_CASE("record locking acquisition and release", "[unit][record][locking]") {
+    kvds::datastore_c ds;
+    std::string test_db_path = get_unique_test_path("/tmp/record_test_lock_acquire");
+    auto logger = create_test_logger();
+    
+    ensure_db_cleanup(test_db_path);
+    CHECK(ds.open(test_db_path));
+    
+    record::record_manager_c manager(ds, logger);
+    
+    SECTION("lock is acquired and released during save") {
+        auto user = manager.get_or_create<user_record_c>("nathan");
+        (*user)->set_name("Nathan");
+        (*user)->set_age("28");
+        (*user)->set_email("nathan@example.com");
+        
+        std::string lock_key = manager.make_lock_key("user", "nathan");
+        CHECK_FALSE(ds.exists(lock_key));
+        
+        CHECK((*user)->save());
+        
+        CHECK_FALSE(ds.exists(lock_key));
+    }
+    
+    SECTION("lock persists across multiple saves") {
+        auto user = manager.get_or_create<user_record_c>("olivia");
+        (*user)->set_name("Olivia");
+        (*user)->save();
+        
+        (*user)->set_age("32");
+        CHECK((*user)->save());
+        
+        std::string lock_key = manager.make_lock_key("user", "olivia");
+        CHECK_FALSE(ds.exists(lock_key));
+    }
+    
+    ds.close();
+    ensure_db_cleanup(test_db_path);
+}
+
+TEST_CASE("record locking prevents concurrent modification", "[unit][record][locking]") {
+    kvds::datastore_c ds;
+    std::string test_db_path = get_unique_test_path("/tmp/record_test_lock_contention");
+    auto logger = create_test_logger();
+    
+    ensure_db_cleanup(test_db_path);
+    CHECK(ds.open(test_db_path));
+    
+    record::record_manager_c manager(ds, logger);
+    
+    SECTION("save fails when lock is held by another process") {
+        auto user1 = manager.get_or_create<user_record_c>("paul");
+        (*user1)->set_name("Paul");
+        (*user1)->save();
+        
+        std::string lock_key = manager.make_lock_key("user", "paul");
+        CHECK(ds.set(lock_key, "different_lock_token_12345"));
+        
+        auto user2 = manager.get_or_create<user_record_c>("paul");
+        (*user2)->set_age("40");
+        CHECK_FALSE((*user2)->save());
+        
+        ds.del(lock_key);
+    }
+    
+    SECTION("save succeeds after lock is released") {
+        auto user = manager.get_or_create<user_record_c>("quinn");
+        (*user)->set_name("Quinn");
+        
+        std::string lock_key = manager.make_lock_key("user", "quinn");
+        CHECK(ds.set(lock_key, "external_lock_99999"));
+        
+        CHECK_FALSE((*user)->save());
+        
+        ds.del(lock_key);
+        
+        CHECK((*user)->save());
+    }
+    
+    ds.close();
+    ensure_db_cleanup(test_db_path);
+}
+
+TEST_CASE("record locking cleanup on delete", "[unit][record][locking]") {
+    kvds::datastore_c ds;
+    std::string test_db_path = get_unique_test_path("/tmp/record_test_lock_cleanup");
+    auto logger = create_test_logger();
+    
+    ensure_db_cleanup(test_db_path);
+    CHECK(ds.open(test_db_path));
+    
+    record::record_manager_c manager(ds, logger);
+    
+    SECTION("delete removes lock key") {
+        auto user = manager.get_or_create<user_record_c>("rachel");
+        (*user)->set_name("Rachel");
+        (*user)->set_age("29");
+        (*user)->save();
+        
+        std::string lock_key = manager.make_lock_key("user", "rachel");
+        CHECK((*user)->del());
+        
+        CHECK_FALSE(ds.exists(lock_key));
+        CHECK_FALSE(manager.exists("user", "rachel"));
+    }
+    
+    SECTION("delete fails if lock is held by another process") {
+        auto user = manager.get_or_create<user_record_c>("steve");
+        (*user)->set_name("Steve");
+        (*user)->save();
+        
+        std::string lock_key = manager.make_lock_key("user", "steve");
+        CHECK(ds.set(lock_key, "external_lock_88888"));
+        
+        CHECK_FALSE((*user)->del());
+        
+        CHECK(manager.exists("user", "steve"));
+        
+        ds.del(lock_key);
+    }
+    
+    ds.close();
+    ensure_db_cleanup(test_db_path);
+}
+
+TEST_CASE("record locking with multiple record types", "[unit][record][locking]") {
+    kvds::datastore_c ds;
+    std::string test_db_path = get_unique_test_path("/tmp/record_test_lock_multi");
+    auto logger = create_test_logger();
+    
+    ensure_db_cleanup(test_db_path);
+    CHECK(ds.open(test_db_path));
+    
+    record::record_manager_c manager(ds, logger);
+    
+    SECTION("locks are type-specific") {
+        auto user = manager.get_or_create<user_record_c>("shared_id");
+        (*user)->set_name("Tina");
+        
+        auto product = manager.get_or_create<product_record_c>("shared_id");
+        (*product)->set_sku("SKU999");
+        
+        std::string user_lock = manager.make_lock_key("user", "shared_id");
+        std::string product_lock = manager.make_lock_key("product", "shared_id");
+        
+        CHECK(ds.set(user_lock, "user_lock_token"));
+        
+        CHECK_FALSE((*user)->save());
+        CHECK((*product)->save());
+        
+        ds.del(user_lock);
+        CHECK((*user)->save());
+    }
+    
+    ds.close();
+    ensure_db_cleanup(test_db_path);
+}
+
+TEST_CASE("record manager releases all locks on startup", "[unit][record][locking]") {
+    kvds::datastore_c ds;
+    std::string test_db_path = get_unique_test_path("/tmp/record_test_lock_startup");
+    auto logger = create_test_logger();
+    
+    ensure_db_cleanup(test_db_path);
+    CHECK(ds.open(test_db_path));
+    
+    SECTION("startup clears stale locks from crash recovery") {
+        CHECK(ds.set("record:lock:user:crashed_user1", "stale_lock_1"));
+        CHECK(ds.set("record:lock:user:crashed_user2", "stale_lock_2"));
+        CHECK(ds.set("record:lock:product:crashed_prod", "stale_lock_3"));
+        
+        CHECK(ds.exists("record:lock:user:crashed_user1"));
+        CHECK(ds.exists("record:lock:user:crashed_user2"));
+        CHECK(ds.exists("record:lock:product:crashed_prod"));
+        
+        record::record_manager_c manager(ds, logger);
+        
+        CHECK_FALSE(ds.exists("record:lock:user:crashed_user1"));
+        CHECK_FALSE(ds.exists("record:lock:user:crashed_user2"));
+        CHECK_FALSE(ds.exists("record:lock:product:crashed_prod"));
+    }
+    
+    SECTION("multiple manager instances each clear locks") {
+        {
+            record::record_manager_c manager1(ds, logger);
+            auto user = manager1.get_or_create<user_record_c>("uma");
+            (*user)->set_name("Uma");
+            
+            std::string lock_key = manager1.make_lock_key("user", "uma");
+            CHECK(ds.set(lock_key, "manual_lock"));
+        }
+        
+        CHECK(ds.exists("record:lock:user:uma"));
+        
+        record::record_manager_c manager2(ds, logger);
+        CHECK_FALSE(ds.exists("record:lock:user:uma"));
+    }
+    
+    SECTION("release_all_locks can be called manually") {
+        record::record_manager_c manager(ds, logger);
+        
+        CHECK(ds.set("record:lock:user:victor", "lock1"));
+        CHECK(ds.set("record:lock:product:prod500", "lock2"));
+        
+        manager.release_all_locks();
+        
+        CHECK_FALSE(ds.exists("record:lock:user:victor"));
+        CHECK_FALSE(ds.exists("record:lock:product:prod500"));
     }
     
     ds.close();
