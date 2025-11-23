@@ -62,3 +62,18 @@ target_link_libraries(pkg_slp PUBLIC
 
 add_library(pkg::slp ALIAS pkg_slp)
 
+add_library(pkg_sconf STATIC
+    sconf/sconf.cpp
+)
+
+target_include_directories(pkg_sconf PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(pkg_sconf PUBLIC
+    pkg::slp
+    fmt::fmt
+)
+
+add_library(pkg::sconf ALIAS pkg_sconf)
+
