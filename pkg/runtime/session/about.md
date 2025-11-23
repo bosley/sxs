@@ -82,6 +82,8 @@ sequenceDiagram
 
 ### Event Permission Flow
 
+#### Publishing Events
+
 ```mermaid
 sequenceDiagram
     participant Sess as session_c
@@ -105,6 +107,37 @@ sequenceDiagram
     end
 ```
 
+#### Subscribing to Events
+
+```mermaid
+sequenceDiagram
+    participant Sess as session_c
+    participant Ent as entity_c
+    participant ES as event_system
+    participant Consumer as event_consumer
+    
+    Sess->>Sess: subscribe_to_topic(category, topic_id, handler)
+    Sess->>Ent: is_permitted_topic(topic_id, "S")?
+    
+    alt Has SUBSCRIBE or PUBSUB permission
+        Sess->>Sess: Store handler for (category, topic_id) pair
+        Sess->>ES: register_consumer(topic_id, consumer)
+        Note over Sess: Handler only invoked for matching category
+        Sess-->>Sess: return true
+    else No permission
+        Sess-->>Sess: return false
+    end
+    
+    Note over ES: When event arrives...
+    ES->>Consumer: consume_event(event)
+    Consumer->>Sess: Look up handler by (event.category, event.topic_id)
+    alt Handler found for this category+topic
+        Consumer->>Sess: invoke handler(event)
+    else No handler for this category
+        Note over Consumer: Event ignored
+    end
+```
+
 ## Key Behaviors
 
 ### KV Store Isolation
@@ -118,9 +151,11 @@ sequenceDiagram
 
 - Topic permissions checked on publish AND subscribe
 - Category can be dynamically chosen per event
-- Permissions stored persistently in entity
+- **Subscriptions are category-specific**: `subscribe_to_topic(category, topic_id, handler)` only receives events matching both the category and topic_id
+- Events published to a different category on the same topic will not trigger the handler
+- Permissions stored persistently in entity (topic permissions only, not category-specific)
 - Failed operations return false (fail silently)
-- Unsubscribing removes handler and consumer reference from session
+- Unsubscribing requires both category and topic_id: `unsubscribe_from_topic(category, topic_id)`
 - Note: Consumer remains registered in event system (no unregister API), but won't be invoked
 
 ### Session Lifecycle
@@ -129,6 +164,14 @@ sequenceDiagram
 - Scope permissions NOT validated at creation time
 - Operations fail at runtime if permissions missing
 - Sessions can be created for any scope regardless of entity permissions
+
+### Category-Scoped Event Subscriptions
+
+- Subscriptions are identified by `(category, topic_id)` pairs
+- Multiple subscriptions to the same `topic_id` but different categories are independent
+- Example: Subscribing to `(BACKCHANNEL_A, 100)` will NOT receive events published to `(BACKCHANNEL_B, 100)`
+- This enables category-based event routing without requiring separate topic IDs
+- Topic permissions remain category-agnostic (one permission grants access to a topic across all categories)
 
 ## Code Examples
 
@@ -155,17 +198,75 @@ store2->set("key", "val");
 
 Note: If entity "user123" only has READ_ONLY permission to "config" scope (as shown in Example 1), the `store2->set()` call will return `false`.
 
-### Example 3: Event Publishing
+### Example 3: Event Publishing & Subscribing
 
 ```cpp
-entity->grant_topic_permission(100, topic_permission::PUBLISH);
+// Grant permissions
+entity->grant_topic_permission(100, topic_permission::PUBSUB);
+entity->grant_topic_permission(200, topic_permission::PUBLISH);
 entity->save();
 
 auto session = subsystem.create_session("user123", "data");
 
+// Publish to BACKCHANNEL_A on topic 100
 session->publish_event(event_category_e::RUNTIME_BACKCHANNEL_A, 100, data);
 
+// Subscribe to BACKCHANNEL_A on topic 100
+session->subscribe_to_topic(
+    event_category_e::RUNTIME_BACKCHANNEL_A, 
+    100, 
+    [](const event_s& event) {
+        // Handler only receives events published to BACKCHANNEL_A on topic 100
+        // Events on BACKCHANNEL_B topic 100 will NOT trigger this handler
+    }
+);
+
+// Publish to topic 200 (entity has PUBLISH permission)
 session->publish_event(event_category_e::RUNTIME_BACKCHANNEL_A, 200, data);
+// Returns true - succeeds with PUBLISH permission
+
+// Attempting to subscribe to topic 200 would fail (no SUBSCRIBE permission)
+// session->subscribe_to_topic(event_category_e::RUNTIME_BACKCHANNEL_A, 200, handler);
+// Returns false - entity only has PUBLISH, not SUBSCRIBE or PUBSUB
+
+// Unsubscribe from specific category+topic combination
+session->unsubscribe_from_topic(event_category_e::RUNTIME_BACKCHANNEL_A, 100);
+```
+
+### Example 4: Category-Scoped Subscription Isolation
+
+```cpp
+entity->grant_topic_permission(500, topic_permission::PUBSUB);
+entity->save();
+
+auto session = subsystem.create_session("user123", "data");
+
+std::atomic<int> channel_a_count{0};
+std::atomic<int> channel_b_count{0};
+
+// Subscribe to topic 500 on BACKCHANNEL_A
+session->subscribe_to_topic(
+    event_category_e::RUNTIME_BACKCHANNEL_A, 
+    500, 
+    [&](const event_s& event) { channel_a_count++; }
+);
+
+// Subscribe to the SAME topic 500 but on BACKCHANNEL_B
+session->subscribe_to_topic(
+    event_category_e::RUNTIME_BACKCHANNEL_B, 
+    500, 
+    [&](const event_s& event) { channel_b_count++; }
+);
+
+// Publish to BACKCHANNEL_A topic 500
+session->publish_event(event_category_e::RUNTIME_BACKCHANNEL_A, 500, "data1");
+// Result: channel_a_count = 1, channel_b_count = 0
+
+// Publish to BACKCHANNEL_B topic 500
+session->publish_event(event_category_e::RUNTIME_BACKCHANNEL_B, 500, "data2");
+// Result: channel_a_count = 1, channel_b_count = 1
+
+// Each handler only receives events from its subscribed category
 ```
 
 ## Design Rationale
@@ -189,10 +290,13 @@ session->publish_event(event_category_e::RUNTIME_BACKCHANNEL_A, 200, data);
 
 ## Permission Matrix
 
-| Operation | Requires Scope Permission | Requires Topic Permission |
-|-----------|--------------------------|--------------------------|
-| `store->get()` | READ_ONLY or READ_WRITE | N/A |
-| `store->set()` | WRITE_ONLY or READ_WRITE | N/A |
-| `session->publish_event()` | N/A | PUBLISH or PUBSUB |
-| `session->subscribe_to_topic()` | N/A | SUBSCRIBE or PUBSUB |
+| Operation | Signature | Requires Scope Permission | Requires Topic Permission |
+|-----------|-----------|--------------------------|--------------------------|
+| `store->get()` | `get(key)` | READ_ONLY or READ_WRITE | N/A |
+| `store->set()` | `set(key, value)` | WRITE_ONLY or READ_WRITE | N/A |
+| `session->publish_event()` | `publish_event(category, topic_id, payload)` | N/A | PUBLISH or PUBSUB |
+| `session->subscribe_to_topic()` | `subscribe_to_topic(category, topic_id, handler)` | N/A | SUBSCRIBE or PUBSUB |
+| `session->unsubscribe_from_topic()` | `unsubscribe_from_topic(category, topic_id)` | N/A | N/A (just removes handler) |
+
+**Note**: Topic permissions are checked per `topic_id` only. The `category` parameter in subscribe/publish controls event routing but does not require separate permissions per category.
 
