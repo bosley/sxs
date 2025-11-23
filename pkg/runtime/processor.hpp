@@ -3,12 +3,12 @@
 #include "runtime/events/events.hpp"
 #include "runtime/runtime.hpp"
 #include "runtime/session/session.hpp"
+#include <condition_variable>
 #include <functional>
 #include <map>
 #include <mutex>
 #include <slp/slp.hpp>
 #include <string>
-#include <variant>
 
 namespace runtime {
 
@@ -53,11 +53,20 @@ private:
     size_t handler_root_offset;
   };
 
+  struct pending_await_s {
+    std::condition_variable cv;
+    std::mutex mutex;
+    bool completed{false};
+    slp::slp_object_c result;
+  };
+
   logger_t logger_;
   events::event_system_c *event_system_;
   std::map<std::string, function_handler_t> function_registry_;
   std::vector<subscription_handler_s> subscription_handlers_;
   std::mutex subscription_handlers_mutex_;
+  std::map<std::string, std::shared_ptr<pending_await_s>> pending_awaits_;
+  std::mutex pending_awaits_mutex_;
   eval_context_s global_context_;
 
   void register_builtin_functions();

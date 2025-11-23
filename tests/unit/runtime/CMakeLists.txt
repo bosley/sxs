@@ -150,6 +150,15 @@ add_test(NAME handler_publishes_event_creating_chain
 add_test(NAME empty_handler_body
          COMMAND runtime_tests "empty handler body")
 
+add_test(NAME processor_runtime_eval_operation
+         COMMAND runtime_tests "processor runtime/eval operation")
+add_test(NAME processor_runtime_await_operation
+         COMMAND runtime_tests "processor runtime/await operation")
+add_test(NAME processor_runtime_eval_with_kv_operations
+         COMMAND runtime_tests "processor runtime/eval with kv operations")
+add_test(NAME processor_runtime_await_async_communication
+         COMMAND runtime_tests "processor runtime/await async communication")
+
 if(WITH_ASAN)
   set_tests_properties(runtime_tests runtime_basic_operations
                        entity_basic_operations
@@ -184,6 +193,8 @@ if(WITH_ASAN)
                        rapid_fire_event_delivery_to_handler handler_with_parse_error_in_body
                        handler_with_nested_function_calls handler_publishes_event_creating_chain
                        empty_handler_body
+                       processor_runtime_eval_operation processor_runtime_await_operation
+                       processor_runtime_eval_with_kv_operations processor_runtime_await_async_communication
     PROPERTIES 
       ENVIRONMENT "ASAN_OPTIONS=detect_container_overflow=0"
   )

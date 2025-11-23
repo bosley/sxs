@@ -773,3 +773,420 @@ TEST_CASE("processor complex script execution", "[unit][runtime][processor]") {
   ensure_db_cleanup(data_test_path);
   ensure_db_cleanup(entity_test_path);
 }
+
+TEST_CASE("processor runtime/eval operation", "[unit][runtime][processor]") {
+  auto logger = create_test_logger();
+  runtime::events::event_system_c event_system(logger.get(), 2, 100);
+
+  auto accessor = std::make_shared<test_accessor_c>();
+  event_system.initialize(accessor);
+
+  kvds::datastore_c data_ds;
+  std::string data_test_path =
+      get_unique_test_path("/tmp/processor_test_runtime_eval");
+  ensure_db_cleanup(data_test_path);
+  CHECK(data_ds.open(data_test_path));
+
+  kvds::datastore_c entity_ds;
+  std::string entity_test_path =
+      get_unique_test_path("/tmp/processor_test_runtime_eval_entity");
+  ensure_db_cleanup(entity_test_path);
+  CHECK(entity_ds.open(entity_test_path));
+
+  record::record_manager_c entity_manager(entity_ds, logger);
+  auto entity_opt = entity_manager.get_or_create<runtime::entity_c>("user1");
+  REQUIRE(entity_opt.has_value());
+  auto entity = std::move(entity_opt.value());
+
+  entity->grant_permission("test_scope", runtime::permission::READ_WRITE);
+  entity->save();
+
+  runtime::processor_c processor(logger.get(), &event_system);
+
+  SECTION("evaluate simple integer literal") {
+    runtime::session_c *session =
+        create_test_session(event_system, data_ds, entity.get());
+
+    runtime::execution_request_s request;
+    request.session = session;
+    request.script_text = "(runtime/eval \"42\")";
+    request.request_id = "req1";
+
+    runtime::events::event_s event;
+    event.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.topic_identifier = 0;
+    event.payload = request;
+
+    processor.consume_event(event);
+
+    delete session;
+  }
+
+  SECTION("evaluate expression from kv/get") {
+    runtime::session_c *session =
+        create_test_session(event_system, data_ds, entity.get());
+
+    runtime::execution_request_s request;
+    request.session = session;
+    request.script_text = R"([
+      (kv/set x "100")
+      (runtime/eval (kv/get x))
+    ])";
+    request.request_id = "req2";
+
+    runtime::events::event_s event;
+    event.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.topic_identifier = 0;
+    event.payload = request;
+
+    processor.consume_event(event);
+
+    delete session;
+  }
+
+  SECTION("evaluate nested function call") {
+    runtime::session_c *session =
+        create_test_session(event_system, data_ds, entity.get());
+
+    runtime::execution_request_s request;
+    request.session = session;
+    request.script_text = "(runtime/eval \"(runtime/log hello-world)\")";
+    request.request_id = "req3";
+
+    runtime::events::event_s event;
+    event.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.topic_identifier = 0;
+    event.payload = request;
+
+    processor.consume_event(event);
+
+    delete session;
+  }
+
+  SECTION("error handling for parse errors") {
+    runtime::session_c *session =
+        create_test_session(event_system, data_ds, entity.get());
+
+    runtime::execution_request_s request;
+    request.session = session;
+    request.script_text = "(runtime/eval \"(broken syntax\")";
+    request.request_id = "req4";
+
+    runtime::events::event_s event;
+    event.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.topic_identifier = 0;
+    event.payload = request;
+
+    processor.consume_event(event);
+
+    delete session;
+  }
+
+  event_system.shutdown();
+  ensure_db_cleanup(data_test_path);
+  ensure_db_cleanup(entity_test_path);
+}
+
+TEST_CASE("processor runtime/eval with kv operations",
+          "[unit][runtime][processor]") {
+  auto logger = create_test_logger();
+  runtime::events::event_system_c event_system(logger.get(), 2, 100);
+
+  auto accessor = std::make_shared<test_accessor_c>();
+  event_system.initialize(accessor);
+
+  kvds::datastore_c data_ds;
+  std::string data_test_path =
+      get_unique_test_path("/tmp/processor_test_runtime_eval_kv");
+  ensure_db_cleanup(data_test_path);
+  CHECK(data_ds.open(data_test_path));
+
+  kvds::datastore_c entity_ds;
+  std::string entity_test_path =
+      get_unique_test_path("/tmp/processor_test_runtime_eval_kv_entity");
+  ensure_db_cleanup(entity_test_path);
+  CHECK(entity_ds.open(entity_test_path));
+
+  record::record_manager_c entity_manager(entity_ds, logger);
+  auto entity_opt = entity_manager.get_or_create<runtime::entity_c>("user1");
+  REQUIRE(entity_opt.has_value());
+  auto entity = std::move(entity_opt.value());
+
+  entity->grant_permission("test_scope", runtime::permission::READ_WRITE);
+  entity->save();
+
+  runtime::processor_c processor(logger.get(), &event_system);
+
+  SECTION("store result of eval in kv") {
+    runtime::session_c *session =
+        create_test_session(event_system, data_ds, entity.get());
+
+    runtime::execution_request_s request;
+    request.session = session;
+    request.script_text = R"===([
+      (kv/set script "(kv/set computed 999)")
+      (runtime/eval (kv/get script))
+      (kv/get computed)
+    ])===";
+    request.request_id = "req1";
+
+    runtime::events::event_s event;
+    event.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.topic_identifier = 0;
+    event.payload = request;
+
+    processor.consume_event(event);
+
+    std::string computed;
+    CHECK(session->get_store()->get("computed", computed));
+    CHECK(computed == "999");
+
+    delete session;
+  }
+
+  event_system.shutdown();
+  ensure_db_cleanup(data_test_path);
+  ensure_db_cleanup(entity_test_path);
+}
+
+TEST_CASE("processor runtime/await operation", "[unit][runtime][processor]") {
+  auto logger = create_test_logger();
+  runtime::events::event_system_c event_system(logger.get(), 2, 100);
+
+  auto accessor = std::make_shared<test_accessor_c>();
+  event_system.initialize(accessor);
+
+  kvds::datastore_c data_ds;
+  std::string data_test_path =
+      get_unique_test_path("/tmp/processor_test_runtime_await");
+  ensure_db_cleanup(data_test_path);
+  CHECK(data_ds.open(data_test_path));
+
+  kvds::datastore_c entity_ds;
+  std::string entity_test_path =
+      get_unique_test_path("/tmp/processor_test_runtime_await_entity");
+  ensure_db_cleanup(entity_test_path);
+  CHECK(entity_ds.open(entity_test_path));
+
+  record::record_manager_c entity_manager(entity_ds, logger);
+  auto entity_opt = entity_manager.get_or_create<runtime::entity_c>("user1");
+  REQUIRE(entity_opt.has_value());
+  auto entity = std::move(entity_opt.value());
+
+  entity->grant_permission("test_scope", runtime::permission::READ_WRITE);
+  entity->grant_topic_permission(100, runtime::topic_permission::PUBSUB);
+  entity->grant_topic_permission(101, runtime::topic_permission::PUBSUB);
+  entity->save();
+
+  runtime::processor_c processor(logger.get(), &event_system);
+
+  SECTION("basic await with response") {
+    runtime::session_c *session1 =
+        create_test_session(event_system, data_ds, entity.get());
+    runtime::session_c *session2 =
+        create_test_session(event_system, data_ds, entity.get());
+
+    std::atomic<bool> session1_done{false};
+    std::thread session1_thread([&]() {
+      runtime::execution_request_s request;
+      request.session = session1;
+      request.script_text = R"(
+        (runtime/await 
+          (event/pub $CHANNEL_A 100 "request-data")
+          $CHANNEL_A 101)
+      )";
+      request.request_id = "req1";
+
+      runtime::events::event_s event;
+      event.category =
+          runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+      event.topic_identifier = 0;
+      event.payload = request;
+
+      processor.consume_event(event);
+      session1_done = true;
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    runtime::execution_request_s request2;
+    request2.session = session2;
+    request2.script_text = R"(
+      (event/sub $CHANNEL_A 100 {
+        (event/pub $CHANNEL_A 101 "response-data")
+      })
+    )";
+    request2.request_id = "req2";
+
+    runtime::events::event_s event2;
+    event2.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event2.topic_identifier = 0;
+    event2.payload = request2;
+
+    processor.consume_event(event2);
+
+    session1_thread.join();
+    CHECK(session1_done);
+
+    delete session1;
+    delete session2;
+  }
+
+  event_system.shutdown();
+  ensure_db_cleanup(data_test_path);
+  ensure_db_cleanup(entity_test_path);
+}
+
+TEST_CASE("processor runtime/await async communication",
+          "[unit][runtime][processor]") {
+  auto logger = create_test_logger();
+  runtime::events::event_system_c event_system(logger.get(), 2, 100);
+
+  auto accessor = std::make_shared<test_accessor_c>();
+  event_system.initialize(accessor);
+
+  kvds::datastore_c data_ds;
+  std::string data_test_path =
+      get_unique_test_path("/tmp/processor_test_runtime_await_async");
+  ensure_db_cleanup(data_test_path);
+  CHECK(data_ds.open(data_test_path));
+
+  kvds::datastore_c entity_ds;
+  std::string entity_test_path =
+      get_unique_test_path("/tmp/processor_test_runtime_await_async_entity");
+  ensure_db_cleanup(entity_test_path);
+  CHECK(entity_ds.open(entity_test_path));
+
+  record::record_manager_c entity_manager(entity_ds, logger);
+  auto entity_opt = entity_manager.get_or_create<runtime::entity_c>("user1");
+  REQUIRE(entity_opt.has_value());
+  auto entity = std::move(entity_opt.value());
+
+  entity->grant_permission("test_scope", runtime::permission::READ_WRITE);
+  entity->grant_topic_permission(200, runtime::topic_permission::PUBSUB);
+  entity->grant_topic_permission(201, runtime::topic_permission::PUBSUB);
+  entity->save();
+
+  runtime::processor_c processor(logger.get(), &event_system);
+
+  SECTION("await with kv storage") {
+    runtime::session_c *session1 =
+        create_test_session(event_system, data_ds, entity.get());
+    runtime::session_c *session2 =
+        create_test_session(event_system, data_ds, entity.get());
+
+    std::atomic<bool> session1_done{false};
+    std::thread session1_thread([&]() {
+      runtime::execution_request_s request;
+      request.session = session1;
+      request.script_text = R"([
+        (kv/set result 
+          (runtime/await 
+            (event/pub $CHANNEL_B 200 "get-value")
+            $CHANNEL_B 201))
+        (runtime/log "Stored result:" (kv/get result))
+      ])";
+      request.request_id = "req1";
+
+      runtime::events::event_s event;
+      event.category =
+          runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+      event.topic_identifier = 0;
+      event.payload = request;
+
+      processor.consume_event(event);
+      session1_done = true;
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    runtime::execution_request_s request2;
+    request2.session = session2;
+    request2.script_text = R"(
+      (event/sub $CHANNEL_B 200 {
+        (event/pub $CHANNEL_B 201 "computed-value-42")
+      })
+    )";
+    request2.request_id = "req2";
+
+    runtime::events::event_s event2;
+    event2.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event2.topic_identifier = 0;
+    event2.payload = request2;
+
+    processor.consume_event(event2);
+
+    session1_thread.join();
+    CHECK(session1_done);
+
+    std::string result;
+    CHECK(session1->get_store()->get("result", result));
+    CHECK(result == "computed-value-42");
+
+    delete session1;
+    delete session2;
+  }
+
+  SECTION("multiple awaits on different topics") {
+    runtime::session_c *session1 =
+        create_test_session(event_system, data_ds, entity.get());
+
+    entity->grant_topic_permission(300, runtime::topic_permission::PUBSUB);
+    entity->grant_topic_permission(301, runtime::topic_permission::PUBSUB);
+    entity->save();
+
+    std::thread responder_thread([&]() {
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      session1->publish_event(
+          runtime::events::event_category_e::RUNTIME_BACKCHANNEL_B, 201,
+          std::string("first-response"));
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      session1->publish_event(
+          runtime::events::event_category_e::RUNTIME_BACKCHANNEL_C, 301,
+          std::string("second-response"));
+    });
+
+    runtime::execution_request_s request;
+    request.session = session1;
+    request.script_text = R"([
+      (kv/set r1 
+        (runtime/await 
+          (event/pub $CHANNEL_B 200 "req1")
+          $CHANNEL_B 201))
+      (kv/set r2 
+        (runtime/await 
+          (event/pub $CHANNEL_C 300 "req2")
+          $CHANNEL_C 301))
+    ])";
+    request.request_id = "req1";
+
+    runtime::events::event_s event;
+    event.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.topic_identifier = 0;
+    event.payload = request;
+
+    processor.consume_event(event);
+
+    responder_thread.join();
+
+    std::string r1, r2;
+    CHECK(session1->get_store()->get("r1", r1));
+    CHECK(r1 == "first-response");
+    CHECK(session1->get_store()->get("r2", r2));
+    CHECK(r2 == "second-response");
+
+    delete session1;
+  }
+
+  event_system.shutdown();
+  ensure_db_cleanup(data_test_path);
+  ensure_db_cleanup(entity_test_path);
+}
