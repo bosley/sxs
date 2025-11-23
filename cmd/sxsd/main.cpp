@@ -14,6 +14,7 @@ void print_usage() {
   fmt::print("  --include-path, -i PATH\tAdd an include path (can be used multiple times)\n");
   fmt::print("  --event-system-max-threads, -t NUM\tSet the maximum number of event system threads\n");
   fmt::print("  --event-system-max-queue-size, -q NUM\tSet the maximum size of the event system queue\n");
+  fmt::print("  --max-sessions-per-entity, -s NUM\tSet the maximum number of sessions per entity\n");
   fmt::print("\nEnvironment Variables:\n");
   fmt::print("  SXSRUNTIME_ROOT_PATH\t\tDefault runtime root path\n");
   fmt::print("  SXSRUNTIME_INCLUDE_PATHS\tColon-separated list of include paths\n");
@@ -65,6 +66,10 @@ int main(int argc, char **argv) {
     options.event_system_max_queue_size = std::stoi(*event_system_max_queue_size);
   }
 
+  if (auto max_sessions_per_entity = load_from_env("SXSMX_SESSIONS_PER_ENTITY")) {
+    options.max_sessions_per_entity = std::stoi(*max_sessions_per_entity);
+  }
+
   for (size_t i = 1; i < args.size(); ++i) {
     const auto &arg = args[i];
 
@@ -97,6 +102,12 @@ int main(int argc, char **argv) {
         return 1;
       }
       options.event_system_max_queue_size = std::stoi(args[++i]);
+    } else if (arg == "--max-sessions-per-entity" || arg == "-s") {
+      if (i + 1 >= args.size()) {
+        fmt::print(stderr, "Error: {} requires a number argument\n", arg);
+        return 1;
+      }
+      options.max_sessions_per_entity = std::stoi(args[++i]);
     } else {
       fmt::print(stderr, "Error: Unknown option '{}'\n", arg);
       print_usage();

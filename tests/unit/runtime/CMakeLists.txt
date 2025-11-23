@@ -99,6 +99,14 @@ add_test(NAME session_event_payload_types
          COMMAND runtime_tests "session event payload types")
 add_test(NAME session_event_origin_verification
          COMMAND runtime_tests "session event origin verification")
+add_test(NAME bidirectional_communication_on_same_topic
+         COMMAND runtime_tests "bidirectional communication on same topic")
+add_test(NAME topic_isolation_prevents_cross_topic_leakage
+         COMMAND runtime_tests "topic isolation prevents cross-topic leakage")
+add_test(NAME mixed_permissions_on_same_topic
+         COMMAND runtime_tests "mixed permissions on same topic")
+add_test(NAME multiple_sessions_per_entity_receive_events
+         COMMAND runtime_tests "multiple sessions per entity receive events")
 
 if(WITH_ASAN)
   set_tests_properties(runtime_tests runtime_basic_operations
@@ -117,6 +125,8 @@ if(WITH_ASAN)
                        session_event_publish_and_consume session_unsubscribe_from_topics
                        session_multiple_topic_subscriptions session_event_payload_types
                        session_event_origin_verification
+                       bidirectional_communication_on_same_topic topic_isolation_prevents_cross_topic_leakage
+                       mixed_permissions_on_same_topic multiple_sessions_per_entity_receive_events
                        event_system_basic_operations event_producer_and_topic_writer
                        event_consumer_registration event_publishing_and_consumption
                        multi_threaded_event_processing event_system_error_handling

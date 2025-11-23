@@ -648,3 +648,239 @@ TEST_CASE("session event origin verification", "[unit][runtime][session][events]
   ensure_db_cleanup(data_test_path);
 }
 
+TEST_CASE("bidirectional communication on same topic", "[unit][runtime][session][events][integration]") {
+  kvds::datastore_c entity_ds;
+  kvds::datastore_c data_ds;
+  std::string entity_test_path = get_unique_test_path("/tmp/session_event_test_bidir_entity");
+  std::string data_test_path = get_unique_test_path("/tmp/session_event_test_bidir_data");
+  auto logger = create_test_logger();
+  
+  ensure_db_cleanup(entity_test_path);
+  ensure_db_cleanup(data_test_path);
+  
+  CHECK(entity_ds.open(entity_test_path));
+  CHECK(data_ds.open(data_test_path));
+  
+  runtime::events::event_system_c event_system(logger.get(), 4, 1000);
+  event_system.initialize(nullptr);
+  
+  record::record_manager_c entity_manager(entity_ds, logger);
+  
+  auto entity1_opt = entity_manager.get_or_create<runtime::entity_c>("user1");
+  auto entity2_opt = entity_manager.get_or_create<runtime::entity_c>("user2");
+  REQUIRE(entity1_opt.has_value());
+  REQUIRE(entity2_opt.has_value());
+  auto entity1 = std::move(entity1_opt.value());
+  auto entity2 = std::move(entity2_opt.value());
+  
+  entity1->grant_permission("scope1", runtime::permission::READ_WRITE);
+  entity1->grant_topic_permission(1000, runtime::topic_permission::PUBSUB);
+  entity1->save();
+  
+  entity2->grant_permission("scope2", runtime::permission::READ_WRITE);
+  entity2->grant_topic_permission(1000, runtime::topic_permission::PUBSUB);
+  entity2->save();
+  
+  auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
+  
+  runtime::session_c session1("sess1", "user1", "scope1", entity1.get(), &data_ds, producer, &event_system);
+  runtime::session_c session2("sess2", "user2", "scope2", entity2.get(), &data_ds, producer, &event_system);
+  
+  std::atomic<int> session1_count{0};
+  std::atomic<int> session2_count{0};
+  std::string session1_received;
+  std::string session2_received;
+  
+  auto handler1 = [&session1_count, &session1_received](const runtime::events::event_s& event) {
+    session1_count++;
+    if (event.payload.has_value()) {
+      session1_received = std::any_cast<std::string>(event.payload);
+    }
+  };
+  
+  auto handler2 = [&session2_count, &session2_received](const runtime::events::event_s& event) {
+    session2_count++;
+    if (event.payload.has_value()) {
+      session2_received = std::any_cast<std::string>(event.payload);
+    }
+  };
+  
+  CHECK(session1.subscribe_to_topic(1000, handler1));
+  CHECK(session2.subscribe_to_topic(1000, handler2));
+  
+  CHECK(session1.publish_event(1000, std::string("hello_from_1")));
+  CHECK(session2.publish_event(1000, std::string("hello_from_2")));
+  
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  
+  CHECK(session1_count.load() == 2);
+  CHECK(session2_count.load() == 2);
+  CHECK((session1_received == "hello_from_1" || session1_received == "hello_from_2"));
+  CHECK((session2_received == "hello_from_1" || session2_received == "hello_from_2"));
+  
+  event_system.shutdown();
+  ensure_db_cleanup(entity_test_path);
+  ensure_db_cleanup(data_test_path);
+}
+
+TEST_CASE("topic isolation prevents cross-topic leakage", "[unit][runtime][session][events][integration]") {
+  kvds::datastore_c entity_ds;
+  kvds::datastore_c data_ds;
+  std::string entity_test_path = get_unique_test_path("/tmp/session_event_test_isolation_entity");
+  std::string data_test_path = get_unique_test_path("/tmp/session_event_test_isolation_data");
+  auto logger = create_test_logger();
+  
+  ensure_db_cleanup(entity_test_path);
+  ensure_db_cleanup(data_test_path);
+  
+  CHECK(entity_ds.open(entity_test_path));
+  CHECK(data_ds.open(data_test_path));
+  
+  runtime::events::event_system_c event_system(logger.get(), 4, 1000);
+  event_system.initialize(nullptr);
+  
+  record::record_manager_c entity_manager(entity_ds, logger);
+  auto entity_opt = entity_manager.get_or_create<runtime::entity_c>("user1");
+  REQUIRE(entity_opt.has_value());
+  auto entity = std::move(entity_opt.value());
+  
+  entity->grant_permission("test_scope", runtime::permission::READ_WRITE);
+  entity->grant_topic_permission(1100, runtime::topic_permission::PUBSUB);
+  entity->grant_topic_permission(1101, runtime::topic_permission::PUBSUB);
+  entity->save();
+  
+  auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
+  runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, producer, &event_system);
+  
+  std::atomic<int> topic1100_count{0};
+  std::atomic<int> topic1101_count{0};
+  
+  CHECK(session.subscribe_to_topic(1100, [&topic1100_count](const runtime::events::event_s& e) { topic1100_count++; }));
+  CHECK(session.subscribe_to_topic(1101, [&topic1101_count](const runtime::events::event_s& e) { topic1101_count++; }));
+  
+  CHECK(session.publish_event(1100, std::string("to_1100")));
+  CHECK(session.publish_event(1100, std::string("to_1100_again")));
+  CHECK(session.publish_event(1101, std::string("to_1101")));
+  
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  
+  CHECK(topic1100_count.load() == 2);
+  CHECK(topic1101_count.load() == 1);
+  
+  event_system.shutdown();
+  ensure_db_cleanup(entity_test_path);
+  ensure_db_cleanup(data_test_path);
+}
+
+TEST_CASE("mixed permissions on same topic", "[unit][runtime][session][events][integration]") {
+  kvds::datastore_c entity_ds;
+  kvds::datastore_c data_ds;
+  std::string entity_test_path = get_unique_test_path("/tmp/session_event_test_mixed_entity");
+  std::string data_test_path = get_unique_test_path("/tmp/session_event_test_mixed_data");
+  auto logger = create_test_logger();
+  
+  ensure_db_cleanup(entity_test_path);
+  ensure_db_cleanup(data_test_path);
+  
+  CHECK(entity_ds.open(entity_test_path));
+  CHECK(data_ds.open(data_test_path));
+  
+  runtime::events::event_system_c event_system(logger.get(), 4, 1000);
+  event_system.initialize(nullptr);
+  
+  record::record_manager_c entity_manager(entity_ds, logger);
+  
+  auto entity1_opt = entity_manager.get_or_create<runtime::entity_c>("publisher");
+  auto entity2_opt = entity_manager.get_or_create<runtime::entity_c>("subscriber");
+  auto entity3_opt = entity_manager.get_or_create<runtime::entity_c>("no_permission");
+  REQUIRE(entity1_opt.has_value());
+  REQUIRE(entity2_opt.has_value());
+  REQUIRE(entity3_opt.has_value());
+  auto entity1 = std::move(entity1_opt.value());
+  auto entity2 = std::move(entity2_opt.value());
+  auto entity3 = std::move(entity3_opt.value());
+  
+  entity1->grant_permission("scope1", runtime::permission::READ_WRITE);
+  entity1->grant_topic_permission(1200, runtime::topic_permission::PUBLISH);
+  entity1->save();
+  
+  entity2->grant_permission("scope2", runtime::permission::READ_WRITE);
+  entity2->grant_topic_permission(1200, runtime::topic_permission::SUBSCRIBE);
+  entity2->save();
+  
+  entity3->grant_permission("scope3", runtime::permission::READ_WRITE);
+  entity3->save();
+  
+  auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
+  
+  runtime::session_c session1("sess1", "publisher", "scope1", entity1.get(), &data_ds, producer, &event_system);
+  runtime::session_c session2("sess2", "subscriber", "scope2", entity2.get(), &data_ds, producer, &event_system);
+  runtime::session_c session3("sess3", "no_permission", "scope3", entity3.get(), &data_ds, producer, &event_system);
+  
+  std::atomic<int> session2_count{0};
+  auto handler2 = [&session2_count](const runtime::events::event_s& e) { session2_count++; };
+  
+  CHECK(session2.subscribe_to_topic(1200, handler2));
+  
+  CHECK(session1.publish_event(1200, std::string("from_publisher")));
+  CHECK_FALSE(session2.publish_event(1200, std::string("should_fail")));
+  CHECK_FALSE(session3.publish_event(1200, std::string("should_fail")));
+  
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  
+  CHECK(session2_count.load() == 1);
+  
+  event_system.shutdown();
+  ensure_db_cleanup(entity_test_path);
+  ensure_db_cleanup(data_test_path);
+}
+
+TEST_CASE("multiple sessions per entity receive events", "[unit][runtime][session][events][integration]") {
+  kvds::datastore_c entity_ds;
+  kvds::datastore_c data_ds;
+  std::string entity_test_path = get_unique_test_path("/tmp/session_event_test_multisess_entity");
+  std::string data_test_path = get_unique_test_path("/tmp/session_event_test_multisess_data");
+  auto logger = create_test_logger();
+  
+  ensure_db_cleanup(entity_test_path);
+  ensure_db_cleanup(data_test_path);
+  
+  CHECK(entity_ds.open(entity_test_path));
+  CHECK(data_ds.open(data_test_path));
+  
+  runtime::events::event_system_c event_system(logger.get(), 4, 1000);
+  event_system.initialize(nullptr);
+  
+  record::record_manager_c entity_manager(entity_ds, logger);
+  auto entity_opt = entity_manager.get_or_create<runtime::entity_c>("user1");
+  REQUIRE(entity_opt.has_value());
+  auto entity = std::move(entity_opt.value());
+  
+  entity->grant_permission("scope_a", runtime::permission::READ_WRITE);
+  entity->grant_permission("scope_b", runtime::permission::READ_WRITE);
+  entity->grant_topic_permission(1300, runtime::topic_permission::PUBSUB);
+  entity->save();
+  
+  auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
+  
+  runtime::session_c session_a("sess_a", "user1", "scope_a", entity.get(), &data_ds, producer, &event_system);
+  runtime::session_c session_b("sess_b", "user1", "scope_b", entity.get(), &data_ds, producer, &event_system);
+  
+  std::atomic<int> count_a{0};
+  std::atomic<int> count_b{0};
+  
+  CHECK(session_a.subscribe_to_topic(1300, [&count_a](const runtime::events::event_s& e) { count_a++; }));
+  CHECK(session_b.subscribe_to_topic(1300, [&count_b](const runtime::events::event_s& e) { count_b++; }));
+  
+  CHECK(session_a.publish_event(1300, std::string("message")));
+  
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  
+  CHECK(count_a.load() == 1);
+  CHECK(count_b.load() == 1);
+  
+  event_system.shutdown();
+  ensure_db_cleanup(entity_test_path);
+  ensure_db_cleanup(data_test_path);
+}
+

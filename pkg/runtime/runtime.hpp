@@ -3,7 +3,8 @@
 #include <string>
 #include <vector>
 #include <memory>
-
+#include <list>
+#include <runtime/module.hpp>
 #include <spdlog/spdlog.h>
 #include <types/shared_obj.hpp>
 
@@ -24,6 +25,11 @@ struct options_s {
   size_t event_system_max_threads{4};
   size_t event_system_max_queue_size{1000};
   size_t max_sessions_per_entity{10};
+
+  /*
+    Modules are items that are used to extend the runtime with additional functionality
+  */
+  std::list<runtime::module::module_t> modules;
 };
 
 class runtime_accessor_if : public pkg::types::shared_c {

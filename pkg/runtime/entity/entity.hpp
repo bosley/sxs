@@ -53,7 +53,6 @@ private:
   void deserialize_topic_permissions(const std::string& data);
 };
 
-
 class entity_subsystem_c : public runtime_subsystem_if {
 public:
   entity_subsystem_c(logger_t logger);
@@ -64,6 +63,5 @@ public:
   void shutdown() override final;
   bool is_running() const override final;
 };
-
 
 } // namespace runtime
