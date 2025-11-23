@@ -34,6 +34,7 @@ add_library(pkg::types ALIAS pkg_types)
 add_library(pkg_kvds STATIC
     kvds/memstore.cpp
     kvds/datastore.cpp
+    kvds/distributor.cpp
 )
 
 target_include_directories(pkg_kvds PUBLIC
