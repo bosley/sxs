@@ -99,14 +99,18 @@ session_c::session_c(const std::string& session_id,
                      const std::string& entity_id,
                      const std::string& scope,
                      entity_c* entity,
-                     kvds::kv_c* datastore)
+                     kvds::kv_c* datastore,
+                     events::event_producer_t producer,
+                     events::event_system_c* event_system)
   : id_(session_id),
     entity_id_(entity_id),
     scope_(scope),
     active_(true),
     creation_time_(std::time(nullptr)),
     entity_(entity),
-    scoped_store_(std::make_unique<scoped_kv_c>(datastore, scope, entity)) {}
+    scoped_store_(std::make_unique<scoped_kv_c>(datastore, scope, entity)),
+    producer_(producer),
+    event_system_(event_system) {}
 
 std::string session_c::get_id() const {
   return id_;
@@ -136,6 +140,82 @@ kvds::kv_c* session_c::get_store() {
   return scoped_store_.get();
 }
 
+bool session_c::publish_event(std::uint16_t topic_id, const std::any& payload) {
+  if (!entity_) {
+    return false;
+  }
+
+  if (!entity_->is_permitted_topic(topic_id, topic_permission::PUBLISH) &&
+      !entity_->is_permitted_topic(topic_id, topic_permission::PUBSUB)) {
+    return false;
+  }
+
+  if (!producer_) {
+    return false;
+  }
+
+  auto topic_writer = producer_->get_topic_writer_for_topic(topic_id);
+  if (!topic_writer) {
+    return false;
+  }
+
+  events::event_s event;
+  event.origin = events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS;
+  event.topic_identifier = topic_id;
+  event.payload = payload;
+
+  topic_writer->write_event(event);
+  return true;
+}
+
+bool session_c::subscribe_to_topic(std::uint16_t topic_id, std::function<void(const events::event_s&)> handler) {
+  if (!entity_) {
+    return false;
+  }
+
+  if (!entity_->is_permitted_topic(topic_id, topic_permission::SUBSCRIBE) &&
+      !entity_->is_permitted_topic(topic_id, topic_permission::PUBSUB)) {
+    return false;
+  }
+
+  if (!event_system_) {
+    return false;
+  }
+
+  topic_handlers_[topic_id] = handler;
+  
+  auto consumer = new session_event_consumer_c(this);
+  topic_consumers_[topic_id] = consumer;
+  event_system_->register_consumer(topic_id, consumer);
+  return true;
+}
+
+bool session_c::unsubscribe_from_topic(std::uint16_t topic_id) {
+  auto it = topic_handlers_.find(topic_id);
+  if (it == topic_handlers_.end()) {
+    return false;
+  }
+
+  topic_handlers_.erase(it);
+  return true;
+}
+
+void session_c::consume_event(const events::event_s& event) {
+  auto it = topic_handlers_.find(event.topic_identifier);
+  if (it != topic_handlers_.end()) {
+    it->second(event);
+  }
+}
+
+session_c::session_event_consumer_c::session_event_consumer_c(session_c* session)
+  : session_(session) {}
+
+void session_c::session_event_consumer_c::consume_event(const events::event_s& event) {
+  if (session_) {
+    session_->consume_event(event);
+  }
+}
+
 session_subsystem_c::session_subsystem_c(logger_t logger, size_t max_sessions_per_entity)
   : logger_(logger),
     max_sessions_per_entity_(max_sessions_per_entity),
@@ -143,6 +223,7 @@ session_subsystem_c::session_subsystem_c(logger_t logger, size_t max_sessions_pe
     session_store_(nullptr),
     datastore_(nullptr),
     entity_store_(nullptr),
+    event_system_(nullptr),
     session_counter_(0) {}
 
 const char* session_subsystem_c::get_name() const {
@@ -249,7 +330,12 @@ std::shared_ptr<session_c> session_subsystem_c::create_session(const std::string
   
   std::string session_id = generate_session_id(entity_id);
   
-  auto session = std::make_shared<session_c>(session_id, entity_id, scope, entity, datastore_);
+  events::event_producer_t producer = nullptr;
+  if (event_system_) {
+    producer = event_system_->get_event_producer_for_origin(events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
+  }
+  
+  auto session = std::make_shared<session_c>(session_id, entity_id, scope, entity, datastore_, producer, event_system_);
   
   if (!persist_session_metadata(*session)) {
     logger_->error("[{}] Failed to persist session metadata for {}", name_, session_id);
@@ -359,6 +445,11 @@ void session_subsystem_c::set_entity_store(kvds::kv_c* store) {
     entity_manager_ = std::make_unique<record::record_manager_c>(*entity_store_, spdlog_logger);
     logger_->info("[{}] Entity manager initialized", name_);
   }
+}
+
+void session_subsystem_c::set_event_system(events::event_system_c* event_system) {
+  event_system_ = event_system;
+  logger_->info("[{}] Event system wired", name_);
 }
 
 } // namespace runtime

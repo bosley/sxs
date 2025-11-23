@@ -2,6 +2,7 @@ add_executable(runtime_tests
   runtime_test.cpp
   entity_test.cpp
   session_test.cpp
+  session_event_test.cpp
   events_test.cpp
 )
 
@@ -78,6 +79,27 @@ add_test(NAME entity_permission_edge_cases
 add_test(NAME entity_deletion
          COMMAND runtime_tests "entity deletion")
 
+add_test(NAME entity_topic_permission_granting
+         COMMAND runtime_tests "entity topic permission granting")
+add_test(NAME entity_topic_permission_revocation
+         COMMAND runtime_tests "entity topic permission revocation")
+add_test(NAME entity_topic_permission_persistence
+         COMMAND runtime_tests "entity topic permission persistence")
+add_test(NAME session_publish_with_permissions
+         COMMAND runtime_tests "session publish with permissions")
+add_test(NAME session_subscribe_with_permissions
+         COMMAND runtime_tests "session subscribe with permissions")
+add_test(NAME session_event_publish_and_consume
+         COMMAND runtime_tests "session event publish and consume")
+add_test(NAME session_unsubscribe_from_topics
+         COMMAND runtime_tests "session unsubscribe from topics")
+add_test(NAME session_multiple_topic_subscriptions
+         COMMAND runtime_tests "session multiple topic subscriptions")
+add_test(NAME session_event_payload_types
+         COMMAND runtime_tests "session event payload types")
+add_test(NAME session_event_origin_verification
+         COMMAND runtime_tests "session event origin verification")
+
 if(WITH_ASAN)
   set_tests_properties(runtime_tests runtime_basic_operations
                        entity_basic_operations
@@ -86,9 +108,15 @@ if(WITH_ASAN)
                        entity_permission_persistence entity_get_and_set_permissions
                        multiple_entities_with_different_permissions entity_permission_edge_cases
                        entity_deletion
+                       entity_topic_permission_granting entity_topic_permission_revocation
+                       entity_topic_permission_persistence
                        session_subsystem_initialization session_creation_with_entity_and_scope
                        scoped_kv_operations_with_permission_checks session_subsystem_management
                        session_lifecycle_management
+                       session_publish_with_permissions session_subscribe_with_permissions
+                       session_event_publish_and_consume session_unsubscribe_from_topics
+                       session_multiple_topic_subscriptions session_event_payload_types
+                       session_event_origin_verification
                        event_system_basic_operations event_producer_and_topic_writer
                        event_consumer_registration event_publishing_and_consumption
                        multi_threaded_event_processing event_system_error_handling

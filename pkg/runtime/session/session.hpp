@@ -4,7 +4,10 @@
 #include <map>
 #include <memory>
 #include <ctime>
+#include <functional>
+#include <any>
 #include "runtime/runtime.hpp"
+#include "runtime/events/events.hpp"
 #include <kvds/kvds.hpp>
 #include <record/record.hpp>
 
@@ -48,7 +51,9 @@ public:
             const std::string& entity_id,
             const std::string& scope,
             entity_c* entity,
-            kvds::kv_c* datastore);
+            kvds::kv_c* datastore,
+            events::event_producer_t producer,
+            events::event_system_c* event_system);
   ~session_c() = default;
 
   std::string get_id() const;
@@ -60,7 +65,22 @@ public:
   void set_active(bool active);
   kvds::kv_c* get_store();
 
+  bool publish_event(std::uint16_t topic_id, const std::any& payload);
+  bool subscribe_to_topic(std::uint16_t topic_id, std::function<void(const events::event_s&)> handler);
+  bool unsubscribe_from_topic(std::uint16_t topic_id);
+
 private:
+  class session_event_consumer_c : public events::event_consumer_if {
+  public:
+    session_event_consumer_c(session_c* session);
+    ~session_event_consumer_c() = default;
+    void consume_event(const events::event_s& event) override;
+  private:
+    session_c* session_;
+  };
+
+  void consume_event(const events::event_s& event);
+
   std::string id_;
   std::string entity_id_;
   std::string scope_;
@@ -68,6 +88,10 @@ private:
   std::time_t creation_time_;
   entity_c* entity_;
   std::unique_ptr<scoped_kv_c> scoped_store_;
+  events::event_producer_t producer_;
+  events::event_system_c* event_system_;
+  std::map<std::uint16_t, std::function<void(const events::event_s&)>> topic_handlers_;
+  std::map<std::uint16_t, events::event_consumer_t> topic_consumers_;
 };
 
 class session_subsystem_c : public runtime_subsystem_if {
@@ -90,6 +114,7 @@ public:
   void set_session_store(kvds::kv_c* store);
   void set_datastore(kvds::kv_c* store);
   void set_entity_store(kvds::kv_c* store);
+  void set_event_system(events::event_system_c* event_system);
 
 private:
   logger_t logger_;
@@ -101,6 +126,7 @@ private:
   kvds::kv_c* session_store_;
   kvds::kv_c* datastore_;
   kvds::kv_c* entity_store_;
+  events::event_system_c* event_system_;
   std::unique_ptr<record::record_manager_c> entity_manager_;
   
   std::map<std::string, std::shared_ptr<session_c>> sessions_;

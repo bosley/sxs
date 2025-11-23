@@ -45,6 +45,7 @@ bool runtime_c::initialize() {
   
   system_c* system_subsystem = nullptr;
   session_subsystem_c* session_subsystem = nullptr;
+  events::event_system_c* event_subsystem = nullptr;
   
   for (auto &subsystem : subsystems_) {
     logger_->info("Initializing subsystem: {}", subsystem->get_name());
@@ -61,6 +62,8 @@ bool runtime_c::initialize() {
       system_subsystem = dynamic_cast<system_c*>(subsystem.get());
     } else if (std::string(subsystem->get_name()) == "session_subsystem_c") {
       session_subsystem = dynamic_cast<session_subsystem_c*>(subsystem.get());
+    } else if (std::string(subsystem->get_name()) == "event_system_c") {
+      event_subsystem = dynamic_cast<events::event_system_c*>(subsystem.get());
     }
   }
   
@@ -69,6 +72,11 @@ bool runtime_c::initialize() {
     session_subsystem->set_entity_store(system_subsystem->get_entity_store());
     session_subsystem->set_session_store(system_subsystem->get_session_store());
     session_subsystem->set_datastore(system_subsystem->get_datastore_store());
+  }
+  
+  if (event_subsystem && session_subsystem) {
+    logger_->info("Wiring session subsystem to event system");
+    session_subsystem->set_event_system(event_subsystem);
   }
   
   running_ = true;
