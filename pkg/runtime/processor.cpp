@@ -1,4 +1,5 @@
 #include "runtime/processor.hpp"
+#include <algorithm>
 #include <any>
 #include <spdlog/spdlog.h>
 #include <sstream>
@@ -6,7 +7,7 @@
 namespace runtime {
 
 processor_c::processor_c(logger_t logger, events::event_system_c *event_system)
-    : logger_(logger), event_system_(event_system), current_context_(nullptr) {
+    : logger_(logger), event_system_(event_system) {
   logger_->info("[processor_c] Initializing processor");
   register_builtin_functions();
   logger_->info("[processor_c] Registered {} builtin functions",
@@ -82,9 +83,6 @@ execution_result_s processor_c::execute_script(session_c *session,
 
 function_result_t processor_c::eval_object(session_c *session,
                                            const slp::slp_object_c &obj) {
-  if (current_context_) {
-    return eval_object_with_context(session, obj, *current_context_);
-  }
   eval_context_s empty_context;
   return eval_object_with_context(session, obj, empty_context);
 }
@@ -93,9 +91,6 @@ function_result_t
 processor_c::eval_object_with_context(session_c *session,
                                       const slp::slp_object_c &obj,
                                       const eval_context_s &context) {
-  const eval_context_s *prev_context = current_context_;
-  current_context_ = &context;
-
   auto type = obj.type();
   function_result_t result;
 
@@ -121,7 +116,7 @@ processor_c::eval_object_with_context(session_c *session,
       auto first = list.at(0);
       if (first.type() == slp::slp_type_e::SYMBOL) {
         std::string function_name = first.as_symbol();
-        result = call_function(session, function_name, obj);
+        result = call_function(session, function_name, obj, context);
       } else {
         result = std::int64_t(0);
       }
@@ -137,13 +132,13 @@ processor_c::eval_object_with_context(session_c *session,
     result = std::int64_t(0);
   }
 
-  current_context_ = prev_context;
   return result;
 }
 
 function_result_t processor_c::call_function(session_c *session,
                                              const std::string &name,
-                                             const slp::slp_object_c &args) {
+                                             const slp::slp_object_c &args,
+                                             const eval_context_s &context) {
   auto it = function_registry_.find(name);
   if (it == function_registry_.end()) {
     logger_->warn("[processor_c] Unknown function: {}", name);
@@ -151,7 +146,7 @@ function_result_t processor_c::call_function(session_c *session,
   }
 
   try {
-    return it->second(session, args);
+    return it->second(session, args, context);
   } catch (const std::exception &e) {
     logger_->error("[processor_c] Function {} threw exception: {}", name,
                    e.what());
@@ -173,7 +168,8 @@ void processor_c::register_function(const std::string &name,
 
 void processor_c::register_builtin_functions() {
   register_function(
-      "kv/set", [this](session_c *session, const slp::slp_object_c &args) {
+      "kv/set", [this](session_c *session, const slp::slp_object_c &args,
+                       const eval_context_s &context) {
         auto list = args.as_list();
         if (list.size() < 3) {
           return function_result_t(
@@ -193,7 +189,7 @@ void processor_c::register_builtin_functions() {
               std::string("error: key must be symbol or string"));
         }
 
-        auto value_result = eval_object(session, value_obj);
+        auto value_result = eval_object_with_context(session, value_obj, context);
         std::string value;
         if (std::holds_alternative<std::int64_t>(value_result)) {
           value = std::to_string(std::get<std::int64_t>(value_result));
@@ -222,7 +218,8 @@ void processor_c::register_builtin_functions() {
       });
 
   register_function("kv/get", [this](session_c *session,
-                                     const slp::slp_object_c &args) {
+                                     const slp::slp_object_c &args,
+                                     const eval_context_s &context) {
     auto list = args.as_list();
     if (list.size() < 2) {
       return function_result_t(std::string("error: kv/get requires key"));
@@ -257,7 +254,8 @@ void processor_c::register_builtin_functions() {
   });
 
   register_function(
-      "kv/del", [this](session_c *session, const slp::slp_object_c &args) {
+      "kv/del", [this](session_c *session, const slp::slp_object_c &args,
+                       const eval_context_s &context) {
         auto list = args.as_list();
         if (list.size() < 2) {
           return function_result_t(std::string("error: kv/del requires key"));
@@ -291,7 +289,8 @@ void processor_c::register_builtin_functions() {
       });
 
   register_function("kv/exists", [this](session_c *session,
-                                        const slp::slp_object_c &args) {
+                                        const slp::slp_object_c &args,
+                                        const eval_context_s &context) {
     auto list = args.as_list();
     if (list.size() < 2) {
       return function_result_t(std::string("error: kv/exists requires key"));
@@ -320,7 +319,8 @@ void processor_c::register_builtin_functions() {
   });
 
   register_function("event/pub", [this](session_c *session,
-                                        const slp::slp_object_c &args) {
+                                        const slp::slp_object_c &args,
+                                        const eval_context_s &context) {
     auto list = args.as_list();
     if (list.size() < 3) {
       return function_result_t(
@@ -336,7 +336,7 @@ void processor_c::register_builtin_functions() {
 
     std::uint16_t topic_id = static_cast<std::uint16_t>(topic_obj.as_int());
 
-    auto data_result = eval_object(session, data_obj);
+    auto data_result = eval_object_with_context(session, data_obj, context);
     std::string data_str;
     if (std::holds_alternative<std::int64_t>(data_result)) {
       data_str = std::to_string(std::get<std::int64_t>(data_result));
@@ -362,7 +362,8 @@ void processor_c::register_builtin_functions() {
   });
 
   register_function("event/sub", [this](session_c *session,
-                                        const slp::slp_object_c &args) {
+                                        const slp::slp_object_c &args,
+                                        const eval_context_s &context) {
     auto list = args.as_list();
     if (list.size() < 3) {
       return function_result_t(
@@ -390,8 +391,14 @@ void processor_c::register_builtin_functions() {
     handler.handler_symbols = handler_obj.get_symbols();
     handler.handler_root_offset = handler_obj.get_root_offset();
 
+    {
+      std::lock_guard<std::mutex> lock(subscription_handlers_mutex_);
+      subscription_handlers_.push_back(handler);
+    }
+
     bool success = session->subscribe_to_topic(
         topic_id, [this, session, topic_id](const events::event_s &event) {
+          std::lock_guard<std::mutex> lock(subscription_handlers_mutex_);
           for (const auto &h : subscription_handlers_) {
             if (h.session == session && h.topic_id == topic_id) {
               eval_context_s context;
@@ -417,17 +424,26 @@ void processor_c::register_builtin_functions() {
         });
 
     if (!success) {
+      std::lock_guard<std::mutex> lock(subscription_handlers_mutex_);
+      subscription_handlers_.erase(
+          std::remove_if(subscription_handlers_.begin(),
+                         subscription_handlers_.end(),
+                         [&](const subscription_handler_s &sh) {
+                           return sh.session == session && sh.topic_id == topic_id &&
+                                  sh.handler_data == handler.handler_data;
+                         }),
+          subscription_handlers_.end());
       return function_result_t(
           std::string("error: event/sub failed (check permissions)"));
     }
 
-    subscription_handlers_.push_back(handler);
     logger_->debug("[processor_c] event/sub topic {} with handler", topic_id);
     return function_result_t(true);
   });
 
   register_function(
-      "runtime/log", [this](session_c *session, const slp::slp_object_c &args) {
+      "runtime/log", [this](session_c *session, const slp::slp_object_c &args,
+                            const eval_context_s &context) {
         auto list = args.as_list();
         if (list.size() < 2) {
           return function_result_t(
@@ -436,7 +452,7 @@ void processor_c::register_builtin_functions() {
 
         std::stringstream ss;
         for (size_t i = 1; i < list.size(); i++) {
-          auto msg_result = eval_object(session, list.at(i));
+          auto msg_result = eval_object_with_context(session, list.at(i), context);
           if (i > 1) {
             ss << " ";
           }

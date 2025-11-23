@@ -6,6 +6,7 @@ add_executable(runtime_tests
   events_test.cpp
   processor_test.cpp
   processor_event_sub_test.cpp
+  processor_event_sub_stress_test.cpp
 )
 
 target_link_libraries(runtime_tests PRIVATE 
@@ -134,6 +135,20 @@ add_test(NAME processor_complex_script_execution
          COMMAND runtime_tests "processor complex script execution")
 add_test(NAME event_sub_with_handler_body_executes_on_event
          COMMAND runtime_tests "event/sub with handler body executes on event")
+add_test(NAME multiple_sessions_subscribe_to_same_topic
+         COMMAND runtime_tests "multiple sessions subscribe to same topic")
+add_test(NAME session_subscribes_to_multiple_topics
+         COMMAND runtime_tests "session subscribes to multiple topics")
+add_test(NAME rapid_fire_event_delivery_to_handler
+         COMMAND runtime_tests "rapid fire event delivery to handler")
+add_test(NAME handler_with_parse_error_in_body
+         COMMAND runtime_tests "handler with parse error in body")
+add_test(NAME handler_with_nested_function_calls
+         COMMAND runtime_tests "handler with nested function calls")
+add_test(NAME handler_publishes_event_creating_chain
+         COMMAND runtime_tests "handler publishes event creating chain")
+add_test(NAME empty_handler_body
+         COMMAND runtime_tests "empty handler body")
 
 if(WITH_ASAN)
   set_tests_properties(runtime_tests runtime_basic_operations
@@ -165,6 +180,10 @@ if(WITH_ASAN)
                        processor_permission_denied_scenarios processor_bracket_list_execution
                        processor_complex_script_execution
                        event_sub_with_handler_body_executes_on_event
+                       multiple_sessions_subscribe_to_same_topic session_subscribes_to_multiple_topics
+                       rapid_fire_event_delivery_to_handler handler_with_parse_error_in_body
+                       handler_with_nested_function_calls handler_publishes_event_creating_chain
+                       empty_handler_body
     PROPERTIES 
       ENVIRONMENT "ASAN_OPTIONS=detect_container_overflow=0"
   )
