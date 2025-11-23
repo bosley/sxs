@@ -82,7 +82,7 @@ TEST_CASE("event/sub with handler body executes on event",
   SECTION("handler executes and can use $data binding") {
     runtime::execution_request_s sub_request;
     sub_request.session = session;
-    sub_request.script_text = R"((event/sub 300 {
+    sub_request.script_text = R"((event/sub $CHANNEL_A 300 {
       (kv/set received_data $data)
       (runtime/log "Received event:" $data)
     }))";
@@ -120,7 +120,7 @@ TEST_CASE("event/sub with handler body executes on event",
   SECTION("handler with multiple statements executes in order") {
     runtime::execution_request_s sub_request;
     sub_request.session = session;
-    sub_request.script_text = R"((event/sub 300 {
+    sub_request.script_text = R"((event/sub $CHANNEL_A 300 {
       (kv/set step1 "first")
       (kv/set step2 "second")
       (kv/set data_copy $data)

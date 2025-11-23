@@ -46,6 +46,7 @@ private:
 
   struct subscription_handler_s {
     session_c *session;
+    events::event_category_e category;
     std::uint16_t topic_id;
     std::vector<std::uint8_t> handler_data;
     std::map<std::uint64_t, std::string> handler_symbols;
@@ -57,6 +58,7 @@ private:
   std::map<std::string, function_handler_t> function_registry_;
   std::vector<subscription_handler_s> subscription_handlers_;
   std::mutex subscription_handlers_mutex_;
+  eval_context_s global_context_;
 
   void register_builtin_functions();
 

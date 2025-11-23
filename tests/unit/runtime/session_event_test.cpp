@@ -283,7 +283,7 @@ TEST_CASE("session subscribe with permissions",
       handler_called = true;
     };
 
-    CHECK(session.subscribe_to_topic(200, handler));
+    CHECK(session.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 200, handler));
   }
 
   SECTION("can subscribe with pubsub permission") {
@@ -298,7 +298,7 @@ TEST_CASE("session subscribe with permissions",
       handler_called = true;
     };
 
-    CHECK(session.subscribe_to_topic(201, handler));
+    CHECK(session.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 201, handler));
   }
 
   SECTION("cannot subscribe without permission") {
@@ -310,7 +310,7 @@ TEST_CASE("session subscribe with permissions",
       handler_called = true;
     };
 
-    CHECK_FALSE(session.subscribe_to_topic(202, handler));
+    CHECK_FALSE(session.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 202, handler));
   }
 
   SECTION("cannot subscribe with only publish permission") {
@@ -325,7 +325,7 @@ TEST_CASE("session subscribe with permissions",
       handler_called = true;
     };
 
-    CHECK_FALSE(session.subscribe_to_topic(203, handler));
+    CHECK_FALSE(session.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 203, handler));
   }
 
   event_system.shutdown();
@@ -376,7 +376,7 @@ TEST_CASE("session event publish and consume",
       }
     };
 
-    CHECK(session.subscribe_to_topic(300, handler));
+    CHECK(session.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 300, handler));
     CHECK(session.publish_event(
         runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 300,
         std::string("hello_world")));
@@ -419,7 +419,7 @@ TEST_CASE("session event publish and consume",
       }
     };
 
-    CHECK(session2.subscribe_to_topic(400, handler2));
+    CHECK(session2.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 400, handler2));
     CHECK(session1.publish_event(
         runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 400,
         std::string("message_from_user1")));
@@ -470,8 +470,8 @@ TEST_CASE("session event publish and consume",
       count3++;
     };
 
-    CHECK(session2.subscribe_to_topic(500, handler2));
-    CHECK(session3.subscribe_to_topic(500, handler3));
+    CHECK(session2.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 500, handler2));
+    CHECK(session3.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 500, handler3));
 
     CHECK(session1.publish_event(
         runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 500,
@@ -523,7 +523,7 @@ TEST_CASE("session unsubscribe from topics",
     event_count++;
   };
 
-  CHECK(session.subscribe_to_topic(600, handler));
+  CHECK(session.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 600, handler));
   CHECK(session.publish_event(
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 600,
       std::string("msg1")));
@@ -531,7 +531,7 @@ TEST_CASE("session unsubscribe from topics",
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
   CHECK(event_count.load() == 1);
 
-  CHECK(session.unsubscribe_from_topic(600));
+  CHECK(session.unsubscribe_from_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 600));
   CHECK(session.publish_event(
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 600,
       std::string("msg2")));
@@ -580,11 +580,11 @@ TEST_CASE("session multiple topic subscriptions",
   std::atomic<int> count701{0};
   std::atomic<int> count702{0};
 
-  CHECK(session.subscribe_to_topic(
+  CHECK(session.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 
       700, [&count700](const runtime::events::event_s &e) { count700++; }));
-  CHECK(session.subscribe_to_topic(
+  CHECK(session.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 
       701, [&count701](const runtime::events::event_s &e) { count701++; }));
-  CHECK(session.subscribe_to_topic(
+  CHECK(session.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 
       702, [&count702](const runtime::events::event_s &e) { count702++; }));
 
   CHECK(session.publish_event(
@@ -649,7 +649,7 @@ TEST_CASE("session event payload types", "[unit][runtime][session][events]") {
       }
     };
 
-    CHECK(session.subscribe_to_topic(800, handler));
+    CHECK(session.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 800, handler));
     CHECK(session.publish_event(
         runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 800,
         std::string("test_string")));
@@ -666,7 +666,7 @@ TEST_CASE("session event payload types", "[unit][runtime][session][events]") {
       }
     };
 
-    CHECK(session.subscribe_to_topic(801, handler));
+    CHECK(session.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 801, handler));
     CHECK(session.publish_event(
         runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 801, 42));
 
@@ -715,7 +715,8 @@ TEST_CASE("session event category verification",
     received_category = event.category;
   };
 
-  CHECK(session.subscribe_to_topic(900, handler));
+  // Subscribe to EXECUTION_REQUEST category to receive events on that category
+  CHECK(session.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 900, handler));
   CHECK(session.publish_event(
       runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 900,
       std::string("test")));
@@ -791,8 +792,8 @@ TEST_CASE("bidirectional communication on same topic",
     }
   };
 
-  CHECK(session1.subscribe_to_topic(1000, handler1));
-  CHECK(session2.subscribe_to_topic(1000, handler2));
+  CHECK(session1.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1000, handler1));
+  CHECK(session2.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1000, handler2));
 
   CHECK(session1.publish_event(
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1000,
@@ -850,11 +851,11 @@ TEST_CASE("topic isolation prevents cross-topic leakage",
   std::atomic<int> topic1100_count{0};
   std::atomic<int> topic1101_count{0};
 
-  CHECK(session.subscribe_to_topic(
+  CHECK(session.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 
       1100, [&topic1100_count](const runtime::events::event_s &e) {
         topic1100_count++;
       }));
-  CHECK(session.subscribe_to_topic(
+  CHECK(session.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 
       1101, [&topic1101_count](const runtime::events::event_s &e) {
         topic1101_count++;
       }));
@@ -936,7 +937,7 @@ TEST_CASE("mixed permissions on same topic",
     session2_count++;
   };
 
-  CHECK(session2.subscribe_to_topic(1200, handler2));
+  CHECK(session2.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1200, handler2));
 
   CHECK(session1.publish_event(
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1200,
@@ -994,9 +995,9 @@ TEST_CASE("multiple sessions per entity receive events",
   std::atomic<int> count_a{0};
   std::atomic<int> count_b{0};
 
-  CHECK(session_a.subscribe_to_topic(
+  CHECK(session_a.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 
       1300, [&count_a](const runtime::events::event_s &e) { count_a++; }));
-  CHECK(session_b.subscribe_to_topic(
+  CHECK(session_b.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 
       1300, [&count_b](const runtime::events::event_s &e) { count_b++; }));
 
   CHECK(session_a.publish_event(

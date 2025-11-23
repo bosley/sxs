@@ -189,7 +189,7 @@ bool session_c::publish_event(events::event_category_e category,
 }
 
 bool session_c::subscribe_to_topic(
-    std::uint16_t topic_id,
+    events::event_category_e category, std::uint16_t topic_id,
     std::function<void(const events::event_s &)> handler) {
   if (!entity_) {
     return false;
@@ -204,7 +204,7 @@ bool session_c::subscribe_to_topic(
     return false;
   }
 
-  topic_handlers_[topic_id] = handler;
+  topic_handlers_[{category, topic_id}] = handler;
 
   auto consumer = std::shared_ptr<events::event_consumer_if>(
       new session_event_consumer_c(this));
@@ -213,8 +213,9 @@ bool session_c::subscribe_to_topic(
   return true;
 }
 
-bool session_c::unsubscribe_from_topic(std::uint16_t topic_id) {
-  auto it = topic_handlers_.find(topic_id);
+bool session_c::unsubscribe_from_topic(events::event_category_e category,
+                                       std::uint16_t topic_id) {
+  auto it = topic_handlers_.find({category, topic_id});
   if (it == topic_handlers_.end()) {
     return false;
   }
@@ -230,7 +231,7 @@ bool session_c::unsubscribe_from_topic(std::uint16_t topic_id) {
 }
 
 void session_c::consume_event(const events::event_s &event) {
-  auto it = topic_handlers_.find(event.topic_identifier);
+  auto it = topic_handlers_.find({event.category, event.topic_identifier});
   if (it != topic_handlers_.end()) {
     it->second(event);
   }

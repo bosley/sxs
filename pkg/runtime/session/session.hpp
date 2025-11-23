@@ -71,9 +71,11 @@ public:
 
   bool publish_event(events::event_category_e category, std::uint16_t topic_id,
                      const std::any &payload);
-  bool subscribe_to_topic(std::uint16_t topic_id,
+  bool subscribe_to_topic(events::event_category_e category,
+                          std::uint16_t topic_id,
                           std::function<void(const events::event_s &)> handler);
-  bool unsubscribe_from_topic(std::uint16_t topic_id);
+  bool unsubscribe_from_topic(events::event_category_e category,
+                              std::uint16_t topic_id);
 
 private:
   class session_event_consumer_c : public events::event_consumer_if {
@@ -96,7 +98,8 @@ private:
   entity_c *entity_;
   std::unique_ptr<scoped_kv_c> scoped_store_;
   events::event_system_c *event_system_;
-  std::map<std::uint16_t, std::function<void(const events::event_s &)>>
+  std::map<std::pair<events::event_category_e, std::uint16_t>,
+           std::function<void(const events::event_s &)>>
       topic_handlers_;
   std::map<std::uint16_t, events::event_consumer_t> topic_consumers_;
 };

@@ -351,7 +351,7 @@ TEST_CASE("processor event/pub operation", "[unit][runtime][processor]") {
   SECTION("event/pub publishes event") {
     runtime::execution_request_s request;
     request.session = session;
-    request.script_text = "(event/pub 100 \"test message\")";
+    request.script_text = "(event/pub $CHANNEL_A 100 \"test message\")";
     request.request_id = "req1";
 
     runtime::events::event_s event;
@@ -366,7 +366,7 @@ TEST_CASE("processor event/pub operation", "[unit][runtime][processor]") {
   SECTION("event/pub with integer data") {
     runtime::execution_request_s request;
     request.session = session;
-    request.script_text = "(event/pub 100 42)";
+    request.script_text = "(event/pub $CHANNEL_A 100 42)";
     request.request_id = "req2";
 
     runtime::events::event_s event;
@@ -417,7 +417,7 @@ TEST_CASE("processor event/sub operation", "[unit][runtime][processor]") {
   SECTION("event/sub subscribes to topic") {
     runtime::execution_request_s request;
     request.session = session;
-    request.script_text = "(event/sub 200)";
+    request.script_text = "(event/sub $CHANNEL_A 200)";
     request.request_id = "req1";
 
     runtime::events::event_s event;
@@ -633,7 +633,7 @@ TEST_CASE("processor permission denied scenarios",
   SECTION("event/pub without permission fails") {
     runtime::execution_request_s request;
     request.session = session;
-    request.script_text = "(event/pub 100 \"message\")";
+    request.script_text = "(event/pub $CHANNEL_A 100 \"message\")";
     request.request_id = "req2";
 
     runtime::events::event_s event;
@@ -746,8 +746,8 @@ TEST_CASE("processor complex script execution", "[unit][runtime][processor]") {
       (kv/set user_name "Alice")
       (kv/set user_age 30)
       (runtime/log "User created:" (kv/get user_name))
-      (event/sub 100)
-      (event/pub 100 "User Alice logged in")
+      (event/sub $CHANNEL_A 100)
+      (event/pub $CHANNEL_A 100 "User Alice logged in")
     ])";
     request.request_id = "req1";
 

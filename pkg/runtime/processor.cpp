@@ -31,6 +31,8 @@ std::string processor_c::slp_object_to_string(const slp::slp_object_c &obj) cons
     return obj.as_symbol();
   } else if (type == slp::slp_type_e::DQ_LIST) {
     return obj.as_string().to_string();
+  } else if (type == slp::slp_type_e::ERROR) {
+    return obj.as_string().to_string();
   }
   return "nil";
 }
@@ -38,6 +40,14 @@ std::string processor_c::slp_object_to_string(const slp::slp_object_c &obj) cons
 processor_c::processor_c(logger_t logger, events::event_system_c *event_system)
     : logger_(logger), event_system_(event_system) {
   logger_->info("[processor_c] Initializing processor");
+  
+  global_context_.bindings["$CHANNEL_A"] = slp::parse("A").take();
+  global_context_.bindings["$CHANNEL_B"] = slp::parse("B").take();
+  global_context_.bindings["$CHANNEL_C"] = slp::parse("C").take();
+  global_context_.bindings["$CHANNEL_D"] = slp::parse("D").take();
+  global_context_.bindings["$CHANNEL_E"] = slp::parse("E").take();
+  global_context_.bindings["$CHANNEL_F"] = slp::parse("F").take();
+  
   register_builtin_functions();
   logger_->info("[processor_c] Registered {} builtin functions",
                 function_registry_.size());
@@ -89,9 +99,14 @@ execution_result_s processor_c::execute_script(session_c *session,
 
   try {
     auto eval_result = eval_object(session, parse_result.object());
-    result.result_data = slp_object_to_string(eval_result);
-    result.success = true;
-    logger_->debug("[processor_c] Script executed successfully");
+    if (eval_result.type() == slp::slp_type_e::ERROR) {
+      result.error_message = eval_result.as_string().to_string();
+      logger_->error("[processor_c] Script execution returned error: {}", result.error_message);
+    } else {
+      result.result_data = slp_object_to_string(eval_result);
+      result.success = true;
+      logger_->debug("[processor_c] Script executed successfully");
+    }
   } catch (const std::exception &e) {
     result.error_message = e.what();
     logger_->error("[processor_c] Execution error: {}", e.what());
@@ -123,6 +138,7 @@ processor_c::eval_object_with_context(session_c *session,
   
   if (type == slp::slp_type_e::SYMBOL) {
     std::string sym = obj.as_symbol();
+    
     auto it = context.bindings.find(sym);
     if (it != context.bindings.end()) {
       const auto& bound_obj = it->second;
@@ -132,6 +148,17 @@ processor_c::eval_object_with_context(session_c *session,
         bound_obj.get_root_offset()
       );
     }
+    
+    auto global_it = global_context_.bindings.find(sym);
+    if (global_it != global_context_.bindings.end()) {
+      const auto& bound_obj = global_it->second;
+      return slp::slp_object_c::from_data(
+        bound_obj.get_data(),
+        bound_obj.get_symbols(),
+        bound_obj.get_root_offset()
+      );
+    }
+    
     return slp::slp_object_c::from_data(
       obj.get_data(),
       obj.get_symbols(),
@@ -333,12 +360,37 @@ void processor_c::register_builtin_functions() {
                                         const slp::slp_object_c &args,
                                         const eval_context_s &context) {
     auto list = args.as_list();
-    if (list.size() < 3) {
-      return SLP_ERROR("event/pub requires topic-id and data");
+    if (list.size() < 4) {
+      return SLP_ERROR("event/pub requires channel, topic-id and data (use $CHANNEL_A through $CHANNEL_F)");
     }
 
-    auto topic_obj = list.at(1);
-    auto data_obj = list.at(2);
+    // Evaluate the channel argument to resolve symbols like $CHANNEL_A
+    auto channel_obj = eval_object_with_context(session, list.at(1), context);
+    auto topic_obj = list.at(2);
+    auto data_obj = list.at(3);
+
+    if (channel_obj.type() != slp::slp_type_e::SYMBOL) {
+      return SLP_ERROR("channel must be $CHANNEL_A through $CHANNEL_F");
+    }
+
+    std::string channel_sym = channel_obj.as_symbol();
+    events::event_category_e category;
+    
+    if (channel_sym == "A") {
+      category = events::event_category_e::RUNTIME_BACKCHANNEL_A;
+    } else if (channel_sym == "B") {
+      category = events::event_category_e::RUNTIME_BACKCHANNEL_B;
+    } else if (channel_sym == "C") {
+      category = events::event_category_e::RUNTIME_BACKCHANNEL_C;
+    } else if (channel_sym == "D") {
+      category = events::event_category_e::RUNTIME_BACKCHANNEL_D;
+    } else if (channel_sym == "E") {
+      category = events::event_category_e::RUNTIME_BACKCHANNEL_E;
+    } else if (channel_sym == "F") {
+      category = events::event_category_e::RUNTIME_BACKCHANNEL_F;
+    } else {
+      return SLP_ERROR("invalid channel (must be A, B, C, D, E, or F)");
+    }
 
     if (topic_obj.type() != slp::slp_type_e::INTEGER) {
       return SLP_ERROR("topic-id must be integer");
@@ -349,15 +401,14 @@ void processor_c::register_builtin_functions() {
     auto data_result = eval_object_with_context(session, data_obj, context);
     std::string data_str = slp_object_to_string(data_result);
 
-    bool success = session->publish_event(
-        events::event_category_e::RUNTIME_BACKCHANNEL_A, topic_id, data_str);
+    bool success = session->publish_event(category, topic_id, data_str);
 
     if (!success) {
       return SLP_ERROR("event/pub failed (check permissions)");
     }
 
-    logger_->debug("[processor_c] event/pub topic {} data {}", topic_id,
-                   data_str);
+    logger_->debug("[processor_c] event/pub channel {} topic {} data {}", 
+                   channel_sym, topic_id, data_str);
     return SLP_BOOL(true);
   });
 
@@ -365,12 +416,37 @@ void processor_c::register_builtin_functions() {
                                         const slp::slp_object_c &args,
                                         const eval_context_s &context) {
     auto list = args.as_list();
-    if (list.size() < 3) {
-      return SLP_ERROR("event/sub requires topic-id and handler body");
+    if (list.size() < 4) {
+      return SLP_ERROR("event/sub requires channel, topic-id and handler body (use $CHANNEL_A through $CHANNEL_F)");
     }
 
-    auto topic_obj = list.at(1);
-    auto handler_obj = list.at(2);
+    // Evaluate the channel argument to resolve symbols like $CHANNEL_A
+    auto channel_obj = eval_object_with_context(session, list.at(1), context);
+    auto topic_obj = list.at(2);
+    auto handler_obj = list.at(3);
+
+    if (channel_obj.type() != slp::slp_type_e::SYMBOL) {
+      return SLP_ERROR("channel must be $CHANNEL_A through $CHANNEL_F");
+    }
+
+    std::string channel_sym = channel_obj.as_symbol();
+    events::event_category_e category;
+    
+    if (channel_sym == "A") {
+      category = events::event_category_e::RUNTIME_BACKCHANNEL_A;
+    } else if (channel_sym == "B") {
+      category = events::event_category_e::RUNTIME_BACKCHANNEL_B;
+    } else if (channel_sym == "C") {
+      category = events::event_category_e::RUNTIME_BACKCHANNEL_C;
+    } else if (channel_sym == "D") {
+      category = events::event_category_e::RUNTIME_BACKCHANNEL_D;
+    } else if (channel_sym == "E") {
+      category = events::event_category_e::RUNTIME_BACKCHANNEL_E;
+    } else if (channel_sym == "F") {
+      category = events::event_category_e::RUNTIME_BACKCHANNEL_F;
+    } else {
+      return SLP_ERROR("invalid channel (must be A, B, C, D, E, or F)");
+    }
 
     if (topic_obj.type() != slp::slp_type_e::INTEGER) {
       return SLP_ERROR("topic-id must be integer");
@@ -384,6 +460,7 @@ void processor_c::register_builtin_functions() {
 
     subscription_handler_s handler;
     handler.session = session;
+    handler.category = category;
     handler.topic_id = topic_id;
     handler.handler_data = handler_obj.get_data();
     handler.handler_symbols = handler_obj.get_symbols();
@@ -395,10 +472,10 @@ void processor_c::register_builtin_functions() {
     }
 
     bool success = session->subscribe_to_topic(
-        topic_id, [this, session, topic_id](const events::event_s &event) {
+        category, topic_id, [this, session, category, topic_id](const events::event_s &event) {
           std::lock_guard<std::mutex> lock(subscription_handlers_mutex_);
           for (const auto &h : subscription_handlers_) {
-            if (h.session == session && h.topic_id == topic_id) {
+            if (h.session == session && h.category == category && h.topic_id == topic_id) {
               eval_context_s context;
 
               std::string event_data;
@@ -431,14 +508,16 @@ void processor_c::register_builtin_functions() {
           std::remove_if(subscription_handlers_.begin(),
                          subscription_handlers_.end(),
                          [&](const subscription_handler_s &sh) {
-                           return sh.session == session && sh.topic_id == topic_id &&
+                           return sh.session == session && sh.category == category && 
+                                  sh.topic_id == topic_id &&
                                   sh.handler_data == handler.handler_data;
                          }),
           subscription_handlers_.end());
       return SLP_ERROR("event/sub failed (check permissions)");
     }
 
-    logger_->debug("[processor_c] event/sub topic {} with handler", topic_id);
+    logger_->debug("[processor_c] event/sub channel {} topic {} with handler", 
+                   channel_sym, topic_id);
     return SLP_BOOL(true);
   });
 
