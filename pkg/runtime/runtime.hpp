@@ -11,6 +11,7 @@ using logger_t = spdlog::logger *;
 class runtime_c;
 class runtime_subsystem_if;
 class runtime_accessor_if;
+class processor_c;
 using runtime_t = std::shared_ptr<runtime_c>;
 using runtime_subsystem_t = std::unique_ptr<runtime_subsystem_if>;
 using runtime_accessor_t = std::shared_ptr<runtime_accessor_if>;
@@ -48,7 +49,7 @@ public:
   runtime_c &operator=(runtime_c &&) = delete;
 
   runtime_c(const options_s &options);
-  ~runtime_c() = default;
+  ~runtime_c();
 
   bool initialize();
   bool shutdown();
@@ -86,6 +87,7 @@ private:
   std::shared_ptr<spdlog::logger> spdlog_logger_;
 
   std::vector<runtime_subsystem_t> subsystems_;
+  std::unique_ptr<processor_c> processor_;
 };
 
 } // namespace runtime

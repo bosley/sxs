@@ -4,6 +4,8 @@ add_executable(runtime_tests
   session_test.cpp
   session_event_test.cpp
   events_test.cpp
+  processor_test.cpp
+  processor_event_sub_test.cpp
 )
 
 target_link_libraries(runtime_tests PRIVATE 
@@ -108,6 +110,31 @@ add_test(NAME mixed_permissions_on_same_topic
 add_test(NAME multiple_sessions_per_entity_receive_events
          COMMAND runtime_tests "multiple sessions per entity receive events")
 
+add_test(NAME processor_initialization
+         COMMAND runtime_tests "processor initialization")
+add_test(NAME processor_execute_simple_integer_script
+         COMMAND runtime_tests "processor execute simple integer script")
+add_test(NAME processor_kv_set_and_kv_get_operations
+         COMMAND runtime_tests "processor kv/set and kv/get operations")
+add_test(NAME processor_kv_del_and_kv_exists_operations
+         COMMAND runtime_tests "processor kv/del and kv/exists operations")
+add_test(NAME processor_event_pub_operation
+         COMMAND runtime_tests "processor event/pub operation")
+add_test(NAME processor_event_sub_operation
+         COMMAND runtime_tests "processor event/sub operation")
+add_test(NAME processor_runtime_log_operation
+         COMMAND runtime_tests "processor runtime/log operation")
+add_test(NAME processor_error_handling
+         COMMAND runtime_tests "processor error handling")
+add_test(NAME processor_permission_denied_scenarios
+         COMMAND runtime_tests "processor permission denied scenarios")
+add_test(NAME processor_bracket_list_execution
+         COMMAND runtime_tests "processor bracket list execution")
+add_test(NAME processor_complex_script_execution
+         COMMAND runtime_tests "processor complex script execution")
+add_test(NAME event_sub_with_handler_body_executes_on_event
+         COMMAND runtime_tests "event/sub with handler body executes on event")
+
 if(WITH_ASAN)
   set_tests_properties(runtime_tests runtime_basic_operations
                        entity_basic_operations
@@ -131,6 +158,13 @@ if(WITH_ASAN)
                        event_consumer_registration event_publishing_and_consumption
                        multi_threaded_event_processing event_system_error_handling
                        event_system_shutdown_behavior event_system_origin_handling
+                       processor_initialization processor_execute_simple_integer_script
+                       processor_kv_set_and_kv_get_operations processor_kv_del_and_kv_exists_operations
+                       processor_event_pub_operation processor_event_sub_operation
+                       processor_runtime_log_operation processor_error_handling
+                       processor_permission_denied_scenarios processor_bracket_list_execution
+                       processor_complex_script_execution
+                       event_sub_with_handler_body_executes_on_event
     PROPERTIES 
       ENVIRONMENT "ASAN_OPTIONS=detect_container_overflow=0"
   )

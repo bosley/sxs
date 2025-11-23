@@ -1,5 +1,6 @@
 #include "runtime/runtime.hpp"
 #include "runtime/events/events.hpp"
+#include "runtime/processor.hpp"
 #include "runtime/session/session.hpp"
 #include "runtime/system/system.hpp"
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -24,6 +25,8 @@ runtime_c::runtime_c(const options_s &options)
   subsystems_.push_back(std::unique_ptr<runtime_subsystem_if>(
       new session_subsystem_c(logger_, options_.max_sessions_per_entity)));
 }
+
+runtime_c::~runtime_c() {}
 
 bool runtime_c::initialize() {
   if (running_) {
@@ -68,6 +71,16 @@ bool runtime_c::initialize() {
   if (event_subsystem && session_subsystem) {
     logger_->info("Wiring session subsystem to event system");
     session_subsystem->set_event_system(event_subsystem);
+  }
+
+  if (event_subsystem) {
+    logger_->info("Creating and registering processor");
+    processor_ = std::make_unique<processor_c>(logger_, event_subsystem);
+    auto processor_consumer = std::shared_ptr<events::event_consumer_if>(
+        processor_.get(), [](events::event_consumer_if *) {});
+    event_subsystem->register_consumer(0, processor_consumer);
+    logger_->info(
+        "Processor registered for RUNTIME_EXECUTION_REQUEST on topic 0");
   }
 
   running_ = true;

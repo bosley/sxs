@@ -546,6 +546,33 @@ bool slp_object_c::has_data() const {
   return view_ != nullptr && !data_.empty();
 }
 
+const std::vector<std::uint8_t> &slp_object_c::get_data() const {
+  return data_;
+}
+
+const std::map<std::uint64_t, std::string> &slp_object_c::get_symbols() const {
+  return symbols_;
+}
+
+size_t slp_object_c::get_root_offset() const { return root_offset_; }
+
+slp_object_c
+slp_object_c::from_data(const std::vector<std::uint8_t> &data,
+                        const std::map<std::uint64_t, std::string> &symbols,
+                        size_t root_offset) {
+  slp_object_c obj;
+  obj.data_ = data;
+  obj.symbols_ = symbols;
+  obj.root_offset_ = root_offset;
+
+  if (obj.root_offset_ < obj.data_.size()) {
+    obj.view_ = reinterpret_cast<slp_unit_of_store_t *>(
+        const_cast<std::uint8_t *>(&obj.data_[obj.root_offset_]));
+  }
+
+  return obj;
+}
+
 slp_parse_result_c::slp_parse_result_c()
     : error_(std::nullopt), object_(std::nullopt) {}
 
