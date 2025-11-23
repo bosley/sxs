@@ -98,6 +98,44 @@ bool datastore_c::set_batch(
   return status.ok();
 }
 
+bool datastore_c::set_nx(const std::string &key, const std::string &value) {
+  if (!is_open_) {
+    return false;
+  }
+
+  std::string existing_value;
+  rocksdb::Status status = db_->Get(rocksdb::ReadOptions(), key, &existing_value);
+  
+  if (status.ok()) {
+    return false;
+  }
+
+  status = db_->Put(rocksdb::WriteOptions(), key, value);
+  return status.ok();
+}
+
+bool datastore_c::compare_and_swap(const std::string &key,
+                                    const std::string &expected_value,
+                                    const std::string &new_value) {
+  if (!is_open_) {
+    return false;
+  }
+
+  std::string current_value;
+  rocksdb::Status status = db_->Get(rocksdb::ReadOptions(), key, &current_value);
+  
+  if (!status.ok()) {
+    return false;
+  }
+
+  if (current_value != expected_value) {
+    return false;
+  }
+
+  status = db_->Put(rocksdb::WriteOptions(), key, new_value);
+  return status.ok();
+}
+
 void datastore_c::iterate(
     const std::string &prefix,
     std::function<bool(const std::string &key, const std::string &value)>

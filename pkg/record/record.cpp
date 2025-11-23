@@ -196,19 +196,17 @@ bool record_base_c::acquire_lock() {
         lock_token_ = generate_lock_token();
     }
     
+    if (manager_->get_store().set_nx(lock_key, lock_token_)) {
+        return true;
+    }
+    
     std::string existing_lock;
     if (manager_->get_store().get(lock_key, existing_lock)) {
         if (existing_lock == lock_token_) {
             return true;
         }
-        return false;
     }
-    
-    if (!manager_->get_store().set(lock_key, lock_token_)) {
-        return false;
-    }
-    
-    return true;
+    return false;
 }
 
 bool record_base_c::verify_lock() {

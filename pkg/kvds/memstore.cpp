@@ -85,6 +85,41 @@ bool memstore_c::set_batch(const std::map<std::string, std::string> &kv_pairs) {
   return true;
 }
 
+bool memstore_c::set_nx(const std::string &key, const std::string &value) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (!is_open_) {
+    return false;
+  }
+
+  if (data_.find(key) != data_.end()) {
+    return false;
+  }
+
+  data_[key] = value;
+  return true;
+}
+
+bool memstore_c::compare_and_swap(const std::string &key,
+                                   const std::string &expected_value,
+                                   const std::string &new_value) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (!is_open_) {
+    return false;
+  }
+
+  auto it = data_.find(key);
+  if (it == data_.end()) {
+    return false;
+  }
+
+  if (it->second != expected_value) {
+    return false;
+  }
+
+  it->second = new_value;
+  return true;
+}
+
 void memstore_c::iterate(
     const std::string &prefix,
     std::function<bool(const std::string &key, const std::string &value)>

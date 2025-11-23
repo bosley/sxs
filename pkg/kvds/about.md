@@ -82,6 +82,18 @@ For writing multiple key-value pairs, the set_batch method provides a more effic
 
 All write operations are thread-safe and can be performed concurrently with reads and other writes. The underlying stores ensure proper synchronization.
 
+### Atomic Write Operations
+
+The kvds package provides atomic operations that enable safe coordination and synchronization patterns across concurrent processes accessing the same store.
+
+The set_nx method performs an atomic set-if-not-exists operation. It attempts to write a key-value pair only if the key does not already exist in the store. If the key exists, the operation fails and returns false without modifying the existing value. If the key does not exist, it is created with the provided value and the operation returns true. This primitive is essential for implementing distributed locking mechanisms, generating unique identifiers, and coordinating resource allocation across multiple processes.
+
+The compare_and_swap method performs an atomic compare-and-swap operation. It accepts a key, an expected value, and a new value. The operation succeeds only if the key exists and currently contains the expected value, in which case it atomically updates the value to the new value and returns true. If the key does not exist or contains a different value than expected, the operation fails and returns false without modification. This primitive enables optimistic concurrency control, version tracking, and lock-free data structure implementations.
+
+Both atomic operations maintain strong consistency guarantees within a single store instance. For memory stores, atomicity is ensured through mutex protection that spans the entire check-and-modify sequence. For disk stores, the current implementation uses a read-then-write approach which provides basic atomicity for single-process scenarios but may exhibit race conditions under high-concurrency multi-process access. Future enhancements may leverage RocksDB's transaction API for stronger guarantees in distributed environments.
+
+Applications should use these atomic primitives when coordination between concurrent processes is required. The record package, for example, uses set_nx to implement its distributed locking mechanism, ensuring only one process can acquire a lock on a given record instance at a time.
+
 ### Managing Store Lifecycle
 
 Store lifecycle is managed primarily through reference counting rather than explicit open and close operations. When the distributor creates a new store instance, it opens the store before returning it to the caller. The store remains open as long as references exist.

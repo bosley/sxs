@@ -26,6 +26,10 @@ public:
   bool del(const std::string& key) override;
   bool exists(const std::string& key) const override;
   bool set_batch(const std::map<std::string, std::string>& kv_pairs) override;
+  bool set_nx(const std::string& key, const std::string& value) override;
+  bool compare_and_swap(const std::string& key,
+                        const std::string& expected_value,
+                        const std::string& new_value) override;
   void iterate(const std::string& prefix,
               std::function<bool(const std::string& key, const std::string& value)> callback) const override;
 
@@ -52,7 +56,6 @@ public:
             const std::string& scope,
             entity_c* entity,
             kvds::kv_c* datastore,
-            events::event_producer_t producer,
             events::event_system_c* event_system);
   ~session_c() = default;
 
@@ -65,7 +68,7 @@ public:
   void set_active(bool active);
   kvds::kv_c* get_store();
 
-  bool publish_event(std::uint16_t topic_id, const std::any& payload);
+  bool publish_event(events::event_category_e category, std::uint16_t topic_id, const std::any& payload);
   bool subscribe_to_topic(std::uint16_t topic_id, std::function<void(const events::event_s&)> handler);
   bool unsubscribe_from_topic(std::uint16_t topic_id);
 
@@ -88,7 +91,6 @@ private:
   std::time_t creation_time_;
   entity_c* entity_;
   std::unique_ptr<scoped_kv_c> scoped_store_;
-  events::event_producer_t producer_;
   events::event_system_c* event_system_;
   std::map<std::uint16_t, std::function<void(const events::event_s&)>> topic_handlers_;
   std::map<std::uint16_t, events::event_consumer_t> topic_consumers_;

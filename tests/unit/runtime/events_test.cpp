@@ -102,17 +102,17 @@ TEST_CASE("event producer and topic writer", "[unit][runtime][events]") {
   auto accessor = new test_accessor_c();
   event_system.initialize(accessor);
   
-  SECTION("get event producer for origin") {
-    auto producer = event_system.get_event_producer_for_origin(
-      event_origin_e::RUNTIME_SUBSYSTEM_SYSTEM);
+  SECTION("get event producer for category") {
+    auto producer = event_system.get_event_producer_for_category(
+      event_category_e::RUNTIME_EXECUTION_REQUEST);
     
     CHECK(producer);
     CHECK(producer.get() != nullptr);
   }
   
   SECTION("get topic writer from producer") {
-    auto producer = event_system.get_event_producer_for_origin(
-      event_origin_e::RUNTIME_SUBSYSTEM_SYSTEM);
+    auto producer = event_system.get_event_producer_for_category(
+      event_category_e::RUNTIME_EXECUTION_REQUEST);
     
     auto writer = producer->get_topic_writer_for_topic(42);
     CHECK(writer);
@@ -185,8 +185,8 @@ TEST_CASE("event publishing and consumption", "[unit][runtime][events]") {
     auto consumer = new test_consumer_c();
     event_system.register_consumer(400, consumer);
     
-    auto producer = event_system.get_event_producer_for_origin(
-      event_origin_e::RUNTIME_SUBSYSTEM_SYSTEM);
+    auto producer = event_system.get_event_producer_for_category(
+      event_category_e::RUNTIME_EXECUTION_REQUEST);
     auto writer = producer->get_topic_writer_for_topic(400);
     
     event_s event;
@@ -197,7 +197,7 @@ TEST_CASE("event publishing and consumption", "[unit][runtime][events]") {
     
     CHECK(consumer->get_event_count() == 1);
     auto last = consumer->get_last_event();
-    CHECK(last.origin == event_origin_e::RUNTIME_SUBSYSTEM_SYSTEM);
+    CHECK(last.category == event_category_e::RUNTIME_EXECUTION_REQUEST);
     CHECK(last.topic_identifier == 400);
   }
   
@@ -205,8 +205,8 @@ TEST_CASE("event publishing and consumption", "[unit][runtime][events]") {
     auto consumer = new test_consumer_c();
     event_system.register_consumer(401, consumer);
     
-    auto producer = event_system.get_event_producer_for_origin(
-      event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
+    auto producer = event_system.get_event_producer_for_category(
+      event_category_e::RUNTIME_BACKCHANNEL_A);
     auto writer = producer->get_topic_writer_for_topic(401);
     
     for (int i = 0; i < 10; ++i) {
@@ -227,8 +227,8 @@ TEST_CASE("event publishing and consumption", "[unit][runtime][events]") {
     event_system.register_consumer(402, consumer1);
     event_system.register_consumer(402, consumer2);
     
-    auto producer = event_system.get_event_producer_for_origin(
-      event_origin_e::RUNTIME_SYBSYSTEM_ENTITIES);
+    auto producer = event_system.get_event_producer_for_category(
+      event_category_e::RUNTIME_BACKCHANNEL_B);
     auto writer = producer->get_topic_writer_for_topic(402);
     
     event_s event;
@@ -248,8 +248,8 @@ TEST_CASE("event publishing and consumption", "[unit][runtime][events]") {
     event_system.register_consumer(403, consumer1);
     event_system.register_consumer(404, consumer2);
     
-    auto producer = event_system.get_event_producer_for_origin(
-      event_origin_e::RUNTIME_SUBSYSTEM_SYSTEM);
+    auto producer = event_system.get_event_producer_for_category(
+      event_category_e::RUNTIME_EXECUTION_REQUEST);
     auto writer1 = producer->get_topic_writer_for_topic(403);
     auto writer2 = producer->get_topic_writer_for_topic(404);
     
@@ -293,8 +293,8 @@ TEST_CASE("multi-threaded event processing", "[unit][runtime][events]") {
     auto consumer = new test_consumer_c();
     event_system.register_consumer(500, consumer);
     
-    auto producer = event_system.get_event_producer_for_origin(
-      event_origin_e::RUNTIME_SUBSYSTEM_SYSTEM);
+    auto producer = event_system.get_event_producer_for_category(
+      event_category_e::RUNTIME_EXECUTION_REQUEST);
     auto writer = producer->get_topic_writer_for_topic(500);
     
     std::vector<std::thread> threads;
@@ -329,8 +329,8 @@ TEST_CASE("multi-threaded event processing", "[unit][runtime][events]") {
     event_system.register_consumer(502, consumer2);
     event_system.register_consumer(503, consumer3);
     
-    auto producer = event_system.get_event_producer_for_origin(
-      event_origin_e::RUNTIME_SUBSYSTEM_SYSTEM);
+    auto producer = event_system.get_event_producer_for_category(
+      event_category_e::RUNTIME_EXECUTION_REQUEST);
     auto writer1 = producer->get_topic_writer_for_topic(501);
     auto writer2 = producer->get_topic_writer_for_topic(502);
     auto writer3 = producer->get_topic_writer_for_topic(503);
@@ -394,8 +394,8 @@ TEST_CASE("event system error handling", "[unit][runtime][events]") {
     event_system.register_consumer(600, throwing_consumer);
     event_system.register_consumer(600, normal_consumer);
     
-    auto producer = event_system.get_event_producer_for_origin(
-      event_origin_e::RUNTIME_SUBSYSTEM_SYSTEM);
+    auto producer = event_system.get_event_producer_for_category(
+      event_category_e::RUNTIME_EXECUTION_REQUEST);
     auto writer = producer->get_topic_writer_for_topic(600);
     
     event_s event;
@@ -411,8 +411,8 @@ TEST_CASE("event system error handling", "[unit][runtime][events]") {
     
     event_system.register_consumer(601, throwing_consumer);
     
-    auto producer = event_system.get_event_producer_for_origin(
-      event_origin_e::RUNTIME_SUBSYSTEM_SYSTEM);
+    auto producer = event_system.get_event_producer_for_category(
+      event_category_e::RUNTIME_EXECUTION_REQUEST);
     auto writer = producer->get_topic_writer_for_topic(601);
     
     for (int i = 0; i < 5; ++i) {
@@ -455,8 +455,8 @@ TEST_CASE("event system shutdown behavior", "[unit][runtime][events]") {
     auto consumer = new test_consumer_c();
     event_system.register_consumer(700, consumer);
     
-    auto producer = event_system.get_event_producer_for_origin(
-      event_origin_e::RUNTIME_SUBSYSTEM_SYSTEM);
+    auto producer = event_system.get_event_producer_for_category(
+      event_category_e::RUNTIME_EXECUTION_REQUEST);
     auto writer = producer->get_topic_writer_for_topic(700);
     
     for (int i = 0; i < 100; ++i) {
@@ -476,8 +476,8 @@ TEST_CASE("event system shutdown behavior", "[unit][runtime][events]") {
     auto consumer = new test_consumer_c();
     event_system.register_consumer(701, consumer);
     
-    auto producer = event_system.get_event_producer_for_origin(
-      event_origin_e::RUNTIME_SUBSYSTEM_SYSTEM);
+    auto producer = event_system.get_event_producer_for_category(
+      event_category_e::RUNTIME_EXECUTION_REQUEST);
     auto writer = producer->get_topic_writer_for_topic(701);
     
     event_system.shutdown();
@@ -491,7 +491,7 @@ TEST_CASE("event system shutdown behavior", "[unit][runtime][events]") {
   }
 }
 
-TEST_CASE("event system origin handling", "[unit][runtime][events]") {
+TEST_CASE("event system category handling", "[unit][runtime][events]") {
   auto logger = spdlog::get("runtime");
   if (!logger) {
     try {
@@ -505,23 +505,23 @@ TEST_CASE("event system origin handling", "[unit][runtime][events]") {
   auto accessor = new test_accessor_c();
   event_system.initialize(accessor);
   
-  SECTION("events maintain correct origin") {
+  SECTION("events maintain correct category") {
     auto consumer = new test_consumer_c();
     event_system.register_consumer(800, consumer);
     
-    auto producer_system = event_system.get_event_producer_for_origin(
-      event_origin_e::RUNTIME_SUBSYSTEM_SYSTEM);
-    auto writer_system = producer_system->get_topic_writer_for_topic(800);
+    auto producer_exec = event_system.get_event_producer_for_category(
+      event_category_e::RUNTIME_EXECUTION_REQUEST);
+    auto writer_exec = producer_exec->get_topic_writer_for_topic(800);
     
     event_s event1;
-    writer_system->write_event(event1);
+    writer_exec->write_event(event1);
     
-    auto producer_sessions = event_system.get_event_producer_for_origin(
-      event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-    auto writer_sessions = producer_sessions->get_topic_writer_for_topic(800);
+    auto producer_backchannel = event_system.get_event_producer_for_category(
+      event_category_e::RUNTIME_BACKCHANNEL_A);
+    auto writer_backchannel = producer_backchannel->get_topic_writer_for_topic(800);
     
     event_s event2;
-    writer_sessions->write_event(event2);
+    writer_backchannel->write_event(event2);
     
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     
@@ -529,18 +529,18 @@ TEST_CASE("event system origin handling", "[unit][runtime][events]") {
     auto events = consumer->get_consumed_events();
     CHECK(events.size() == 2);
     
-    bool found_system = false;
-    bool found_sessions = false;
+    bool found_exec = false;
+    bool found_backchannel = false;
     for (const auto& evt : events) {
-      if (evt.origin == event_origin_e::RUNTIME_SUBSYSTEM_SYSTEM) {
-        found_system = true;
+      if (evt.category == event_category_e::RUNTIME_EXECUTION_REQUEST) {
+        found_exec = true;
       }
-      if (evt.origin == event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS) {
-        found_sessions = true;
+      if (evt.category == event_category_e::RUNTIME_BACKCHANNEL_A) {
+        found_backchannel = true;
       }
     }
-    CHECK(found_system);
-    CHECK(found_sessions);
+    CHECK(found_exec);
+    CHECK(found_backchannel);
   }
   
   event_system.shutdown();

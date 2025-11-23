@@ -81,6 +81,22 @@ bool scoped_kv_c::set_batch(const std::map<std::string, std::string>& kv_pairs) 
   return underlying_->set_batch(scoped_pairs);
 }
 
+bool scoped_kv_c::set_nx(const std::string& key, const std::string& value) {
+  if (!check_write_permission()) {
+    return false;
+  }
+  return underlying_->set_nx(add_scope_prefix(key), value);
+}
+
+bool scoped_kv_c::compare_and_swap(const std::string& key,
+                                    const std::string& expected_value,
+                                    const std::string& new_value) {
+  if (!check_write_permission()) {
+    return false;
+  }
+  return underlying_->compare_and_swap(add_scope_prefix(key), expected_value, new_value);
+}
+
 void scoped_kv_c::iterate(const std::string& prefix,
                           std::function<bool(const std::string& key, const std::string& value)> callback) const {
   if (!check_read_permission()) {
@@ -100,7 +116,6 @@ session_c::session_c(const std::string& session_id,
                      const std::string& scope,
                      entity_c* entity,
                      kvds::kv_c* datastore,
-                     events::event_producer_t producer,
                      events::event_system_c* event_system)
   : id_(session_id),
     entity_id_(entity_id),
@@ -109,7 +124,6 @@ session_c::session_c(const std::string& session_id,
     creation_time_(std::time(nullptr)),
     entity_(entity),
     scoped_store_(std::make_unique<scoped_kv_c>(datastore, scope, entity)),
-    producer_(producer),
     event_system_(event_system) {}
 
 std::string session_c::get_id() const {
@@ -140,7 +154,7 @@ kvds::kv_c* session_c::get_store() {
   return scoped_store_.get();
 }
 
-bool session_c::publish_event(std::uint16_t topic_id, const std::any& payload) {
+bool session_c::publish_event(events::event_category_e category, std::uint16_t topic_id, const std::any& payload) {
   if (!entity_) {
     return false;
   }
@@ -150,17 +164,22 @@ bool session_c::publish_event(std::uint16_t topic_id, const std::any& payload) {
     return false;
   }
 
-  if (!producer_) {
+  if (!event_system_) {
     return false;
   }
 
-  auto topic_writer = producer_->get_topic_writer_for_topic(topic_id);
+  auto producer = event_system_->get_event_producer_for_category(category);
+  if (!producer) {
+    return false;
+  }
+
+  auto topic_writer = producer->get_topic_writer_for_topic(topic_id);
   if (!topic_writer) {
     return false;
   }
 
   events::event_s event;
-  event.origin = events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS;
+  event.category = category;
   event.topic_identifier = topic_id;
   event.payload = payload;
 
@@ -197,6 +216,12 @@ bool session_c::unsubscribe_from_topic(std::uint16_t topic_id) {
   }
 
   topic_handlers_.erase(it);
+  
+  auto consumer_it = topic_consumers_.find(topic_id);
+  if (consumer_it != topic_consumers_.end()) {
+    topic_consumers_.erase(consumer_it);
+  }
+  
   return true;
 }
 
@@ -330,12 +355,7 @@ std::shared_ptr<session_c> session_subsystem_c::create_session(const std::string
   
   std::string session_id = generate_session_id(entity_id);
   
-  events::event_producer_t producer = nullptr;
-  if (event_system_) {
-    producer = event_system_->get_event_producer_for_origin(events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-  }
-  
-  auto session = std::make_shared<session_c>(session_id, entity_id, scope, entity, datastore_, producer, event_system_);
+  auto session = std::make_shared<session_c>(session_id, entity_id, scope, entity, datastore_, event_system_);
   
   if (!persist_session_metadata(*session)) {
     logger_->error("[{}] Failed to persist session metadata for {}", name_, session_id);

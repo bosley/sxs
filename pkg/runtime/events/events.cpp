@@ -81,8 +81,8 @@ bool event_system_c::is_running() const {
   return running_;
 }
 
-event_producer_t event_system_c::get_event_producer_for_origin(event_origin_e origin) {
-  return new specific_event_producer_c(this, origin);
+event_producer_t event_system_c::get_event_producer_for_category(event_category_e category) {
+  return new specific_event_producer_c(this, category);
 }
 
 void event_system_c::handle_event(const event_s &event) {
@@ -100,9 +100,9 @@ void event_system_c::handle_event(const event_s &event) {
   event_queue_.push(event);
   size_t queue_size = event_queue_.size();
   
-  logger_->debug("[{}] Enqueued event from origin {} for topic {} (queue: {}/{})", 
+  logger_->debug("[{}] Enqueued event from category {} for topic {} (queue: {}/{})", 
     name_, 
-    static_cast<int>(event.origin), 
+    static_cast<int>(event.category), 
     event.topic_identifier,
     queue_size,
     max_queue_size_);
@@ -136,10 +136,10 @@ void event_system_c::worker_thread_func() {
       queue_not_full_.notify_one();
     }
     
-    logger_->debug("[{}] Worker {:x} processing event from origin {} for topic {}", 
+    logger_->debug("[{}] Worker {:x} processing event from category {} for topic {}", 
       name_, 
       thread_hash,
-      static_cast<int>(event.origin), 
+      static_cast<int>(event.category), 
       event.topic_identifier);
     
     auto it = topic_consumers_.find(event.topic_identifier);
@@ -168,15 +168,15 @@ void event_system_c::worker_thread_func() {
 
 event_system_c::specific_topic_writer_c::specific_topic_writer_c(
   event_system_c* event_system, 
-  event_origin_e origin, 
+  event_category_e category, 
   std::uint16_t topic_identifier)
-  : event_system_(event_system), origin_(origin), topic_identifier_(topic_identifier) {}
+  : event_system_(event_system), category_(category), topic_identifier_(topic_identifier) {}
 
 event_system_c::specific_topic_writer_c::~specific_topic_writer_c() {}
 
 void event_system_c::specific_topic_writer_c::write_event(const event_s &event) {
   event_s modified_event = event;
-  modified_event.origin = origin_;
+  modified_event.category = category_;
   modified_event.topic_identifier = topic_identifier_;
   
   event_system_->handle_event(modified_event);
@@ -184,14 +184,14 @@ void event_system_c::specific_topic_writer_c::write_event(const event_s &event) 
 
 event_system_c::specific_event_producer_c::specific_event_producer_c(
   event_system_c* event_system, 
-  event_origin_e origin)
-  : event_system_(event_system), origin_(origin) {}
+  event_category_e category)
+  : event_system_(event_system), category_(category) {}
 
 event_system_c::specific_event_producer_c::~specific_event_producer_c() {}
 
 topic_writer_t event_system_c::specific_event_producer_c::get_topic_writer_for_topic(
   std::uint16_t topic_identifier) {
-  return new specific_topic_writer_c(event_system_, origin_, topic_identifier);
+  return new specific_topic_writer_c(event_system_, category_, topic_identifier);
 }
 
 void event_system_c::register_consumer(std::uint16_t topic_identifier, event_consumer_t consumer) {

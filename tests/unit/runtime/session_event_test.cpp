@@ -179,37 +179,33 @@ TEST_CASE("session publish with permissions", "[unit][runtime][session][events]"
     entity->grant_topic_permission(100, runtime::topic_permission::PUBLISH);
     entity->save();
     
-    auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, producer, &event_system);
+    runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, &event_system);
     
-    CHECK(session.publish_event(100, std::string("test_payload")));
+    CHECK(session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 100, std::string("test_payload")));
   }
   
   SECTION("can publish with pubsub permission") {
     entity->grant_topic_permission(101, runtime::topic_permission::PUBSUB);
     entity->save();
     
-    auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, producer, &event_system);
+    runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, &event_system);
     
-    CHECK(session.publish_event(101, std::string("test_payload")));
+    CHECK(session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 101, std::string("test_payload")));
   }
   
   SECTION("cannot publish without permission") {
-    auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, producer, &event_system);
+    runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, &event_system);
     
-    CHECK_FALSE(session.publish_event(102, std::string("test_payload")));
+    CHECK_FALSE(session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 102, std::string("test_payload")));
   }
   
   SECTION("cannot publish with only subscribe permission") {
     entity->grant_topic_permission(103, runtime::topic_permission::SUBSCRIBE);
     entity->save();
     
-    auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, producer, &event_system);
+    runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, &event_system);
     
-    CHECK_FALSE(session.publish_event(103, std::string("test_payload")));
+    CHECK_FALSE(session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 103, std::string("test_payload")));
   }
   
   event_system.shutdown();
@@ -244,8 +240,7 @@ TEST_CASE("session subscribe with permissions", "[unit][runtime][session][events
     entity->grant_topic_permission(200, runtime::topic_permission::SUBSCRIBE);
     entity->save();
     
-    auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, producer, &event_system);
+    runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, &event_system);
     
     bool handler_called = false;
     auto handler = [&handler_called](const runtime::events::event_s& event) {
@@ -259,8 +254,7 @@ TEST_CASE("session subscribe with permissions", "[unit][runtime][session][events
     entity->grant_topic_permission(201, runtime::topic_permission::PUBSUB);
     entity->save();
     
-    auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, producer, &event_system);
+    runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, &event_system);
     
     bool handler_called = false;
     auto handler = [&handler_called](const runtime::events::event_s& event) {
@@ -271,8 +265,7 @@ TEST_CASE("session subscribe with permissions", "[unit][runtime][session][events
   }
   
   SECTION("cannot subscribe without permission") {
-    auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, producer, &event_system);
+    runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, &event_system);
     
     bool handler_called = false;
     auto handler = [&handler_called](const runtime::events::event_s& event) {
@@ -286,8 +279,7 @@ TEST_CASE("session subscribe with permissions", "[unit][runtime][session][events
     entity->grant_topic_permission(203, runtime::topic_permission::PUBLISH);
     entity->save();
     
-    auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, producer, &event_system);
+    runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, &event_system);
     
     bool handler_called = false;
     auto handler = [&handler_called](const runtime::events::event_s& event) {
@@ -328,8 +320,7 @@ TEST_CASE("session event publish and consume", "[unit][runtime][session][events]
     entity->grant_topic_permission(300, runtime::topic_permission::PUBSUB);
     entity->save();
     
-    auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, producer, &event_system);
+    runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, &event_system);
     
     std::atomic<int> event_count{0};
     std::string received_payload;
@@ -342,7 +333,7 @@ TEST_CASE("session event publish and consume", "[unit][runtime][session][events]
     };
     
     CHECK(session.subscribe_to_topic(300, handler));
-    CHECK(session.publish_event(300, std::string("hello_world")));
+    CHECK(session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 300, std::string("hello_world")));
     
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     
@@ -366,11 +357,8 @@ TEST_CASE("session event publish and consume", "[unit][runtime][session][events]
     entity2->grant_topic_permission(400, runtime::topic_permission::SUBSCRIBE);
     entity2->save();
     
-    auto producer1 = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-    auto producer2 = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-    
-    runtime::session_c session1("sess1", "user1", "scope1", entity1.get(), &data_ds, producer1, &event_system);
-    runtime::session_c session2("sess2", "user2", "scope2", entity2.get(), &data_ds, producer2, &event_system);
+    runtime::session_c session1("sess1", "user1", "scope1", entity1.get(), &data_ds, &event_system);
+    runtime::session_c session2("sess2", "user2", "scope2", entity2.get(), &data_ds, &event_system);
     
     std::atomic<int> session2_event_count{0};
     std::string session2_payload;
@@ -383,7 +371,7 @@ TEST_CASE("session event publish and consume", "[unit][runtime][session][events]
     };
     
     CHECK(session2.subscribe_to_topic(400, handler2));
-    CHECK(session1.publish_event(400, std::string("message_from_user1")));
+    CHECK(session1.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 400, std::string("message_from_user1")));
     
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     
@@ -414,11 +402,9 @@ TEST_CASE("session event publish and consume", "[unit][runtime][session][events]
     entity3->grant_topic_permission(500, runtime::topic_permission::SUBSCRIBE);
     entity3->save();
     
-    auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-    
-    runtime::session_c session1("sess1", "user1", "scope1", entity1.get(), &data_ds, producer, &event_system);
-    runtime::session_c session2("sess2", "user2", "scope2", entity2.get(), &data_ds, producer, &event_system);
-    runtime::session_c session3("sess3", "user3", "scope3", entity3.get(), &data_ds, producer, &event_system);
+    runtime::session_c session1("sess1", "user1", "scope1", entity1.get(), &data_ds, &event_system);
+    runtime::session_c session2("sess2", "user2", "scope2", entity2.get(), &data_ds, &event_system);
+    runtime::session_c session3("sess3", "user3", "scope3", entity3.get(), &data_ds, &event_system);
     
     std::atomic<int> count2{0};
     std::atomic<int> count3{0};
@@ -429,7 +415,7 @@ TEST_CASE("session event publish and consume", "[unit][runtime][session][events]
     CHECK(session2.subscribe_to_topic(500, handler2));
     CHECK(session3.subscribe_to_topic(500, handler3));
     
-    CHECK(session1.publish_event(500, std::string("broadcast")));
+    CHECK(session1.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 500, std::string("broadcast")));
     
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     
@@ -466,20 +452,19 @@ TEST_CASE("session unsubscribe from topics", "[unit][runtime][session][events]")
   entity->grant_topic_permission(600, runtime::topic_permission::PUBSUB);
   entity->save();
   
-  auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-  runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, producer, &event_system);
+  runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, &event_system);
   
   std::atomic<int> event_count{0};
   auto handler = [&event_count](const runtime::events::event_s& event) { event_count++; };
   
   CHECK(session.subscribe_to_topic(600, handler));
-  CHECK(session.publish_event(600, std::string("msg1")));
+  CHECK(session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 600, std::string("msg1")));
   
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
   CHECK(event_count.load() == 1);
   
   CHECK(session.unsubscribe_from_topic(600));
-  CHECK(session.publish_event(600, std::string("msg2")));
+  CHECK(session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 600, std::string("msg2")));
   
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
   CHECK(event_count.load() == 1);
@@ -515,8 +500,7 @@ TEST_CASE("session multiple topic subscriptions", "[unit][runtime][session][even
   entity->grant_topic_permission(702, runtime::topic_permission::PUBSUB);
   entity->save();
   
-  auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-  runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, producer, &event_system);
+  runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, &event_system);
   
   std::atomic<int> count700{0};
   std::atomic<int> count701{0};
@@ -526,10 +510,10 @@ TEST_CASE("session multiple topic subscriptions", "[unit][runtime][session][even
   CHECK(session.subscribe_to_topic(701, [&count701](const runtime::events::event_s& e) { count701++; }));
   CHECK(session.subscribe_to_topic(702, [&count702](const runtime::events::event_s& e) { count702++; }));
   
-  CHECK(session.publish_event(700, std::string("msg700")));
-  CHECK(session.publish_event(701, std::string("msg701")));
-  CHECK(session.publish_event(701, std::string("msg701_2")));
-  CHECK(session.publish_event(702, std::string("msg702")));
+  CHECK(session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 700, std::string("msg700")));
+  CHECK(session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 701, std::string("msg701")));
+  CHECK(session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 701, std::string("msg701_2")));
+  CHECK(session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 702, std::string("msg702")));
   
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   
@@ -567,8 +551,7 @@ TEST_CASE("session event payload types", "[unit][runtime][session][events]") {
   entity->grant_topic_permission(801, runtime::topic_permission::PUBSUB);
   entity->save();
   
-  auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-  runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, producer, &event_system);
+  runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, &event_system);
   
   SECTION("string payload") {
     std::string received;
@@ -579,7 +562,7 @@ TEST_CASE("session event payload types", "[unit][runtime][session][events]") {
     };
     
     CHECK(session.subscribe_to_topic(800, handler));
-    CHECK(session.publish_event(800, std::string("test_string")));
+    CHECK(session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 800, std::string("test_string")));
     
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     CHECK(received == "test_string");
@@ -594,7 +577,7 @@ TEST_CASE("session event payload types", "[unit][runtime][session][events]") {
     };
     
     CHECK(session.subscribe_to_topic(801, handler));
-    CHECK(session.publish_event(801, 42));
+    CHECK(session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 801, 42));
     
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     CHECK(received == 42);
@@ -605,11 +588,11 @@ TEST_CASE("session event payload types", "[unit][runtime][session][events]") {
   ensure_db_cleanup(data_test_path);
 }
 
-TEST_CASE("session event origin verification", "[unit][runtime][session][events]") {
+TEST_CASE("session event category verification", "[unit][runtime][session][events]") {
   kvds::datastore_c entity_ds;
   kvds::datastore_c data_ds;
-  std::string entity_test_path = get_unique_test_path("/tmp/session_event_test_origin_entity");
-  std::string data_test_path = get_unique_test_path("/tmp/session_event_test_origin_data");
+  std::string entity_test_path = get_unique_test_path("/tmp/session_event_test_category_entity");
+  std::string data_test_path = get_unique_test_path("/tmp/session_event_test_category_data");
   auto logger = create_test_logger();
   
   ensure_db_cleanup(entity_test_path);
@@ -629,19 +612,18 @@ TEST_CASE("session event origin verification", "[unit][runtime][session][events]
   entity->grant_topic_permission(900, runtime::topic_permission::PUBSUB);
   entity->save();
   
-  auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-  runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, producer, &event_system);
+  runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, &event_system);
   
-  runtime::events::event_origin_e received_origin = runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_UNKNOWN;
-  auto handler = [&received_origin](const runtime::events::event_s& event) {
-    received_origin = event.origin;
+  runtime::events::event_category_e received_category = runtime::events::event_category_e::RUNTIME_SUBSYSTEM_UNKNOWN;
+  auto handler = [&received_category](const runtime::events::event_s& event) {
+    received_category = event.category;
   };
   
   CHECK(session.subscribe_to_topic(900, handler));
-  CHECK(session.publish_event(900, std::string("test")));
+  CHECK(session.publish_event(runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 900, std::string("test")));
   
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
-  CHECK(received_origin == runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
+  CHECK(received_category == runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST);
   
   event_system.shutdown();
   ensure_db_cleanup(entity_test_path);
@@ -681,10 +663,8 @@ TEST_CASE("bidirectional communication on same topic", "[unit][runtime][session]
   entity2->grant_topic_permission(1000, runtime::topic_permission::PUBSUB);
   entity2->save();
   
-  auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-  
-  runtime::session_c session1("sess1", "user1", "scope1", entity1.get(), &data_ds, producer, &event_system);
-  runtime::session_c session2("sess2", "user2", "scope2", entity2.get(), &data_ds, producer, &event_system);
+  runtime::session_c session1("sess1", "user1", "scope1", entity1.get(), &data_ds, &event_system);
+  runtime::session_c session2("sess2", "user2", "scope2", entity2.get(), &data_ds, &event_system);
   
   std::atomic<int> session1_count{0};
   std::atomic<int> session2_count{0};
@@ -708,8 +688,8 @@ TEST_CASE("bidirectional communication on same topic", "[unit][runtime][session]
   CHECK(session1.subscribe_to_topic(1000, handler1));
   CHECK(session2.subscribe_to_topic(1000, handler2));
   
-  CHECK(session1.publish_event(1000, std::string("hello_from_1")));
-  CHECK(session2.publish_event(1000, std::string("hello_from_2")));
+  CHECK(session1.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1000, std::string("hello_from_1")));
+  CHECK(session2.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1000, std::string("hello_from_2")));
   
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   
@@ -749,8 +729,7 @@ TEST_CASE("topic isolation prevents cross-topic leakage", "[unit][runtime][sessi
   entity->grant_topic_permission(1101, runtime::topic_permission::PUBSUB);
   entity->save();
   
-  auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-  runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, producer, &event_system);
+  runtime::session_c session("sess1", "user1", "test_scope", entity.get(), &data_ds, &event_system);
   
   std::atomic<int> topic1100_count{0};
   std::atomic<int> topic1101_count{0};
@@ -758,9 +737,9 @@ TEST_CASE("topic isolation prevents cross-topic leakage", "[unit][runtime][sessi
   CHECK(session.subscribe_to_topic(1100, [&topic1100_count](const runtime::events::event_s& e) { topic1100_count++; }));
   CHECK(session.subscribe_to_topic(1101, [&topic1101_count](const runtime::events::event_s& e) { topic1101_count++; }));
   
-  CHECK(session.publish_event(1100, std::string("to_1100")));
-  CHECK(session.publish_event(1100, std::string("to_1100_again")));
-  CHECK(session.publish_event(1101, std::string("to_1101")));
+  CHECK(session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1100, std::string("to_1100")));
+  CHECK(session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1100, std::string("to_1100_again")));
+  CHECK(session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1101, std::string("to_1101")));
   
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
   
@@ -811,20 +790,18 @@ TEST_CASE("mixed permissions on same topic", "[unit][runtime][session][events][i
   entity3->grant_permission("scope3", runtime::permission::READ_WRITE);
   entity3->save();
   
-  auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-  
-  runtime::session_c session1("sess1", "publisher", "scope1", entity1.get(), &data_ds, producer, &event_system);
-  runtime::session_c session2("sess2", "subscriber", "scope2", entity2.get(), &data_ds, producer, &event_system);
-  runtime::session_c session3("sess3", "no_permission", "scope3", entity3.get(), &data_ds, producer, &event_system);
+  runtime::session_c session1("sess1", "publisher", "scope1", entity1.get(), &data_ds, &event_system);
+  runtime::session_c session2("sess2", "subscriber", "scope2", entity2.get(), &data_ds, &event_system);
+  runtime::session_c session3("sess3", "no_permission", "scope3", entity3.get(), &data_ds, &event_system);
   
   std::atomic<int> session2_count{0};
   auto handler2 = [&session2_count](const runtime::events::event_s& e) { session2_count++; };
   
   CHECK(session2.subscribe_to_topic(1200, handler2));
   
-  CHECK(session1.publish_event(1200, std::string("from_publisher")));
-  CHECK_FALSE(session2.publish_event(1200, std::string("should_fail")));
-  CHECK_FALSE(session3.publish_event(1200, std::string("should_fail")));
+  CHECK(session1.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1200, std::string("from_publisher")));
+  CHECK_FALSE(session2.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1200, std::string("should_fail")));
+  CHECK_FALSE(session3.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1200, std::string("should_fail")));
   
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
   
@@ -861,10 +838,8 @@ TEST_CASE("multiple sessions per entity receive events", "[unit][runtime][sessio
   entity->grant_topic_permission(1300, runtime::topic_permission::PUBSUB);
   entity->save();
   
-  auto producer = event_system.get_event_producer_for_origin(runtime::events::event_origin_e::RUNTIME_SUBSYSTEM_SESSIONS);
-  
-  runtime::session_c session_a("sess_a", "user1", "scope_a", entity.get(), &data_ds, producer, &event_system);
-  runtime::session_c session_b("sess_b", "user1", "scope_b", entity.get(), &data_ds, producer, &event_system);
+  runtime::session_c session_a("sess_a", "user1", "scope_a", entity.get(), &data_ds, &event_system);
+  runtime::session_c session_b("sess_b", "user1", "scope_b", entity.get(), &data_ds, &event_system);
   
   std::atomic<int> count_a{0};
   std::atomic<int> count_b{0};
@@ -872,7 +847,7 @@ TEST_CASE("multiple sessions per entity receive events", "[unit][runtime][sessio
   CHECK(session_a.subscribe_to_topic(1300, [&count_a](const runtime::events::event_s& e) { count_a++; }));
   CHECK(session_b.subscribe_to_topic(1300, [&count_b](const runtime::events::event_s& e) { count_b++; }));
   
-  CHECK(session_a.publish_event(1300, std::string("message")));
+  CHECK(session_a.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1300, std::string("message")));
   
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
   

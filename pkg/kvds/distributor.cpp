@@ -45,6 +45,17 @@ bool kv_c_distributor_c::kv_wrapper_c::set_batch(
   return store_->set_batch(kv_pairs);
 }
 
+bool kv_c_distributor_c::kv_wrapper_c::set_nx(const std::string &key,
+                                               const std::string &value) {
+  return store_->set_nx(key, value);
+}
+
+bool kv_c_distributor_c::kv_wrapper_c::compare_and_swap(
+    const std::string &key, const std::string &expected_value,
+    const std::string &new_value) {
+  return store_->compare_and_swap(key, expected_value, new_value);
+}
+
 void kv_c_distributor_c::kv_wrapper_c::iterate(
     const std::string &prefix,
     std::function<bool(const std::string &key, const std::string &value)>
