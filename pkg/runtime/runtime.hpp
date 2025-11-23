@@ -1,0 +1,92 @@
+#pragma once
+
+#include <string>
+#include <vector>
+#include <memory>
+
+#include <spdlog/spdlog.h>
+#include <types/shared_obj.hpp>
+
+namespace runtime {
+
+using logger_t = spdlog::logger*;
+class runtime_c;
+class runtime_subsystem_if;
+class runtime_accessor_if;
+using runtime_t = pkg::types::shared_obj_c<runtime_c>;
+using runtime_subsystem_t = std::unique_ptr<runtime_subsystem_if>;
+using runtime_accessor_t = pkg::types::shared_obj_c<runtime_accessor_if>;
+
+struct options_s {
+  bool validate_only{false};
+  std::string runtime_root_path;          // something like an expanded ~/.sxs
+  std::vector<std::string> include_paths; // include paths to add for runtime knowledge lookup
+};
+
+class runtime_accessor_if : public pkg::types::shared_c {
+public:
+    virtual ~runtime_accessor_if() = default;
+    virtual void raise_warning(const char* message) = 0;
+    virtual void raise_error(const char* message) = 0;
+};
+
+class runtime_subsystem_if {
+public:
+  virtual ~runtime_subsystem_if() = default;
+  virtual const char* get_name() const = 0;
+  virtual void initialize(runtime_accessor_t accessor) = 0;
+  virtual void shutdown() = 0;
+  virtual bool is_running() const = 0;
+};
+
+class runtime_c {
+public:
+  runtime_c(const runtime_c &) = delete;
+  runtime_c(runtime_c &&) = delete;
+  runtime_c &operator=(const runtime_c &) = delete;
+  runtime_c &operator=(runtime_c &&) = delete;
+
+  runtime_c(const options_s &options);
+  ~runtime_c() = default;
+
+  bool initialize();
+  bool shutdown();
+  bool is_running() const;
+
+  logger_t get_logger() const;
+
+private:
+
+  /*
+    When we create a subsystem we hand it a specific_accessor_c so it can
+    raise errors and interface with the runtime in a way that we track
+    the caller
+  */
+  class specific_accessor_c : public runtime_accessor_if {
+  public:
+    specific_accessor_c(const specific_accessor_c &) = delete;
+    specific_accessor_c(specific_accessor_c &&) = delete;
+    specific_accessor_c &operator=(const specific_accessor_c &) = delete;
+    specific_accessor_c &operator=(specific_accessor_c &&) = delete;
+
+    specific_accessor_c(runtime_subsystem_if* subsystem);
+    ~specific_accessor_c() = default;
+
+    void raise_warning(const char* message) override final;
+    void raise_error(const char* message) override final;
+
+  private:
+    runtime_c* runtime_;
+    runtime_subsystem_if* subsystem_;
+  };
+
+
+  options_s options_;
+  bool running_;
+  logger_t logger_;
+  std::shared_ptr<spdlog::logger> spdlog_logger_;
+
+  std::vector<runtime_subsystem_t> subsystems_;
+};
+
+} // namespace runtime

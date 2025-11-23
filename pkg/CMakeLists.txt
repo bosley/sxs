@@ -77,3 +77,21 @@ target_link_libraries(pkg_sconf PUBLIC
 
 add_library(pkg::sconf ALIAS pkg_sconf)
 
+add_library(pkg_runtime STATIC
+    runtime/runtime.cpp
+    runtime/entity/entity.cpp
+    runtime/session/session.cpp
+    runtime/system/system.cpp
+)
+
+target_include_directories(pkg_runtime PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(pkg_runtime PUBLIC
+    fmt::fmt
+    spdlog::spdlog
+    pkg::kvds
+)
+
+add_library(pkg::runtime ALIAS pkg_runtime)

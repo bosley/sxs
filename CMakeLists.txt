@@ -5,6 +5,7 @@ project(beau)
 set(CMAKE_CXX_STANDARD 20)
 
 find_package(fmt REQUIRED)
+find_package(spdlog REQUIRED)
 find_package(RocksDB REQUIRED)
 
 # Find and configure zstd for cpp-httplib
