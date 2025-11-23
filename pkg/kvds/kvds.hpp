@@ -8,6 +8,7 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace kvds {
 
@@ -35,6 +36,7 @@ public:
   virtual bool del(const std::string &key) = 0;
   virtual bool
   set_batch(const std::map<std::string, std::string> &kv_pairs) = 0;
+  virtual bool delete_batch(const std::vector<std::string> &keys) = 0;
   virtual bool set_nx(const std::string &key, const std::string &value) = 0;
   virtual bool compare_and_swap(const std::string &key,
                                 const std::string &expected_value,
@@ -71,6 +73,7 @@ private:
     bool del(const std::string &key) override;
     bool exists(const std::string &key) const override;
     bool set_batch(const std::map<std::string, std::string> &kv_pairs) override;
+    bool delete_batch(const std::vector<std::string> &keys) override;
     bool set_nx(const std::string &key, const std::string &value) override;
     bool compare_and_swap(const std::string &key,
                           const std::string &expected_value,

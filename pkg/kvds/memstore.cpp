@@ -1,5 +1,4 @@
 #include "kvds/memstore.hpp"
-#include <algorithm>
 
 namespace kvds {
 
@@ -81,6 +80,18 @@ bool memstore_c::set_batch(const std::map<std::string, std::string> &kv_pairs) {
 
   for (const auto &pair : kv_pairs) {
     data_[pair.first] = pair.second;
+  }
+  return true;
+}
+
+bool memstore_c::delete_batch(const std::vector<std::string> &keys) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (!is_open_) {
+    return false;
+  }
+
+  for (const auto &key : keys) {
+    data_.erase(key);
   }
   return true;
 }

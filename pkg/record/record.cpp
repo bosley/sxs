@@ -269,12 +269,14 @@ bool record_base_c::del() {
         return false;
     }
     
+    std::vector<std::string> keys_to_delete;
     for (size_t i = 0; i < field_count(); ++i) {
-        std::string key = manager_->make_data_key(get_type_id(), instance_id_, i);
-        if (!manager_->get_store().del(key)) {
-            release_lock();
-            return false;
-        }
+        keys_to_delete.push_back(manager_->make_data_key(get_type_id(), instance_id_, i));
+    }
+    
+    if (!manager_->get_store().delete_batch(keys_to_delete)) {
+        release_lock();
+        return false;
     }
     
     std::string lock_key = manager_->make_lock_key(get_type_id(), instance_id_);

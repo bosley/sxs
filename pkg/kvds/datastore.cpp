@@ -98,6 +98,21 @@ bool datastore_c::set_batch(
   return status.ok();
 }
 
+bool datastore_c::delete_batch(const std::vector<std::string> &keys) {
+  if (!is_open_) {
+    return false;
+  }
+
+  rocksdb::WriteBatch batch;
+
+  for (const auto &key : keys) {
+    batch.Delete(key);
+  }
+
+  rocksdb::Status status = db_->Write(rocksdb::WriteOptions(), &batch);
+  return status.ok();
+}
+
 bool datastore_c::set_nx(const std::string &key, const std::string &value) {
   if (!is_open_) {
     return false;

@@ -45,6 +45,11 @@ bool kv_c_distributor_c::kv_wrapper_c::set_batch(
   return store_->set_batch(kv_pairs);
 }
 
+bool kv_c_distributor_c::kv_wrapper_c::delete_batch(
+    const std::vector<std::string> &keys) {
+  return store_->delete_batch(keys);
+}
+
 bool kv_c_distributor_c::kv_wrapper_c::set_nx(const std::string &key,
                                                const std::string &value) {
   return store_->set_nx(key, value);

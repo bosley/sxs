@@ -81,6 +81,19 @@ bool scoped_kv_c::set_batch(const std::map<std::string, std::string>& kv_pairs) 
   return underlying_->set_batch(scoped_pairs);
 }
 
+bool scoped_kv_c::delete_batch(const std::vector<std::string>& keys) {
+  if (!check_write_permission()) {
+    return false;
+  }
+  
+  std::vector<std::string> scoped_keys;
+  for (const auto& key : keys) {
+    scoped_keys.push_back(add_scope_prefix(key));
+  }
+  
+  return underlying_->delete_batch(scoped_keys);
+}
+
 bool scoped_kv_c::set_nx(const std::string& key, const std::string& value) {
   if (!check_write_permission()) {
     return false;

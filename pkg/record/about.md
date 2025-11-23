@@ -164,8 +164,9 @@ sequenceDiagram
     Rec->>Store: set_nx("record:lock:user:user_123", token)
     Store-->>Rec: true (acquired)
     Note over Rec: No verify_lock() call
-    Rec->>Store: del("record:data:user:user_123:0")
-    Rec->>Store: del("record:data:user:user_123:1")
+    Note over Rec: Build vector of field keys
+    Rec->>Store: delete_batch(["record:data:user:user_123:0",<br/>"record:data:user:user_123:1"])
+    Store-->>Rec: true (batch deleted)
     Note over Rec: Direct lock cleanup
     Rec->>Store: del("record:lock:user:user_123")
     Note over Rec: Clear lock_token_
@@ -268,7 +269,7 @@ The save operation iterates through all fields in index order, constructing a st
 
 The load operation, which must be implemented by derived record classes, performs the inverse transformation. It retrieves each field's string value from storage using the field index, then deserializes the string into the appropriate native type for that field. Load operations do not require locks as they are read-only and operate on a consistent snapshot provided by the underlying storage layer.
 
-The delete operation removes all field keys for the record instance along with its lock key if present. Like save, delete iterates through all field indices to construct and remove each field's storage key. The operation executes under lock protection to prevent concurrent modification attempts from interfering with deletion, but unlike save, del uses only acquire_lock without the subsequent verify_lock step since it is deleting the entire record. After deleting all field keys, del performs direct cleanup by deleting the lock key and clearing the lock token, rather than calling the release_lock helper method.
+The delete operation removes all field keys for the record instance along with its lock key if present. The operation first builds a vector of all field keys, then uses the kvds delete_batch method to remove them atomically in a single operation. This is more efficient than individual deletions, especially for disk-backed stores where RocksDB can batch the deletions into a single write operation. The del operation executes under lock protection to prevent concurrent modification attempts from interfering with deletion, but unlike save, del uses only acquire_lock without the subsequent verify_lock step since it is deleting the entire record. After deleting all field keys, del performs direct cleanup by deleting the lock key and clearing the lock token, rather than calling the release_lock helper method.
 
 ## Query Capabilities
 
