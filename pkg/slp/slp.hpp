@@ -43,7 +43,6 @@ enum class slp_type_e {
     NONE = 0,
     SOME = 1,
     PAREN_LIST = 2,
-    BRACKET_LIST = 3,
     BRACE_LIST = 4,
     DQ_LIST = 5,
     COMMENTARY = 6,
@@ -51,7 +50,7 @@ enum class slp_type_e {
     RUNE = 8,
     INTEGER = 9,
     REAL = 10,
-    ENVIRONMENT = 11,
+    BRACKET_LIST = 11,
     ERROR = 12,
 };
 

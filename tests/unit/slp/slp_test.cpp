@@ -99,14 +99,14 @@ TEST_CASE("slp parse paren lists", "[unit][slp][list]") {
     }
 }
 
-TEST_CASE("slp parse bracket lists", "[unit][slp][list]") {
-    SECTION("empty bracket list") {
+TEST_CASE("slp parse environments", "[unit][slp][list]") {
+    SECTION("empty environment") {
         auto result = slp::parse("[]");
         CHECK(result.is_success());
         CHECK(result.object().type() == slp::slp_type_e::BRACKET_LIST);
     }
     
-    SECTION("bracket list with content") {
+    SECTION("environment with content") {
         auto result = slp::parse("[1 2 3]");
         CHECK(result.is_success());
         CHECK(result.object().type() == slp::slp_type_e::BRACKET_LIST);
@@ -172,23 +172,56 @@ TEST_CASE("slp parse quoted objects", "[unit][slp][quote]") {
     }
 }
 
-TEST_CASE("slp parse env directive", "[unit][slp][env]") {
-    SECTION("simple env") {
-        auto result = slp::parse("[env my-program (let a 3)]");
+TEST_CASE("slp parse error objects", "[unit][slp][error]") {
+    SECTION("error with integer") {
+        auto result = slp::parse("@42");
         CHECK(result.is_success());
-        CHECK(result.object().type() == slp::slp_type_e::ENVIRONMENT);
+        CHECK(result.object().type() == slp::slp_type_e::ERROR);
     }
     
-    SECTION("env with multiple expressions") {
-        auto result = slp::parse("[env test (let a 3) (putln a)]");
+    SECTION("error with symbol") {
+        auto result = slp::parse("@not-found");
         CHECK(result.is_success());
-        CHECK(result.object().type() == slp::slp_type_e::ENVIRONMENT);
+        CHECK(result.object().type() == slp::slp_type_e::ERROR);
+    }
+    
+    SECTION("error with list") {
+        auto result = slp::parse("@(division by zero)");
+        CHECK(result.is_success());
+        CHECK(result.object().type() == slp::slp_type_e::ERROR);
+    }
+    
+    SECTION("error with string") {
+        auto result = slp::parse("@\"file not found\"");
+        CHECK(result.is_success());
+        CHECK(result.object().type() == slp::slp_type_e::ERROR);
+    }
+    
+    SECTION("multiple errors") {
+        auto result = slp::parse("@@nested-error");
+        CHECK(result.is_success());
+        CHECK(result.object().type() == slp::slp_type_e::ERROR);
     }
 }
 
-TEST_CASE("slp parse debug directive", "[unit][slp][debug]") {
-    auto result = slp::parse("[debug (1 2 3)]");
-    CHECK(result.is_success());
+TEST_CASE("slp parse environment", "[unit][slp][env]") {
+    SECTION("simple environment") {
+        auto result = slp::parse("[my-program (let a 3)]");
+        CHECK(result.is_success());
+        CHECK(result.object().type() == slp::slp_type_e::BRACKET_LIST);
+    }
+    
+    SECTION("environment with multiple expressions") {
+        auto result = slp::parse("[test (let a 3) (putln a)]");
+        CHECK(result.is_success());
+        CHECK(result.object().type() == slp::slp_type_e::BRACKET_LIST);
+    }
+    
+    SECTION("empty environment") {
+        auto result = slp::parse("[]");
+        CHECK(result.is_success());
+        CHECK(result.object().type() == slp::slp_type_e::BRACKET_LIST);
+    }
 }
 
 TEST_CASE("slp parse complex nested structures", "[unit][slp][complex]") {
@@ -227,7 +260,7 @@ TEST_CASE("slp parse errors - unclosed lists", "[unit][slp][error]") {
         CHECK(result.error().error_code == slp::slp_parse_error_e::UNCLOSED_PAREN_LIST);
     }
     
-    SECTION("unclosed bracket") {
+    SECTION("unclosed environment") {
         auto result = slp::parse("[1 2 3");
         CHECK(result.is_error());
         CHECK(result.error().error_code == slp::slp_parse_error_e::UNCLOSED_BRACKET_LIST);
@@ -248,10 +281,9 @@ TEST_CASE("slp parse errors - unclosed lists", "[unit][slp][error]") {
 
 TEST_CASE("slp parse example.slp structure", "[unit][slp][example]") {
     std::string example = R"(
-[env my-program
+[my-program
     (let a 3)
     (putln a)
-    [debug a]
 ]
 )";
     auto result = slp::parse(example);
@@ -260,8 +292,8 @@ TEST_CASE("slp parse example.slp structure", "[unit][slp][example]") {
 
 TEST_CASE("slp parse complex example", "[unit][slp][example]") {
     std::string example = R"(
-[env my-program
-    (let a [env my-sub-env
+[my-program
+    (let a [my-sub-env
         (let my_data 0)
     ])
     (let something {a my_data})
@@ -345,7 +377,7 @@ TEST_CASE("slp list operations - nested", "[unit][slp][list][interface]") {
 }
 
 TEST_CASE("slp list operations - bracket and brace", "[unit][slp][list][interface]") {
-    SECTION("bracket list") {
+    SECTION("environment") {
         auto result = slp::parse("[1 2 3]");
         CHECK(result.is_success());
         CHECK(result.object().type() == slp::slp_type_e::BRACKET_LIST);
@@ -364,9 +396,9 @@ TEST_CASE("slp list operations - bracket and brace", "[unit][slp][list][interfac
     }
     
     SECTION("environment is a list") {
-        auto result = slp::parse("[env test (let a 1) (let b 2)]");
+        auto result = slp::parse("[test (let a 1) (let b 2)]");
         CHECK(result.is_success());
-        CHECK(result.object().type() == slp::slp_type_e::ENVIRONMENT);
+        CHECK(result.object().type() == slp::slp_type_e::BRACKET_LIST);
         auto list = result.object().as_list();
         CHECK(list.size() == 3);
         CHECK(list.at(0).type() == slp::slp_type_e::SYMBOL);
@@ -550,14 +582,7 @@ TEST_CASE("slp error validation - byte positions", "[unit][slp][error]") {
         CHECK(result.error().error_code == slp::slp_parse_error_e::UNCLOSED_BRACKET_LIST);
         CHECK(result.error().byte_position == 0);
     }
-    
-    SECTION("unclosed brace position") {
-        auto result = slp::parse("{a b c");
-        CHECK(result.is_error());
-        CHECK(result.error().error_code == slp::slp_parse_error_e::UNCLOSED_BRACE_LIST);
-        CHECK(result.error().byte_position == 0);
-    }
-    
+
     SECTION("unclosed string position") {
         auto result = slp::parse("\"hello world");
         CHECK(result.is_error());
@@ -698,7 +723,7 @@ TEST_CASE("slp type safety", "[unit][slp][safety]") {
     }
 }
 
-TEST_CASE("slp quoted objects", "[unit][slp][quote]") {
+TEST_CASE("slp quoted and error objects", "[unit][slp][quote][error]") {
     SECTION("quoted integer") {
         auto result = slp::parse("'42");
         CHECK(result.is_success());
@@ -721,6 +746,42 @@ TEST_CASE("slp quoted objects", "[unit][slp][quote]") {
         auto result = slp::parse("''42");
         CHECK(result.is_success());
         CHECK(result.object().type() == slp::slp_type_e::SOME);
+    }
+    
+    SECTION("error integer") {
+        auto result = slp::parse("@404");
+        CHECK(result.is_success());
+        CHECK(result.object().type() == slp::slp_type_e::ERROR);
+    }
+    
+    SECTION("error symbol") {
+        auto result = slp::parse("@error");
+        CHECK(result.is_success());
+        CHECK(result.object().type() == slp::slp_type_e::ERROR);
+    }
+    
+    SECTION("error list") {
+        auto result = slp::parse("@(error message)");
+        CHECK(result.is_success());
+        CHECK(result.object().type() == slp::slp_type_e::ERROR);
+    }
+    
+    SECTION("multiple errors") {
+        auto result = slp::parse("@@error");
+        CHECK(result.is_success());
+        CHECK(result.object().type() == slp::slp_type_e::ERROR);
+    }
+    
+    SECTION("quote error combination") {
+        auto result = slp::parse("'@error");
+        CHECK(result.is_success());
+        CHECK(result.object().type() == slp::slp_type_e::SOME);
+    }
+    
+    SECTION("error quote combination") {
+        auto result = slp::parse("@'value");
+        CHECK(result.is_success());
+        CHECK(result.object().type() == slp::slp_type_e::ERROR);
     }
 }
 

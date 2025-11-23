@@ -1,7 +1,6 @@
 #include "slp/slp.hpp"
 #include <cctype>
 #include <cstring>
-#include <iostream>
 #include <optional>
 #include <string>
 #include <vector>
@@ -250,145 +249,9 @@ parse_result_internal_s parse_atom(parser_state_s& state) {
     return parse_result_internal_s{unit_offset, std::nullopt};
 }
 
-parse_result_internal_s handle_env(parser_state_s& state, size_t start_pos) {
-    state.skip_whitespace_and_comments();
-    
-    if (state.at_end()) {
-        slp_parse_error_s err;
-        err.error_code = slp_parse_error_e::UNCLOSED_BRACKET_LIST;
-        err.message = "env directive requires a name";
-        err.byte_position = start_pos;
-        return parse_result_internal_s{std::nullopt, err};
-    }
-    
-    auto name_result = parse_object(state);
-    if (name_result.error.has_value()) {
-        return name_result;
-    }
-    
-    std::vector<size_t> body_offsets;
-    body_offsets.push_back(name_result.unit_offset.value());
-    
-    while (true) {
-        state.skip_whitespace_and_comments();
-        
-        if (state.at_end()) {
-            slp_parse_error_s err;
-            err.error_code = slp_parse_error_e::UNCLOSED_BRACKET_LIST;
-            err.message = "Unclosed env directive";
-            err.byte_position = start_pos;
-            return parse_result_internal_s{std::nullopt, err};
-        }
-        
-        if (state.current() == ']') {
-            state.advance();
-            break;
-        }
-        
-        auto elem_result = parse_object(state);
-        if (elem_result.error.has_value()) {
-            return elem_result;
-        }
-        
-        body_offsets.push_back(elem_result.unit_offset.value());
-    }
-    
-    size_t env_offset = allocate_unit(state, slp_type_e::ENVIRONMENT);
-    size_t offsets_array_pos = 0;
-    
-    if (!body_offsets.empty()) {
-        offsets_array_pos = state.data_buffer.size();
-        for (size_t offset : body_offsets) {
-            state.data_buffer.insert(state.data_buffer.end(), 
-                reinterpret_cast<const std::uint8_t*>(&offset),
-                reinterpret_cast<const std::uint8_t*>(&offset) + sizeof(size_t));
-        }
-    }
-    
-    slp_unit_of_store_t* env_unit = state.get_unit(env_offset);
-    env_unit->flags = static_cast<std::uint32_t>(body_offsets.size());
-    if (!body_offsets.empty()) {
-        env_unit->data.uint64 = static_cast<std::uint64_t>(offsets_array_pos);
-    }
-    
-    return parse_result_internal_s{env_offset, std::nullopt};
-}
-
-parse_result_internal_s handle_debug(parser_state_s& state, size_t start_pos) {
-    state.skip_whitespace_and_comments();
-    
-    if (state.at_end()) {
-        slp_parse_error_s err;
-        err.error_code = slp_parse_error_e::UNCLOSED_BRACKET_LIST;
-        err.message = "debug directive requires an object";
-        err.byte_position = start_pos;
-        return parse_result_internal_s{std::nullopt, err};
-    }
-    
-    auto obj_result = parse_object(state);
-    if (obj_result.error.has_value()) {
-        return obj_result;
-    }
-    
-    size_t obj_offset = obj_result.unit_offset.value();
-    slp_unit_of_store_t* obj_unit = state.get_unit(obj_offset);
-    slp_type_e obj_type = static_cast<slp_type_e>(obj_unit->header & 0xFF);
-    
-    std::cout << "[DEBUG] Object type: ";
-    switch (obj_type) {
-        case slp_type_e::SYMBOL: std::cout << "SYMBOL"; break;
-        case slp_type_e::INTEGER: std::cout << "INTEGER"; break;
-        case slp_type_e::REAL: std::cout << "REAL"; break;
-        case slp_type_e::PAREN_LIST: std::cout << "PAREN_LIST"; break;
-        case slp_type_e::BRACKET_LIST: std::cout << "BRACKET_LIST"; break;
-        case slp_type_e::BRACE_LIST: std::cout << "BRACE_LIST"; break;
-        default: std::cout << "UNKNOWN"; break;
-    }
-    std::cout << std::endl;
-    
-    state.skip_whitespace_and_comments();
-    if (!state.at_end() && state.current() == ']') {
-        state.advance();
-    }
-    
-    return parse_result_internal_s{obj_offset, std::nullopt};
-}
-
 parse_result_internal_s handle_bracket_list(parser_state_s& state) {
     size_t start_pos = state.pos;
     state.advance();
-    
-    state.skip_whitespace_and_comments();
-    
-    if (state.at_end()) {
-        slp_parse_error_s err;
-        err.error_code = slp_parse_error_e::UNCLOSED_BRACKET_LIST;
-        err.message = "Unclosed bracket list";
-        err.byte_position = start_pos;
-        return parse_result_internal_s{std::nullopt, err};
-    }
-    
-    if (state.current() == ']') {
-        state.advance();
-        size_t list_offset = allocate_unit(state, slp_type_e::BRACKET_LIST);
-        state.get_unit(list_offset)->flags = 0;
-        return parse_result_internal_s{list_offset, std::nullopt};
-    }
-    
-    size_t directive_start = state.pos;
-    std::string first_token;
-    while (!state.at_end() && !std::isspace(state.current()) && state.current() != ']') {
-        first_token += state.current();
-        state.advance();
-    }
-    
-    if (first_token == "env") {
-        return handle_env(state, start_pos);
-    } else if (first_token == "debug") {
-        return handle_debug(state, start_pos);
-    }
-    
-    state.pos = directive_start;
     
     std::vector<size_t> element_offsets;
     
@@ -398,7 +261,7 @@ parse_result_internal_s handle_bracket_list(parser_state_s& state) {
         if (state.at_end()) {
             slp_parse_error_s err;
             err.error_code = slp_parse_error_e::UNCLOSED_BRACKET_LIST;
-            err.message = "Unclosed bracket list";
+            err.message = "Unclosed environment";
             err.byte_position = start_pos;
             return parse_result_internal_s{std::nullopt, err};
         }
@@ -416,7 +279,7 @@ parse_result_internal_s handle_bracket_list(parser_state_s& state) {
         element_offsets.push_back(elem_result.unit_offset.value());
     }
     
-    size_t list_offset = allocate_unit(state, slp_type_e::BRACKET_LIST);
+    size_t env_offset = allocate_unit(state, slp_type_e::BRACKET_LIST);
     size_t offsets_array_pos = 0;
     
     if (!element_offsets.empty()) {
@@ -428,13 +291,13 @@ parse_result_internal_s handle_bracket_list(parser_state_s& state) {
         }
     }
     
-    slp_unit_of_store_t* list_unit = state.get_unit(list_offset);
-    list_unit->flags = static_cast<std::uint32_t>(element_offsets.size());
+    slp_unit_of_store_t* env_unit = state.get_unit(env_offset);
+    env_unit->flags = static_cast<std::uint32_t>(element_offsets.size());
     if (!element_offsets.empty()) {
-        list_unit->data.uint64 = static_cast<std::uint64_t>(offsets_array_pos);
+        env_unit->data.uint64 = static_cast<std::uint64_t>(offsets_array_pos);
     }
     
-    return parse_result_internal_s{list_offset, std::nullopt};
+    return parse_result_internal_s{env_offset, std::nullopt};
 }
 
 parse_result_internal_s parse_object(parser_state_s& state) {
@@ -457,6 +320,19 @@ parse_result_internal_s parse_object(parser_state_s& state) {
         state.get_unit(some_offset)->data.data_ptr = reinterpret_cast<data_u*>(state.get_unit(inner_result.unit_offset.value()));
         
         return parse_result_internal_s{some_offset, std::nullopt};
+    }
+    
+    if (c == '@') {
+        state.advance();
+        auto inner_result = parse_object(state);
+        if (inner_result.error.has_value()) {
+            return inner_result;
+        }
+        
+        size_t error_offset = allocate_unit(state, slp_type_e::ERROR);
+        state.get_unit(error_offset)->data.data_ptr = reinterpret_cast<data_u*>(state.get_unit(inner_result.unit_offset.value()));
+        
+        return parse_result_internal_s{error_offset, std::nullopt};
     }
     
     if (c == '(') {
@@ -486,9 +362,8 @@ slp_object_c::list_c::list_c(const slp_object_c* parent) : parent_(parent), is_v
     }
     slp_type_e t = parent_->type();
     is_valid_ = (t == slp_type_e::PAREN_LIST || 
-                 t == slp_type_e::BRACKET_LIST || 
                  t == slp_type_e::BRACE_LIST || 
-                 t == slp_type_e::ENVIRONMENT);
+                 t == slp_type_e::BRACKET_LIST);
 }
 
 size_t slp_object_c::list_c::size() const {
