@@ -1,4 +1,5 @@
 #include "runtime/system/system.hpp"
+#include "runtime/system/const.hpp"
 #include <filesystem>
 
 namespace runtime {
@@ -70,12 +71,54 @@ void system_c::initialize(runtime_accessor_t accessor) {
     accessor_->raise_error("Failed to create kvds distributor");
     return;
   }
+
+
+  kv_entity_store_ = distributor_->get_or_create_kv_c(
+    std::string(system::KV_ENTITY_CONTEXT_MARKER), 
+    kvds::kv_c_distributor_c::kv_c_backend_e::DISK);
+
+  kv_session_store_ = distributor_->get_or_create_kv_c(
+    std::string(system::KV_SESSION_CONTEXT_MARKER), 
+    kvds::kv_c_distributor_c::kv_c_backend_e::DISK);
+
+  kv_runtime_store_ = distributor_->get_or_create_kv_c(
+    std::string(system::KV_RUNTIME_CONTEXT_MARKER), 
+    kvds::kv_c_distributor_c::kv_c_backend_e::DISK);
+
+  kv_ds_store_ = distributor_->get_or_create_kv_c(
+    std::string(system::KV_DATASTORE_CONTEXT_MARKER), 
+    kvds::kv_c_distributor_c::kv_c_backend_e::DISK);
   
+  if (!kv_entity_store_.has_value()) {
+    accessor_->raise_error("Failed to create entity context store");
+    return;
+  }
+  
+  if (!kv_session_store_.has_value()) {
+    accessor_->raise_error("Failed to create session context store");
+    return;
+  }
+
+  if (!kv_runtime_store_.has_value()) {
+    accessor_->raise_error("Failed to create runtime context store");
+    return;
+  }
+
+  if (!kv_ds_store_.has_value()) {
+    accessor_->raise_error("Failed to create datastore context store");
+    return;
+  }
+
   running_ = true;
 }
 
 void system_c::shutdown() {
   logger_->info("[{}] Shutting down", name_);
+  
+  kv_entity_store_ = std::nullopt;
+  kv_session_store_ = std::nullopt;
+  kv_runtime_store_ = std::nullopt;
+  kv_ds_store_ = std::nullopt;
   
   if (distributor_) {
     logger_->info("[{}] Destroying kvds distributor", name_);
@@ -89,5 +132,20 @@ bool system_c::is_running() const {
   return running_; 
 }
 
+kvds::kv_c* system_c::get_entity_store() {
+  return kv_entity_store_.has_value() ? kv_entity_store_.value().ptr() : nullptr;
+}
+
+kvds::kv_c* system_c::get_session_store() {
+  return kv_session_store_.has_value() ? kv_session_store_.value().ptr() : nullptr;
+}
+
+kvds::kv_c* system_c::get_runtime_store() {
+  return kv_runtime_store_.has_value() ? kv_runtime_store_.value().ptr() : nullptr;
+}
+
+kvds::kv_c* system_c::get_datastore_store() {
+  return kv_ds_store_.has_value() ? kv_ds_store_.value().ptr() : nullptr;
+}
 
 } // namespace runtime

@@ -93,6 +93,24 @@ target_link_libraries(pkg_runtime PUBLIC
     fmt::fmt
     spdlog::spdlog
     pkg::kvds
+    pkg::slp
+    pkg::record
 )
 
 add_library(pkg::runtime ALIAS pkg_runtime)
+
+add_library(pkg_record STATIC
+    record/record.cpp
+)
+
+target_include_directories(pkg_record PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(pkg_record PUBLIC
+    pkg::kvds
+    pkg::sconf
+    spdlog::spdlog
+)
+
+add_library(pkg::record ALIAS pkg_record)

@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 
 namespace pkg::types {
@@ -18,17 +19,21 @@ public:
   virtual ~shared_c() {}
 
   const shared_c *acquire() const {
-    ref_count_++;
+    ref_count_.fetch_add(1, std::memory_order_relaxed);
     return this;
   }
-  int64_t release() const { return --ref_count_; }
-  int64_t refCount() const { return ref_count_; }
+  int64_t release() const { 
+    return ref_count_.fetch_sub(1, std::memory_order_acq_rel) - 1;
+  }
+  int64_t refCount() const { 
+    return ref_count_.load(std::memory_order_relaxed); 
+  }
 
 private:
   shared_c(const shared_c &);
   shared_c &operator=(const shared_c &);
 
-  mutable std::uint32_t ref_count_{0};
+  mutable std::atomic<std::uint32_t> ref_count_{0};
 };
 
 //! \brief A wrapper that performs operations
