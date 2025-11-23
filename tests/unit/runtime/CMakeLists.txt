@@ -29,6 +29,12 @@ add_test(NAME session_creation_with_entity_and_scope
 add_test(NAME scoped_kv_operations_with_permission_checks
          COMMAND runtime_tests "scoped kv operations with permission checks")
 
+add_test(NAME session_subsystem_management
+         COMMAND runtime_tests "session subsystem management")
+
+add_test(NAME session_lifecycle_management
+         COMMAND runtime_tests "session lifecycle management")
+
 add_test(NAME event_system_basic_operations 
          COMMAND runtime_tests "event system basic operations")
 
@@ -81,7 +87,8 @@ if(WITH_ASAN)
                        multiple_entities_with_different_permissions entity_permission_edge_cases
                        entity_deletion
                        session_subsystem_initialization session_creation_with_entity_and_scope
-                       scoped_kv_operations_with_permission_checks
+                       scoped_kv_operations_with_permission_checks session_subsystem_management
+                       session_lifecycle_management
                        event_system_basic_operations event_producer_and_topic_writer
                        event_consumer_registration event_publishing_and_consumption
                        multi_threaded_event_processing event_system_error_handling
