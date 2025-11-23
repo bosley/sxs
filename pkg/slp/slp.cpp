@@ -103,8 +103,21 @@ parse_result_internal_s parse_string(parser_state_s& state) {
     state.advance();
     
     size_t list_offset = allocate_unit(state, slp_type_e::DQ_LIST);
+    size_t offsets_array_pos = 0;
+    
     if (!char_offsets.empty()) {
-        state.get_unit(list_offset)->data.typed_range = state.get_unit(char_offsets[0]);
+        offsets_array_pos = state.data_buffer.size();
+        for (size_t offset : char_offsets) {
+            state.data_buffer.insert(state.data_buffer.end(), 
+                reinterpret_cast<const std::uint8_t*>(&offset),
+                reinterpret_cast<const std::uint8_t*>(&offset) + sizeof(size_t));
+        }
+    }
+    
+    slp_unit_of_store_t* list_unit = state.get_unit(list_offset);
+    list_unit->flags = static_cast<std::uint32_t>(char_offsets.size());
+    if (!char_offsets.empty()) {
+        list_unit->data.uint64 = static_cast<std::uint64_t>(offsets_array_pos);
     }
     
     return parse_result_internal_s{list_offset, std::nullopt};
@@ -149,8 +162,21 @@ parse_result_internal_s parse_list(parser_state_s& state, char open, char close,
     }
     
     size_t list_offset = allocate_unit(state, type);
+    size_t offsets_array_pos = 0;
+    
     if (!element_offsets.empty()) {
-        state.get_unit(list_offset)->data.typed_range = state.get_unit(element_offsets[0]);
+        offsets_array_pos = state.data_buffer.size();
+        for (size_t offset : element_offsets) {
+            state.data_buffer.insert(state.data_buffer.end(), 
+                reinterpret_cast<const std::uint8_t*>(&offset),
+                reinterpret_cast<const std::uint8_t*>(&offset) + sizeof(size_t));
+        }
+    }
+    
+    slp_unit_of_store_t* list_unit = state.get_unit(list_offset);
+    list_unit->flags = static_cast<std::uint32_t>(element_offsets.size());
+    if (!element_offsets.empty()) {
+        list_unit->data.uint64 = static_cast<std::uint64_t>(offsets_array_pos);
     }
     
     return parse_result_internal_s{list_offset, std::nullopt};
@@ -268,8 +294,21 @@ parse_result_internal_s handle_env(parser_state_s& state, size_t start_pos) {
     }
     
     size_t env_offset = allocate_unit(state, slp_type_e::ENVIRONMENT);
+    size_t offsets_array_pos = 0;
+    
     if (!body_offsets.empty()) {
-        state.get_unit(env_offset)->data.typed_range = state.get_unit(body_offsets[0]);
+        offsets_array_pos = state.data_buffer.size();
+        for (size_t offset : body_offsets) {
+            state.data_buffer.insert(state.data_buffer.end(), 
+                reinterpret_cast<const std::uint8_t*>(&offset),
+                reinterpret_cast<const std::uint8_t*>(&offset) + sizeof(size_t));
+        }
+    }
+    
+    slp_unit_of_store_t* env_unit = state.get_unit(env_offset);
+    env_unit->flags = static_cast<std::uint32_t>(body_offsets.size());
+    if (!body_offsets.empty()) {
+        env_unit->data.uint64 = static_cast<std::uint64_t>(offsets_array_pos);
     }
     
     return parse_result_internal_s{env_offset, std::nullopt};
@@ -332,6 +371,7 @@ parse_result_internal_s handle_bracket_list(parser_state_s& state) {
     if (state.current() == ']') {
         state.advance();
         size_t list_offset = allocate_unit(state, slp_type_e::BRACKET_LIST);
+        state.get_unit(list_offset)->flags = 0;
         return parse_result_internal_s{list_offset, std::nullopt};
     }
     
@@ -377,8 +417,21 @@ parse_result_internal_s handle_bracket_list(parser_state_s& state) {
     }
     
     size_t list_offset = allocate_unit(state, slp_type_e::BRACKET_LIST);
+    size_t offsets_array_pos = 0;
+    
     if (!element_offsets.empty()) {
-        state.get_unit(list_offset)->data.typed_range = state.get_unit(element_offsets[0]);
+        offsets_array_pos = state.data_buffer.size();
+        for (size_t offset : element_offsets) {
+            state.data_buffer.insert(state.data_buffer.end(), 
+                reinterpret_cast<const std::uint8_t*>(&offset),
+                reinterpret_cast<const std::uint8_t*>(&offset) + sizeof(size_t));
+        }
+    }
+    
+    slp_unit_of_store_t* list_unit = state.get_unit(list_offset);
+    list_unit->flags = static_cast<std::uint32_t>(element_offsets.size());
+    if (!element_offsets.empty()) {
+        list_unit->data.uint64 = static_cast<std::uint64_t>(offsets_array_pos);
     }
     
     return parse_result_internal_s{list_offset, std::nullopt};
@@ -423,6 +476,117 @@ parse_result_internal_s parse_object(parser_state_s& state) {
     }
     
     return parse_atom(state);
+}
+
+slp_object_c::list_c::list_c() : parent_(nullptr), is_valid_(false) {}
+
+slp_object_c::list_c::list_c(const slp_object_c* parent) : parent_(parent), is_valid_(false) {
+    if (!parent_ || !parent_->view_) {
+        return;
+    }
+    slp_type_e t = parent_->type();
+    is_valid_ = (t == slp_type_e::PAREN_LIST || 
+                 t == slp_type_e::BRACKET_LIST || 
+                 t == slp_type_e::BRACE_LIST || 
+                 t == slp_type_e::ENVIRONMENT);
+}
+
+size_t slp_object_c::list_c::size() const {
+    if (!is_valid_ || !parent_ || !parent_->view_) {
+        return 0;
+    }
+    
+    return parent_->view_->flags;
+}
+
+bool slp_object_c::list_c::empty() const {
+    return size() == 0;
+}
+
+slp_object_c slp_object_c::list_c::at(size_t index) const {
+    slp_object_c result;
+    
+    if (!is_valid_ || !parent_ || !parent_->view_) {
+        return result;
+    }
+    
+    if (index >= size()) {
+        return result;
+    }
+    
+    size_t offsets_array_pos = static_cast<size_t>(parent_->view_->data.uint64);
+    const size_t* offsets_array = reinterpret_cast<const size_t*>(&parent_->data_[offsets_array_pos]);
+    
+    size_t target_offset = offsets_array[index];
+    
+    if (target_offset + sizeof(slp_unit_of_store_t) > parent_->data_.size()) {
+        return result;
+    }
+    
+    result.data_ = parent_->data_;
+    result.symbols_ = parent_->symbols_;
+    result.root_offset_ = target_offset;
+    result.view_ = reinterpret_cast<slp_unit_of_store_t*>(&result.data_[target_offset]);
+    
+    return result;
+}
+
+slp_object_c::string_c::string_c() : parent_(nullptr), is_valid_(false) {}
+
+slp_object_c::string_c::string_c(const slp_object_c* parent) : parent_(parent), is_valid_(false) {
+    if (!parent_ || !parent_->view_) {
+        return;
+    }
+    is_valid_ = (parent_->type() == slp_type_e::DQ_LIST);
+}
+
+size_t slp_object_c::string_c::size() const {
+    if (!is_valid_ || !parent_ || !parent_->view_) {
+        return 0;
+    }
+    
+    return parent_->view_->flags;
+}
+
+bool slp_object_c::string_c::empty() const {
+    return size() == 0;
+}
+
+char slp_object_c::string_c::at(size_t index) const {
+    if (!is_valid_ || !parent_ || !parent_->view_) {
+        return '\0';
+    }
+    
+    if (index >= size()) {
+        return '\0';
+    }
+    
+    size_t offsets_array_pos = static_cast<size_t>(parent_->view_->data.uint64);
+    const size_t* offsets_array = reinterpret_cast<const size_t*>(&parent_->data_[offsets_array_pos]);
+    
+    size_t target_offset = offsets_array[index];
+    
+    if (target_offset + sizeof(slp_unit_of_store_t) > parent_->data_.size()) {
+        return '\0';
+    }
+    
+    slp_unit_of_store_t* rune_unit = reinterpret_cast<slp_unit_of_store_t*>(
+        const_cast<std::uint8_t*>(&parent_->data_[target_offset])
+    );
+    
+    return static_cast<char>(rune_unit->data.uint32);
+}
+
+std::string slp_object_c::string_c::to_string() const {
+    std::string result;
+    size_t len = size();
+    result.reserve(len);
+    
+    for (size_t i = 0; i < len; ++i) {
+        result += at(i);
+    }
+    
+    return result;
 }
 
 slp_object_c::slp_object_c() : view_(nullptr), root_offset_(0) {}
@@ -487,6 +651,14 @@ const char* slp_object_c::as_symbol() const {
         return "";
     }
     return it->second.c_str();
+}
+
+slp_object_c::list_c slp_object_c::as_list() const {
+    return list_c(this);
+}
+
+slp_object_c::string_c slp_object_c::as_string() const {
+    return string_c(this);
 }
 
 bool slp_object_c::has_data() const {

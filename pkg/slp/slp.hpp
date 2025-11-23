@@ -5,11 +5,15 @@
 #include <optional>
 #include <string>
 #include <vector>
+
+class slp_test_accessor;
+
 namespace slp {
 
 typedef struct slp_unit_of_store_s slp_unit_of_store_t;
 
 class slp_parse_result_c;
+class slp_object_c;
 
 union data_u {
     std::int8_t int8;
@@ -60,6 +64,35 @@ enum class slp_type_e {
 */
 class slp_object_c {
 public:
+    class list_c {
+    public:
+        list_c();
+        explicit list_c(const slp_object_c* parent);
+        
+        size_t size() const;
+        bool empty() const;
+        slp_object_c at(size_t index) const;
+        
+    private:
+        const slp_object_c* parent_;
+        bool is_valid_;
+    };
+    
+    class string_c {
+    public:
+        string_c();
+        explicit string_c(const slp_object_c* parent);
+        
+        size_t size() const;
+        bool empty() const;
+        char at(size_t index) const;
+        std::string to_string() const;
+        
+    private:
+        const slp_object_c* parent_;
+        bool is_valid_;
+    };
+    
     slp_object_c();
     ~slp_object_c();
     slp_object_c(const slp_object_c&) = delete;
@@ -71,6 +104,8 @@ public:
     std::int64_t as_int() const;
     double as_real() const;
     const char* as_symbol() const;
+    list_c as_list() const;
+    string_c as_string() const;
     bool has_data() const;
     
 private:
@@ -80,6 +115,7 @@ private:
     std::map<std::uint64_t, std::string> symbols_;
     
     friend slp_parse_result_c parse(const std::string& source);
+    friend class ::slp_test_accessor;
 };
 
 enum class slp_parse_error_e {
