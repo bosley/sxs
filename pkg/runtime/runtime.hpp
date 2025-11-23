@@ -19,10 +19,11 @@ using runtime_accessor_t = pkg::types::shared_obj_c<runtime_accessor_if>;
 
 struct options_s {
   bool validate_only{false};
-  std::string runtime_root_path;          // something like an expanded ~/.sxs
-  std::vector<std::string> include_paths; // include paths to add for runtime knowledge lookup
+  std::string runtime_root_path;
+  std::vector<std::string> include_paths;
   size_t event_system_max_threads{4};
   size_t event_system_max_queue_size{1000};
+  size_t max_sessions_per_entity{10};
 };
 
 class runtime_accessor_if : public pkg::types::shared_c {

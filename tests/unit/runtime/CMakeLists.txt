@@ -20,8 +20,14 @@ add_test(NAME runtime_basic_operations
 add_test(NAME entity_basic_operations 
          COMMAND runtime_tests "entity basic operations")
 
-add_test(NAME session_basic_operations 
-         COMMAND runtime_tests "session basic operations")
+add_test(NAME session_subsystem_initialization
+         COMMAND runtime_tests "session subsystem initialization")
+
+add_test(NAME session_creation_with_entity_and_scope
+         COMMAND runtime_tests "session creation with entity and scope")
+
+add_test(NAME scoped_kv_operations_with_permission_checks
+         COMMAND runtime_tests "scoped kv operations with permission checks")
 
 add_test(NAME event_system_basic_operations 
          COMMAND runtime_tests "event system basic operations")
@@ -74,7 +80,8 @@ if(WITH_ASAN)
                        entity_permission_persistence entity_get_and_set_permissions
                        multiple_entities_with_different_permissions entity_permission_edge_cases
                        entity_deletion
-                       session_basic_operations
+                       session_subsystem_initialization session_creation_with_entity_and_scope
+                       scoped_kv_operations_with_permission_checks
                        event_system_basic_operations event_producer_and_topic_writer
                        event_consumer_registration event_publishing_and_consumption
                        multi_threaded_event_processing event_system_error_handling

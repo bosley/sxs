@@ -144,4 +144,8 @@ kvds::kv_c* system_c::get_runtime_store() {
   return kv_runtime_store_.has_value() ? kv_runtime_store_.value().ptr() : nullptr;
 }
 
+kvds::kv_c* system_c::get_datastore_store() {
+  return kv_ds_store_.has_value() ? kv_ds_store_.value().ptr() : nullptr;
+}
+
 } // namespace runtime

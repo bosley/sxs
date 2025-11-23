@@ -1,6 +1,7 @@
 #include "runtime/runtime.hpp"
 #include "runtime/system/system.hpp"
 #include "runtime/events/events.hpp"
+#include "runtime/session/session.hpp"
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 namespace runtime {
@@ -26,6 +27,12 @@ runtime_c::runtime_c(const options_s &options) : options_(options), running_(fal
       new system_c(logger_, options_.runtime_root_path)
     )
   );
+
+  subsystems_.push_back(
+    std::unique_ptr<runtime_subsystem_if>(
+      new session_subsystem_c(logger_, options_.max_sessions_per_entity)
+    )
+  );
   
 }
 
@@ -35,6 +42,9 @@ bool runtime_c::initialize() {
   }
   
   logger_->info("Initializing runtime subsystems...");
+  
+  system_c* system_subsystem = nullptr;
+  session_subsystem_c* session_subsystem = nullptr;
   
   for (auto &subsystem : subsystems_) {
     logger_->info("Initializing subsystem: {}", subsystem->get_name());
@@ -46,6 +56,19 @@ bool runtime_c::initialize() {
       logger_->error("Failed to initialize subsystem: {}", subsystem->get_name());
       return false;
     }
+    
+    if (std::string(subsystem->get_name()) == "system_c") {
+      system_subsystem = dynamic_cast<system_c*>(subsystem.get());
+    } else if (std::string(subsystem->get_name()) == "session_subsystem_c") {
+      session_subsystem = dynamic_cast<session_subsystem_c*>(subsystem.get());
+    }
+  }
+  
+  if (system_subsystem && session_subsystem) {
+    logger_->info("Wiring session subsystem to system stores");
+    session_subsystem->set_entity_store(system_subsystem->get_entity_store());
+    session_subsystem->set_session_store(system_subsystem->get_session_store());
+    session_subsystem->set_datastore(system_subsystem->get_datastore_store());
   }
   
   running_ = true;
