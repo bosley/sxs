@@ -48,3 +48,17 @@ target_link_libraries(pkg_kvds PUBLIC
 
 add_library(pkg::kvds ALIAS pkg_kvds)
 
+add_library(pkg_slp STATIC
+    slp/slp.cpp
+)
+
+target_include_directories(pkg_slp PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(pkg_slp PUBLIC
+    fmt::fmt
+)
+
+add_library(pkg::slp ALIAS pkg_slp)
+
