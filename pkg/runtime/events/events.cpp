@@ -82,7 +82,7 @@ bool event_system_c::is_running() const {
 }
 
 event_producer_t event_system_c::get_event_producer_for_category(event_category_e category) {
-  return new specific_event_producer_c(this, category);
+  return std::shared_ptr<event_producer_if>(new specific_event_producer_c(this, category));
 }
 
 void event_system_c::handle_event(const event_s &event) {
@@ -191,7 +191,7 @@ event_system_c::specific_event_producer_c::~specific_event_producer_c() {}
 
 topic_writer_t event_system_c::specific_event_producer_c::get_topic_writer_for_topic(
   std::uint16_t topic_identifier) {
-  return new specific_topic_writer_c(event_system_, category_, topic_identifier);
+  return std::shared_ptr<topic_writer_if>(new specific_topic_writer_c(event_system_, category_, topic_identifier));
 }
 
 void event_system_c::register_consumer(std::uint16_t topic_identifier, event_consumer_t consumer) {

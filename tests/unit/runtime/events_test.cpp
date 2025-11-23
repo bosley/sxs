@@ -67,7 +67,7 @@ TEST_CASE("event system basic operations", "[unit][runtime][events]") {
   
   SECTION("create and initialize event system") {
     event_system_c event_system(logger.get());
-    auto accessor = new test_accessor_c();
+    auto accessor = std::shared_ptr<test_accessor_c>(new test_accessor_c());
     
     event_system.initialize(accessor);
     CHECK(event_system.is_running());
@@ -80,7 +80,7 @@ TEST_CASE("event system basic operations", "[unit][runtime][events]") {
   SECTION("create event system with custom thread count") {
     event_system_c event_system(logger.get(), 8, 500);
     
-    auto accessor = new test_accessor_c();
+    auto accessor = std::shared_ptr<test_accessor_c>(new test_accessor_c());
     event_system.initialize(accessor);
     CHECK(event_system.is_running());
     
@@ -99,7 +99,7 @@ TEST_CASE("event producer and topic writer", "[unit][runtime][events]") {
   }
   
   event_system_c event_system(logger.get());
-  auto accessor = new test_accessor_c();
+  auto accessor = std::shared_ptr<test_accessor_c>(new test_accessor_c());
   event_system.initialize(accessor);
   
   SECTION("get event producer for category") {
@@ -133,11 +133,11 @@ TEST_CASE("event consumer registration", "[unit][runtime][events]") {
   }
   
   event_system_c event_system(logger.get());
-  auto accessor = new test_accessor_c();
+  auto accessor = std::shared_ptr<test_accessor_c>(new test_accessor_c());
   event_system.initialize(accessor);
   
   SECTION("register single consumer") {
-    auto consumer = new test_consumer_c();
+    auto consumer = std::shared_ptr<test_consumer_c>(new test_consumer_c());
     event_system.register_consumer(100, consumer);
     
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -145,8 +145,8 @@ TEST_CASE("event consumer registration", "[unit][runtime][events]") {
   }
   
   SECTION("register multiple consumers for same topic") {
-    auto consumer1 = new test_consumer_c();
-    auto consumer2 = new test_consumer_c();
+    auto consumer1 = std::shared_ptr<test_consumer_c>(new test_consumer_c());
+    auto consumer2 = std::shared_ptr<test_consumer_c>(new test_consumer_c());
     
     event_system.register_consumer(200, consumer1);
     event_system.register_consumer(200, consumer2);
@@ -155,8 +155,8 @@ TEST_CASE("event consumer registration", "[unit][runtime][events]") {
   }
   
   SECTION("register consumers for different topics") {
-    auto consumer1 = new test_consumer_c();
-    auto consumer2 = new test_consumer_c();
+    auto consumer1 = std::shared_ptr<test_consumer_c>(new test_consumer_c());
+    auto consumer2 = std::shared_ptr<test_consumer_c>(new test_consumer_c());
     
     event_system.register_consumer(300, consumer1);
     event_system.register_consumer(301, consumer2);
@@ -178,11 +178,11 @@ TEST_CASE("event publishing and consumption", "[unit][runtime][events]") {
   }
   
   event_system_c event_system(logger.get());
-  auto accessor = new test_accessor_c();
+  auto accessor = std::shared_ptr<test_accessor_c>(new test_accessor_c());
   event_system.initialize(accessor);
   
   SECTION("publish and consume single event") {
-    auto consumer = new test_consumer_c();
+    auto consumer = std::shared_ptr<test_consumer_c>(new test_consumer_c());
     event_system.register_consumer(400, consumer);
     
     auto producer = event_system.get_event_producer_for_category(
@@ -202,7 +202,7 @@ TEST_CASE("event publishing and consumption", "[unit][runtime][events]") {
   }
   
   SECTION("publish multiple events") {
-    auto consumer = new test_consumer_c();
+    auto consumer = std::shared_ptr<test_consumer_c>(new test_consumer_c());
     event_system.register_consumer(401, consumer);
     
     auto producer = event_system.get_event_producer_for_category(
@@ -221,8 +221,8 @@ TEST_CASE("event publishing and consumption", "[unit][runtime][events]") {
   }
   
   SECTION("multiple consumers receive same event") {
-    auto consumer1 = new test_consumer_c();
-    auto consumer2 = new test_consumer_c();
+    auto consumer1 = std::shared_ptr<test_consumer_c>(new test_consumer_c());
+    auto consumer2 = std::shared_ptr<test_consumer_c>(new test_consumer_c());
     
     event_system.register_consumer(402, consumer1);
     event_system.register_consumer(402, consumer2);
@@ -242,8 +242,8 @@ TEST_CASE("event publishing and consumption", "[unit][runtime][events]") {
   }
   
   SECTION("events to different topics go to correct consumers") {
-    auto consumer1 = new test_consumer_c();
-    auto consumer2 = new test_consumer_c();
+    auto consumer1 = std::shared_ptr<test_consumer_c>(new test_consumer_c());
+    auto consumer2 = std::shared_ptr<test_consumer_c>(new test_consumer_c());
     
     event_system.register_consumer(403, consumer1);
     event_system.register_consumer(404, consumer2);
@@ -286,11 +286,11 @@ TEST_CASE("multi-threaded event processing", "[unit][runtime][events]") {
   }
   
   event_system_c event_system(logger.get(), 4, 1000);
-  auto accessor = new test_accessor_c();
+  auto accessor = std::shared_ptr<test_accessor_c>(new test_accessor_c());
   event_system.initialize(accessor);
   
   SECTION("concurrent event publishing") {
-    auto consumer = new test_consumer_c();
+    auto consumer = std::shared_ptr<test_consumer_c>(new test_consumer_c());
     event_system.register_consumer(500, consumer);
     
     auto producer = event_system.get_event_producer_for_category(
@@ -321,9 +321,9 @@ TEST_CASE("multi-threaded event processing", "[unit][runtime][events]") {
   }
   
   SECTION("parallel processing with multiple topics") {
-    auto consumer1 = new test_consumer_c();
-    auto consumer2 = new test_consumer_c();
-    auto consumer3 = new test_consumer_c();
+    auto consumer1 = std::shared_ptr<test_consumer_c>(new test_consumer_c());
+    auto consumer2 = std::shared_ptr<test_consumer_c>(new test_consumer_c());
+    auto consumer3 = std::shared_ptr<test_consumer_c>(new test_consumer_c());
     
     event_system.register_consumer(501, consumer1);
     event_system.register_consumer(502, consumer2);
@@ -384,12 +384,12 @@ TEST_CASE("event system error handling", "[unit][runtime][events]") {
   }
   
   event_system_c event_system(logger.get());
-  auto accessor = new test_accessor_c();
+  auto accessor = std::shared_ptr<test_accessor_c>(new test_accessor_c());
   event_system.initialize(accessor);
   
   SECTION("exception in consumer does not stop processing") {
-    auto throwing_consumer = new throwing_consumer_c();
-    auto normal_consumer = new test_consumer_c();
+    auto throwing_consumer = std::shared_ptr<throwing_consumer_c>(new throwing_consumer_c());
+    auto normal_consumer = std::shared_ptr<test_consumer_c>(new test_consumer_c());
     
     event_system.register_consumer(600, throwing_consumer);
     event_system.register_consumer(600, normal_consumer);
@@ -407,7 +407,7 @@ TEST_CASE("event system error handling", "[unit][runtime][events]") {
   }
   
   SECTION("multiple exceptions handled") {
-    auto throwing_consumer = new throwing_consumer_c();
+    auto throwing_consumer = std::shared_ptr<throwing_consumer_c>(new throwing_consumer_c());
     
     event_system.register_consumer(601, throwing_consumer);
     
@@ -438,7 +438,7 @@ TEST_CASE("event system shutdown behavior", "[unit][runtime][events]") {
   
   SECTION("shutdown with empty queue") {
     event_system_c event_system(logger.get());
-    auto accessor = new test_accessor_c();
+    auto accessor = std::shared_ptr<test_accessor_c>(new test_accessor_c());
     
     event_system.initialize(accessor);
     CHECK(event_system.is_running());
@@ -449,10 +449,10 @@ TEST_CASE("event system shutdown behavior", "[unit][runtime][events]") {
   
   SECTION("shutdown with pending events") {
     event_system_c event_system(logger.get(), 2, 1000);
-    auto accessor = new test_accessor_c();
+    auto accessor = std::shared_ptr<test_accessor_c>(new test_accessor_c());
     event_system.initialize(accessor);
     
-    auto consumer = new test_consumer_c();
+    auto consumer = std::shared_ptr<test_consumer_c>(new test_consumer_c());
     event_system.register_consumer(700, consumer);
     
     auto producer = event_system.get_event_producer_for_category(
@@ -470,10 +470,10 @@ TEST_CASE("event system shutdown behavior", "[unit][runtime][events]") {
   
   SECTION("cannot publish after shutdown") {
     event_system_c event_system(logger.get());
-    auto accessor = new test_accessor_c();
+    auto accessor = std::shared_ptr<test_accessor_c>(new test_accessor_c());
     event_system.initialize(accessor);
     
-    auto consumer = new test_consumer_c();
+    auto consumer = std::shared_ptr<test_consumer_c>(new test_consumer_c());
     event_system.register_consumer(701, consumer);
     
     auto producer = event_system.get_event_producer_for_category(
@@ -502,11 +502,11 @@ TEST_CASE("event system category handling", "[unit][runtime][events]") {
   }
   
   event_system_c event_system(logger.get());
-  auto accessor = new test_accessor_c();
+  auto accessor = std::shared_ptr<test_accessor_c>(new test_accessor_c());
   event_system.initialize(accessor);
   
   SECTION("events maintain correct category") {
-    auto consumer = new test_consumer_c();
+    auto consumer = std::shared_ptr<test_consumer_c>(new test_consumer_c());
     event_system.register_consumer(800, consumer);
     
     auto producer_exec = event_system.get_event_producer_for_category(

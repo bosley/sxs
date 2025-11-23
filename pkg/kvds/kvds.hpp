@@ -1,7 +1,6 @@
 #pragma once
 
 #include "types/lifetime.hpp"
-#include "types/shared_obj.hpp"
 #include <functional>
 #include <map>
 #include <memory>
@@ -60,7 +59,7 @@ private:
     kv_c_distributor_c &distributor_;
   };
 
-  class kv_wrapper_c : public pkg::types::shared_c, public kv_c {
+  class kv_wrapper_c : public kv_c {
   public:
     kv_wrapper_c(std::unique_ptr<kv_c> store,
                  pkg::types::lifetime_tagged_c::observer_if &observer,
@@ -89,8 +88,8 @@ private:
   };
 
   std::string base_path_;
-  std::map<std::string, pkg::types::shared_obj_c<kv_wrapper_c>> memory_stores_;
-  std::map<std::string, pkg::types::shared_obj_c<kv_wrapper_c>> disk_stores_;
+  std::map<std::string, std::shared_ptr<kv_wrapper_c>> memory_stores_;
+  std::map<std::string, std::shared_ptr<kv_wrapper_c>> disk_stores_;
   std::map<std::size_t, std::string> tag_to_id_;
   std::size_t next_tag_;
   std::mutex mutex_;
@@ -106,7 +105,7 @@ public:
   kv_c_distributor_c(const std::string &path);
   ~kv_c_distributor_c();
 
-  std::optional<pkg::types::shared_obj_c<kv_wrapper_c>>
+  std::optional<std::shared_ptr<kv_wrapper_c>>
   get_or_create_kv_c(const std::string &unique_identifier,
                      const kv_c_backend_e backend);
 };

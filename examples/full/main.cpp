@@ -3,7 +3,6 @@
 #include "bytes/bytes.hpp"
 #include "types/lifetime.hpp"
 #include "types/monotonic_counter.hpp"
-#include "types/shared_obj.hpp"
 #include "types/view.hpp"
 
 void views() {
@@ -29,35 +28,6 @@ void views() {
   }
 
   delete[] x;
-}
-
-void shared() {
-
-  std::cout << __func__ << std::endl;
-
-  class some_object_c : public pkg::types::shared_c {
-  public:
-    some_object_c(const std::size_t id) : id(id) {
-      std::cout << id << " has been created" << std::endl;
-    }
-    ~some_object_c() { std::cout << id << " has been deleted" << std::endl; }
-    const std::size_t id{0};
-  };
-
-  using so_ptr = pkg::types::shared_obj_c<some_object_c>;
-
-  {
-    // Should be freed after this anonymous scope
-    auto ptr = pkg::types::make_shared<some_object_c>(42);
-  }
-
-  std::vector<so_ptr> created;
-
-  for (auto x = 0; x < 10; x++) {
-    created.emplace_back(pkg::types::make_shared<some_object_c>(x + 10));
-  }
-
-  std::cout << "Leaving " << __func__ << std::endl;
 }
 
 void lifetime() {
@@ -125,7 +95,6 @@ int main(int argc, char **argv) {
 
   std::cout << "Basic example...\n";
   views();
-  shared();
   lifetime();
   byte_tool_stuff();
   counter();

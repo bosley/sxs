@@ -133,19 +133,19 @@ bool system_c::is_running() const {
 }
 
 kvds::kv_c* system_c::get_entity_store() {
-  return kv_entity_store_.has_value() ? kv_entity_store_.value().ptr() : nullptr;
+  return kv_entity_store_.has_value() ? kv_entity_store_.value().get() : nullptr;
 }
 
 kvds::kv_c* system_c::get_session_store() {
-  return kv_session_store_.has_value() ? kv_session_store_.value().ptr() : nullptr;
+  return kv_session_store_.has_value() ? kv_session_store_.value().get() : nullptr;
 }
 
 kvds::kv_c* system_c::get_runtime_store() {
-  return kv_runtime_store_.has_value() ? kv_runtime_store_.value().ptr() : nullptr;
+  return kv_runtime_store_.has_value() ? kv_runtime_store_.value().get() : nullptr;
 }
 
 kvds::kv_c* system_c::get_datastore_store() {
-  return kv_ds_store_.has_value() ? kv_ds_store_.value().ptr() : nullptr;
+  return kv_ds_store_.has_value() ? kv_ds_store_.value().get() : nullptr;
 }
 
 } // namespace runtime

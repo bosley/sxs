@@ -50,7 +50,7 @@ bool runtime_c::initialize() {
   for (auto &subsystem : subsystems_) {
     logger_->info("Initializing subsystem: {}", subsystem->get_name());
     
-    auto accessor = new specific_accessor_c(subsystem.get());
+    auto accessor = std::shared_ptr<runtime_accessor_if>(new specific_accessor_c(subsystem.get()));
     subsystem->initialize(accessor);
     
     if (!subsystem->is_running()) {

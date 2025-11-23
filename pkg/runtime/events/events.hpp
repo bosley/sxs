@@ -7,7 +7,7 @@
 #include <queue>
 #include <map>
 #include <vector>
-#include <types/shared_obj.hpp>
+#include <memory>
 #include "runtime/runtime.hpp"
 
 namespace runtime::events {
@@ -15,9 +15,9 @@ namespace runtime::events {
 class event_producer_if;
 class topic_writer_if;
 class event_consumer_if;
-using event_producer_t = pkg::types::shared_obj_c<event_producer_if>;
-using topic_writer_t = pkg::types::shared_obj_c<topic_writer_if>;
-using event_consumer_t = pkg::types::shared_obj_c<event_consumer_if>;
+using event_producer_t = std::shared_ptr<event_producer_if>;
+using topic_writer_t = std::shared_ptr<topic_writer_if>;
+using event_consumer_t = std::shared_ptr<event_consumer_if>;
 
 enum class event_category_e {
     RUNTIME_SUBSYSTEM_UNKNOWN = 0,
@@ -36,19 +36,19 @@ struct event_s {
     std::any payload{nullptr};
 };
 
-class topic_writer_if : public pkg::types::shared_c {
+class topic_writer_if {
 public:
   virtual ~topic_writer_if() = default;
   virtual void write_event(const event_s &event) = 0;
 };
 
-class event_producer_if : public pkg::types::shared_c {
+class event_producer_if {
 public:
   virtual ~event_producer_if() = default;
   virtual topic_writer_t get_topic_writer_for_topic(std::uint16_t topic_identifier) = 0;
 };
 
-class event_consumer_if : public pkg::types::shared_c {
+class event_consumer_if {
 public:
   virtual ~event_consumer_if() = default;
   virtual void consume_event(const event_s &event) = 0;

@@ -81,7 +81,7 @@ kv_c_distributor_c::~kv_c_distributor_c() {
 
 void kv_c_distributor_c::on_wrapper_death(const std::size_t tag) {}
 
-std::optional<pkg::types::shared_obj_c<kv_c_distributor_c::kv_wrapper_c>>
+std::optional<std::shared_ptr<kv_c_distributor_c::kv_wrapper_c>>
 kv_c_distributor_c::get_or_create_kv_c(const std::string &unique_identifier,
                                        const kv_c_backend_e backend) {
   std::lock_guard<std::mutex> lock(mutex_);
@@ -121,7 +121,7 @@ kv_c_distributor_c::get_or_create_kv_c(const std::string &unique_identifier,
   std::size_t tag = next_tag_++;
   auto *wrapper = new kv_wrapper_c(std::move(new_store), observer_, tag);
 
-  auto shared_wrapper = pkg::types::shared_obj_c<kv_wrapper_c>(wrapper);
+  auto shared_wrapper = std::shared_ptr<kv_wrapper_c>(wrapper);
   store_map[unique_identifier] = shared_wrapper;
   tag_to_id_[tag] = unique_identifier;
 

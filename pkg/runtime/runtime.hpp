@@ -4,7 +4,6 @@
 #include <vector>
 #include <memory>
 #include <spdlog/spdlog.h>
-#include <types/shared_obj.hpp>
 
 namespace runtime {
 
@@ -12,9 +11,9 @@ using logger_t = spdlog::logger*;
 class runtime_c;
 class runtime_subsystem_if;
 class runtime_accessor_if;
-using runtime_t = pkg::types::shared_obj_c<runtime_c>;
+using runtime_t = std::shared_ptr<runtime_c>;
 using runtime_subsystem_t = std::unique_ptr<runtime_subsystem_if>;
-using runtime_accessor_t = pkg::types::shared_obj_c<runtime_accessor_if>;
+using runtime_accessor_t = std::shared_ptr<runtime_accessor_if>;
 
 struct options_s {
   bool validate_only{false};
@@ -25,7 +24,7 @@ struct options_s {
   size_t max_sessions_per_entity{10};
 };
 
-class runtime_accessor_if : public pkg::types::shared_c {
+class runtime_accessor_if {
 public:
     virtual ~runtime_accessor_if() = default;
     virtual void raise_warning(const char* message) = 0;

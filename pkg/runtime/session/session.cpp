@@ -216,7 +216,7 @@ bool session_c::subscribe_to_topic(std::uint16_t topic_id, std::function<void(co
 
   topic_handlers_[topic_id] = handler;
   
-  auto consumer = new session_event_consumer_c(this);
+  auto consumer = std::shared_ptr<events::event_consumer_if>(new session_event_consumer_c(this));
   topic_consumers_[topic_id] = consumer;
   event_system_->register_consumer(topic_id, consumer);
   return true;
