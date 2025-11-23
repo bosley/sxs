@@ -14,7 +14,10 @@ runtime_c::runtime_c(const options_s &options) : options_(options), running_(fal
   
   subsystems_.push_back(
     std::unique_ptr<runtime_subsystem_if>(
-      new events::event_system_c(logger_)
+      new events::event_system_c(
+        logger_, 
+        options_.event_system_max_threads,
+        options_.event_system_max_queue_size)
     )
   );
 

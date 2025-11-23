@@ -12,6 +12,8 @@ void print_usage() {
   fmt::print("  --validate-only, -v\t\tValidate the runtime configuration only\n");
   fmt::print("  --runtime-root-path, -r PATH\tSet the runtime root path\n");
   fmt::print("  --include-path, -i PATH\tAdd an include path (can be used multiple times)\n");
+  fmt::print("  --event-system-max-threads, -t NUM\tSet the maximum number of event system threads\n");
+  fmt::print("  --event-system-max-queue-size, -q NUM\tSet the maximum size of the event system queue\n");
   fmt::print("\nEnvironment Variables:\n");
   fmt::print("  SXSRUNTIME_ROOT_PATH\t\tDefault runtime root path\n");
   fmt::print("  SXSRUNTIME_INCLUDE_PATHS\tColon-separated list of include paths\n");
@@ -55,6 +57,14 @@ int main(int argc, char **argv) {
     options.include_paths = split_paths(*include_paths_str);
   }
 
+  if (auto event_system_max_threads = load_from_env("SXSEVENT_SYSTEM_MAX_THREADS")) {
+    options.event_system_max_threads = std::stoi(*event_system_max_threads);
+  }
+
+  if (auto event_system_max_queue_size = load_from_env("SXSEVENT_SYSTEM_MAX_QUEUE_SIZE")) {
+    options.event_system_max_queue_size = std::stoi(*event_system_max_queue_size);
+  }
+
   for (size_t i = 1; i < args.size(); ++i) {
     const auto &arg = args[i];
 
@@ -75,6 +85,18 @@ int main(int argc, char **argv) {
         return 1;
       }
       options.include_paths.push_back(args[++i]);
+    } else if (arg == "--event-system-max-threads" || arg == "-t") {
+      if (i + 1 >= args.size()) {
+        fmt::print(stderr, "Error: {} requires a number argument\n", arg);
+        return 1;
+      }
+      options.event_system_max_threads = std::stoi(args[++i]);
+    } else if (arg == "--event-system-max-queue-size" || arg == "-q") {
+      if (i + 1 >= args.size()) {
+        fmt::print(stderr, "Error: {} requires a number argument\n", arg);
+        return 1;
+      }
+      options.event_system_max_queue_size = std::stoi(args[++i]);
     } else {
       fmt::print(stderr, "Error: Unknown option '{}'\n", arg);
       print_usage();

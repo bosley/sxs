@@ -21,6 +21,8 @@ struct options_s {
   bool validate_only{false};
   std::string runtime_root_path;          // something like an expanded ~/.sxs
   std::vector<std::string> include_paths; // include paths to add for runtime knowledge lookup
+  size_t event_system_max_threads{4};
+  size_t event_system_max_queue_size{1000};
 };
 
 class runtime_accessor_if : public pkg::types::shared_c {

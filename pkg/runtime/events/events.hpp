@@ -1,6 +1,12 @@
 #pragma once
 
 #include <any>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <map>
+#include <vector>
 #include <types/shared_obj.hpp>
 #include "runtime/runtime.hpp"
 
@@ -8,8 +14,10 @@ namespace runtime::events {
 
 class event_producer_if;
 class topic_writer_if;
+class event_consumer_if;
 using event_producer_t = pkg::types::shared_obj_c<event_producer_if>;
 using topic_writer_t = pkg::types::shared_obj_c<topic_writer_if>;
+using event_consumer_t = pkg::types::shared_obj_c<event_consumer_if>;
 
 enum class event_origin_e {
     RUNTIME_SUBSYSTEM_UNKNOWN = 0,
@@ -36,9 +44,15 @@ public:
   virtual topic_writer_t get_topic_writer_for_topic(std::uint16_t topic_identifier) = 0;
 };
 
+class event_consumer_if : public pkg::types::shared_c {
+public:
+  virtual ~event_consumer_if() = default;
+  virtual void consume_event(const event_s &event) = 0;
+};
+
 class event_system_c : public runtime::runtime_subsystem_if {
 public:
-  event_system_c(runtime::logger_t logger);
+  event_system_c(runtime::logger_t logger, size_t max_threads = 4, size_t max_queue_size = 1000);
   ~event_system_c();
 
   const char* get_name() const override final;
@@ -47,6 +61,7 @@ public:
   bool is_running() const override final;
 
   event_producer_t get_event_producer_for_origin(event_origin_e origin);
+  void register_consumer(std::uint16_t topic_identifier, event_consumer_t consumer);
 
 private:
 
@@ -76,11 +91,22 @@ private:
 };
 
   void handle_event(const event_s &event);
+  void worker_thread_func();
 
   runtime::logger_t logger_;
   bool running_;
   runtime::runtime_accessor_t accessor_;
   const char* name_{"event_system_c"};
+
+  size_t max_threads_;
+  size_t max_queue_size_;
+  std::vector<std::thread> worker_threads_;
+  std::queue<event_s> event_queue_;
+  std::map<std::uint16_t, std::vector<event_consumer_t>> topic_consumers_;
+  std::mutex mutex_;
+  std::condition_variable queue_not_empty_;
+  std::condition_variable queue_not_full_;
+  bool shutdown_requested_;
 };
 
 } // namespace runtime::events
