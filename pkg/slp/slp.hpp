@@ -154,6 +154,7 @@ public:
   bool is_success() const { return !error_.has_value(); }
   const slp_parse_error_s &error() const { return error_.value(); }
   const slp_object_c &object() const { return object_.value(); }
+  slp_object_c take() { return std::move(object_).value(); }
 
 private:
   std::optional<slp_parse_error_s> error_;

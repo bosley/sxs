@@ -25,16 +25,14 @@ struct execution_result_s {
   std::string error_message;
 };
 
-using function_result_t = std::variant<std::int64_t, double, std::string, bool>;
-
 class processor_c : public events::event_consumer_if {
 public:
   struct eval_context_s {
-    std::map<std::string, function_result_t> bindings;
+    std::map<std::string, slp::slp_object_c> bindings;
   };
 
   using function_handler_t =
-      std::function<function_result_t(session_c *, const slp::slp_object_c &,
+      std::function<slp::slp_object_c(session_c *, const slp::slp_object_c &,
                                       const eval_context_s &)>;
 
   processor_c(logger_t logger, events::event_system_c *event_system);
@@ -66,16 +64,18 @@ private:
                                     const std::string &script_text,
                                     const std::string &request_id);
 
-  function_result_t eval_object(session_c *session,
+  slp::slp_object_c eval_object(session_c *session,
                                 const slp::slp_object_c &obj);
 
-  function_result_t eval_object_with_context(session_c *session,
+  slp::slp_object_c eval_object_with_context(session_c *session,
                                              const slp::slp_object_c &obj,
                                              const eval_context_s &context);
 
-  function_result_t call_function(session_c *session, const std::string &name,
+  slp::slp_object_c call_function(session_c *session, const std::string &name,
                                   const slp::slp_object_c &args,
                                   const eval_context_s &context);
+  
+  std::string slp_object_to_string(const slp::slp_object_c &obj) const;
 
   void send_result_to_session(session_c *session,
                               const execution_result_s &result);
