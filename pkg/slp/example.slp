@@ -1,0 +1,39 @@
+; This is a comment
+[env my-program
+    ; This is a comment
+    (let a 3)
+    (putln a)
+    [debug a] ; The parser will state what it knows. -> symbol "a" . it will not know value, as "let" is a "runtime" instruction
+]
+
+; This file produduces a single "env" object named "my-program"
+; We use the parser-time list to assemble the object structure so the runtime can execute it as it sees fit
+; The plan is that the instructions AND data are always contained per-object, isolated. The data itself
+; will transform like "state" when interacted with. Think of the object as an actor. 
+; We create a big "env" object so its a bit harder to understand, but it contains all the memory
+; that the program will use. Any data yielded FROM the object will be a byte-by-byte copy of the data
+; at the moment the copy happens 
+
+;
+;   Eventually when i build the runtime i will use the env object like a meta-object 
+;   so (my-program) is essentially what we will do at the runtime level internally, but in practice
+;   if we did :
+;
+[env my-program
+
+    (let a [env my-sub-env
+         (let my_data 0)
+    ])
+
+    ;Now, we can:
+
+    (let something {a my_data})
+
+    ; The env will not have access to external symbols unless explicitly provided (a runtime impl detail)
+
+
+
+; how we define a list, by quoting it with ' we make it a "SOME" type
+    (let a '(1 2 3))
+
+]
