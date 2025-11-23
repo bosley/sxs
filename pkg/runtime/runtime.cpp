@@ -1,5 +1,6 @@
 #include "runtime/runtime.hpp"
 #include "runtime/system/system.hpp"
+#include "runtime/events/events.hpp"
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 namespace runtime {
@@ -13,9 +14,16 @@ runtime_c::runtime_c(const options_s &options) : options_(options), running_(fal
   
   subsystems_.push_back(
     std::unique_ptr<runtime_subsystem_if>(
+      new events::event_system_c(logger_)
+    )
+  );
+
+  subsystems_.push_back(
+    std::unique_ptr<runtime_subsystem_if>(
       new system_c(logger_, options_.runtime_root_path)
     )
   );
+  
 }
 
 bool runtime_c::initialize() {

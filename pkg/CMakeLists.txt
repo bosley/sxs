@@ -82,6 +82,7 @@ add_library(pkg_runtime STATIC
     runtime/entity/entity.cpp
     runtime/session/session.cpp
     runtime/system/system.cpp
+    runtime/events/events.cpp
 )
 
 target_include_directories(pkg_runtime PUBLIC
