@@ -93,6 +93,8 @@ target_link_libraries(pkg_runtime PUBLIC
     fmt::fmt
     spdlog::spdlog
     pkg::kvds
+    pkg::slp
+    pkg::record
 )
 
 add_library(pkg::runtime ALIAS pkg_runtime)
