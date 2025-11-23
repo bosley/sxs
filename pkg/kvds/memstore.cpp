@@ -111,8 +111,8 @@ bool memstore_c::set_nx(const std::string &key, const std::string &value) {
 }
 
 bool memstore_c::compare_and_swap(const std::string &key,
-                                   const std::string &expected_value,
-                                   const std::string &new_value) {
+                                  const std::string &expected_value,
+                                  const std::string &new_value) {
   std::lock_guard<std::mutex> lock(mutex_);
   if (!is_open_) {
     return false;

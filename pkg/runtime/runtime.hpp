@@ -1,13 +1,13 @@
 #pragma once
 
-#include <string>
-#include <vector>
 #include <memory>
 #include <spdlog/spdlog.h>
+#include <string>
+#include <vector>
 
 namespace runtime {
 
-using logger_t = spdlog::logger*;
+using logger_t = spdlog::logger *;
 class runtime_c;
 class runtime_subsystem_if;
 class runtime_accessor_if;
@@ -26,15 +26,15 @@ struct options_s {
 
 class runtime_accessor_if {
 public:
-    virtual ~runtime_accessor_if() = default;
-    virtual void raise_warning(const char* message) = 0;
-    virtual void raise_error(const char* message) = 0;
+  virtual ~runtime_accessor_if() = default;
+  virtual void raise_warning(const char *message) = 0;
+  virtual void raise_error(const char *message) = 0;
 };
 
 class runtime_subsystem_if {
 public:
   virtual ~runtime_subsystem_if() = default;
-  virtual const char* get_name() const = 0;
+  virtual const char *get_name() const = 0;
   virtual void initialize(runtime_accessor_t accessor) = 0;
   virtual void shutdown() = 0;
   virtual bool is_running() const = 0;
@@ -57,7 +57,6 @@ public:
   logger_t get_logger() const;
 
 private:
-
   /*
     When we create a subsystem we hand it a specific_accessor_c so it can
     raise errors and interface with the runtime in a way that we track
@@ -70,15 +69,15 @@ private:
     specific_accessor_c &operator=(const specific_accessor_c &) = delete;
     specific_accessor_c &operator=(specific_accessor_c &&) = delete;
 
-    specific_accessor_c(runtime_subsystem_if* subsystem);
+    specific_accessor_c(runtime_subsystem_if *subsystem);
     ~specific_accessor_c() = default;
 
-    void raise_warning(const char* message) override final;
-    void raise_error(const char* message) override final;
+    void raise_warning(const char *message) override final;
+    void raise_error(const char *message) override final;
 
   private:
-    runtime_c* runtime_;
-    runtime_subsystem_if* subsystem_;
+    runtime_c *runtime_;
+    runtime_subsystem_if *subsystem_;
   };
 
   options_s options_;

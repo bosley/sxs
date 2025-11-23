@@ -119,8 +119,9 @@ bool datastore_c::set_nx(const std::string &key, const std::string &value) {
   }
 
   std::string existing_value;
-  rocksdb::Status status = db_->Get(rocksdb::ReadOptions(), key, &existing_value);
-  
+  rocksdb::Status status =
+      db_->Get(rocksdb::ReadOptions(), key, &existing_value);
+
   if (status.ok()) {
     return false;
   }
@@ -130,15 +131,16 @@ bool datastore_c::set_nx(const std::string &key, const std::string &value) {
 }
 
 bool datastore_c::compare_and_swap(const std::string &key,
-                                    const std::string &expected_value,
-                                    const std::string &new_value) {
+                                   const std::string &expected_value,
+                                   const std::string &new_value) {
   if (!is_open_) {
     return false;
   }
 
   std::string current_value;
-  rocksdb::Status status = db_->Get(rocksdb::ReadOptions(), key, &current_value);
-  
+  rocksdb::Status status =
+      db_->Get(rocksdb::ReadOptions(), key, &current_value);
+
   if (!status.ok()) {
     return false;
   }

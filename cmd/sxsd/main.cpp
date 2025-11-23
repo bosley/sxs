@@ -1,23 +1,29 @@
-#include <runtime/runtime.hpp>
-#include <fmt/core.h>
-#include <spdlog/spdlog.h>
 #include <cstdlib>
+#include <fmt/core.h>
 #include <optional>
+#include <runtime/runtime.hpp>
+#include <spdlog/spdlog.h>
 #include <sstream>
 
 void print_usage() {
   fmt::print("Usage: sxsd [options]\n");
   fmt::print("Options:\n");
   fmt::print("  --help, -h\t\t\tPrint this help message\n");
-  fmt::print("  --validate-only, -v\t\tValidate the runtime configuration only\n");
+  fmt::print(
+      "  --validate-only, -v\t\tValidate the runtime configuration only\n");
   fmt::print("  --runtime-root-path, -r PATH\tSet the runtime root path\n");
-  fmt::print("  --include-path, -i PATH\tAdd an include path (can be used multiple times)\n");
-  fmt::print("  --event-system-max-threads, -t NUM\tSet the maximum number of event system threads\n");
-  fmt::print("  --event-system-max-queue-size, -q NUM\tSet the maximum size of the event system queue\n");
-  fmt::print("  --max-sessions-per-entity, -s NUM\tSet the maximum number of sessions per entity\n");
+  fmt::print("  --include-path, -i PATH\tAdd an include path (can be used "
+             "multiple times)\n");
+  fmt::print("  --event-system-max-threads, -t NUM\tSet the maximum number of "
+             "event system threads\n");
+  fmt::print("  --event-system-max-queue-size, -q NUM\tSet the maximum size of "
+             "the event system queue\n");
+  fmt::print("  --max-sessions-per-entity, -s NUM\tSet the maximum number of "
+             "sessions per entity\n");
   fmt::print("\nEnvironment Variables:\n");
   fmt::print("  SXSRUNTIME_ROOT_PATH\t\tDefault runtime root path\n");
-  fmt::print("  SXSRUNTIME_INCLUDE_PATHS\tColon-separated list of include paths\n");
+  fmt::print(
+      "  SXSRUNTIME_INCLUDE_PATHS\tColon-separated list of include paths\n");
 }
 
 std::optional<std::string> load_from_env(const std::string &env_var) {
@@ -48,7 +54,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  runtime::options_s options; 
+  runtime::options_s options;
 
   if (auto runtime_root_path = load_from_env("SXSRUNTIME_ROOT_PATH")) {
     options.runtime_root_path = *runtime_root_path;
@@ -58,15 +64,19 @@ int main(int argc, char **argv) {
     options.include_paths = split_paths(*include_paths_str);
   }
 
-  if (auto event_system_max_threads = load_from_env("SXSEVENT_SYSTEM_MAX_THREADS")) {
+  if (auto event_system_max_threads =
+          load_from_env("SXSEVENT_SYSTEM_MAX_THREADS")) {
     options.event_system_max_threads = std::stoi(*event_system_max_threads);
   }
 
-  if (auto event_system_max_queue_size = load_from_env("SXSEVENT_SYSTEM_MAX_QUEUE_SIZE")) {
-    options.event_system_max_queue_size = std::stoi(*event_system_max_queue_size);
+  if (auto event_system_max_queue_size =
+          load_from_env("SXSEVENT_SYSTEM_MAX_QUEUE_SIZE")) {
+    options.event_system_max_queue_size =
+        std::stoi(*event_system_max_queue_size);
   }
 
-  if (auto max_sessions_per_entity = load_from_env("SXSMX_SESSIONS_PER_ENTITY")) {
+  if (auto max_sessions_per_entity =
+          load_from_env("SXSMX_SESSIONS_PER_ENTITY")) {
     options.max_sessions_per_entity = std::stoi(*max_sessions_per_entity);
   }
 
@@ -121,7 +131,7 @@ int main(int argc, char **argv) {
   if (!options.include_paths.empty()) {
     fmt::print("Include paths ({}): ", options.include_paths.size());
     for (size_t i = 0; i < options.include_paths.size(); ++i) {
-      fmt::print("{}{}", options.include_paths[i], 
+      fmt::print("{}{}", options.include_paths[i],
                  i < options.include_paths.size() - 1 ? ", " : "\n");
     }
   }

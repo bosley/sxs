@@ -51,7 +51,7 @@ bool kv_c_distributor_c::kv_wrapper_c::delete_batch(
 }
 
 bool kv_c_distributor_c::kv_wrapper_c::set_nx(const std::string &key,
-                                               const std::string &value) {
+                                              const std::string &value) {
   return store_->set_nx(key, value);
 }
 

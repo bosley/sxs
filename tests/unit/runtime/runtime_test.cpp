@@ -14,4 +14,3 @@ TEST_CASE("runtime basic operations", "[unit][runtime]") {
     CHECK_FALSE(rt.shutdown());
   }
 }
-
