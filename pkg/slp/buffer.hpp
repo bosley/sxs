@@ -12,13 +12,13 @@ public:
 
   slp_buffer_c(const slp_buffer_c &other);
   slp_buffer_c &operator=(const slp_buffer_c &other);
-  
+
   slp_buffer_c(slp_buffer_c &&other) noexcept;
   slp_buffer_c &operator=(slp_buffer_c &&other) noexcept;
 
   std::uint8_t *data();
   const std::uint8_t *data() const;
-  
+
   std::size_t size() const;
   std::size_t capacity() const;
   bool empty() const;
@@ -44,5 +44,4 @@ private:
   void free_data();
 };
 
-}
-
+} // namespace slp

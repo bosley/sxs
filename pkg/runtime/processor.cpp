@@ -29,12 +29,12 @@ processor_c::processor_c(logger_t logger, events::event_system_c *event_system)
     : logger_(logger), event_system_(event_system) {
   logger_->info("[processor_c] Initializing processor");
 
-  global_context_.bindings["$CHANNEL_A"] = slp::parse("A").take();
-  global_context_.bindings["$CHANNEL_B"] = slp::parse("B").take();
-  global_context_.bindings["$CHANNEL_C"] = slp::parse("C").take();
-  global_context_.bindings["$CHANNEL_D"] = slp::parse("D").take();
-  global_context_.bindings["$CHANNEL_E"] = slp::parse("E").take();
-  global_context_.bindings["$CHANNEL_F"] = slp::parse("F").take();
+  global_context_["$CHANNEL_A"] = slp::parse("A").take();
+  global_context_["$CHANNEL_B"] = slp::parse("B").take();
+  global_context_["$CHANNEL_C"] = slp::parse("C").take();
+  global_context_["$CHANNEL_D"] = slp::parse("D").take();
+  global_context_["$CHANNEL_E"] = slp::parse("E").take();
+  global_context_["$CHANNEL_F"] = slp::parse("F").take();
 
   register_builtin_functions();
   logger_->info("[processor_c] Registered {} builtin functions",
@@ -131,16 +131,16 @@ processor_c::eval_object_with_context(session_c *session,
   if (type == slp::slp_type_e::SYMBOL) {
     std::string sym = obj.as_symbol();
 
-    auto it = context.bindings.find(sym);
-    if (it != context.bindings.end()) {
+    auto it = context.find(sym);
+    if (it != context.end()) {
       const auto &bound_obj = it->second;
       return slp::slp_object_c::from_data(bound_obj.get_data(),
                                           bound_obj.get_symbols(),
                                           bound_obj.get_root_offset());
     }
 
-    auto global_it = global_context_.bindings.find(sym);
-    if (global_it != global_context_.bindings.end()) {
+    auto global_it = global_context_.find(sym);
+    if (global_it != global_context_.end()) {
       const auto &bound_obj = global_it->second;
       return slp::slp_object_c::from_data(bound_obj.get_data(),
                                           bound_obj.get_symbols(),
@@ -211,29 +211,51 @@ void processor_c::register_function(const std::string &name,
 }
 
 void processor_c::register_builtin_functions() {
-  fns::function_dependencies_s deps;
-  deps.logger = logger_;
-  deps.eval_fn = [this](session_c *session, const slp::slp_object_c &obj,
-                       const eval_context_s &context) {
-    return eval_object_with_context(session, obj, context);
-  };
-  deps.to_string_fn = [this](const slp::slp_object_c &obj) {
-    return slp_object_to_string(obj);
-  };
-  deps.subscription_handlers = &subscription_handlers_;
-  deps.subscription_handlers_mutex = &subscription_handlers_mutex_;
-  deps.pending_awaits = &pending_awaits_;
-  deps.pending_awaits_mutex = &pending_awaits_mutex_;
-  deps.max_await_timeout = MAX_AWAIT_TIMEOUT;
+  auto groups = fns::get_all_function_groups(this);
 
-  auto groups = fns::get_all_function_groups(deps);
-  
   for (const auto &group : groups) {
     for (const auto &[name, handler] : group.functions) {
       std::string qualified_name = std::string(group.group_name) + "/" + name;
       register_function(qualified_name, handler);
     }
   }
+}
+
+logger_t processor_c::get_logger() { return logger_; }
+
+slp::slp_object_c processor_c::eval_object(session_c *session,
+                                           const slp::slp_object_c &obj,
+                                           const eval_context_s &context) {
+  return eval_object_with_context(session, obj, context);
+}
+
+std::string processor_c::object_to_string(const slp::slp_object_c &obj) {
+  return slp_object_to_string(obj);
+}
+
+std::vector<fns::function_provider_if::subscription_handler_s> *
+processor_c::get_subscription_handlers() {
+  return reinterpret_cast<
+      std::vector<fns::function_provider_if::subscription_handler_s> *>(
+      &subscription_handlers_);
+}
+
+std::mutex *processor_c::get_subscription_handlers_mutex() {
+  return &subscription_handlers_mutex_;
+}
+
+std::map<std::string,
+         std::shared_ptr<fns::function_provider_if::pending_await_s>> *
+processor_c::get_pending_awaits() {
+  return &pending_awaits_;
+}
+
+std::mutex *processor_c::get_pending_awaits_mutex() {
+  return &pending_awaits_mutex_;
+}
+
+std::chrono::seconds processor_c::get_max_await_timeout() {
+  return MAX_AWAIT_TIMEOUT;
 }
 
 } // namespace runtime

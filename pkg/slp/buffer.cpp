@@ -1,14 +1,12 @@
 #include "slp/buffer.hpp"
-#include <cstring>
 #include <algorithm>
+#include <cstring>
 
 namespace slp {
 
 slp_buffer_c::slp_buffer_c() : data_(nullptr), size_(0), capacity_(0) {}
 
-slp_buffer_c::~slp_buffer_c() {
-  free_data();
-}
+slp_buffer_c::~slp_buffer_c() { free_data(); }
 
 slp_buffer_c::slp_buffer_c(const slp_buffer_c &other)
     : data_(nullptr), size_(0), capacity_(0) {
@@ -53,25 +51,15 @@ slp_buffer_c &slp_buffer_c::operator=(slp_buffer_c &&other) noexcept {
   return *this;
 }
 
-std::uint8_t *slp_buffer_c::data() {
-  return data_;
-}
+std::uint8_t *slp_buffer_c::data() { return data_; }
 
-const std::uint8_t *slp_buffer_c::data() const {
-  return data_;
-}
+const std::uint8_t *slp_buffer_c::data() const { return data_; }
 
-std::size_t slp_buffer_c::size() const {
-  return size_;
-}
+std::size_t slp_buffer_c::size() const { return size_; }
 
-std::size_t slp_buffer_c::capacity() const {
-  return capacity_;
-}
+std::size_t slp_buffer_c::capacity() const { return capacity_; }
 
-bool slp_buffer_c::empty() const {
-  return size_ == 0;
-}
+bool slp_buffer_c::empty() const { return size_ == 0; }
 
 void slp_buffer_c::resize(std::size_t new_size) {
   if (new_size > capacity_) {
@@ -89,9 +77,7 @@ void slp_buffer_c::reserve(std::size_t new_capacity) {
   }
 }
 
-void slp_buffer_c::clear() {
-  size_ = 0;
-}
+void slp_buffer_c::clear() { size_ = 0; }
 
 std::uint8_t &slp_buffer_c::operator[](std::size_t index) {
   return data_[index];
@@ -115,41 +101,42 @@ bool slp_buffer_c::operator!=(const slp_buffer_c &other) const {
   return !(*this == other);
 }
 
-void slp_buffer_c::insert(std::size_t pos, const std::uint8_t *data, std::size_t count) {
+void slp_buffer_c::insert(std::size_t pos, const std::uint8_t *data,
+                          std::size_t count) {
   if (count == 0) {
     return;
   }
-  
+
   std::size_t new_size = size_ + count;
   if (new_size > capacity_) {
     grow_to(new_size);
   }
-  
+
   if (pos < size_) {
     std::memmove(data_ + pos + count, data_ + pos, size_ - pos);
   }
-  
+
   std::memcpy(data_ + pos, data, count);
   size_ = new_size;
 }
 
 void slp_buffer_c::grow_to(std::size_t min_capacity) {
   std::size_t new_capacity = capacity_;
-  
+
   if (new_capacity == 0) {
     new_capacity = 16;
   }
-  
+
   while (new_capacity < min_capacity) {
     new_capacity *= 2;
   }
-  
+
   std::uint8_t *new_data = new std::uint8_t[new_capacity];
-  
+
   if (data_ != nullptr && size_ > 0) {
     std::memcpy(new_data, data_, size_);
   }
-  
+
   free_data();
   data_ = new_data;
   capacity_ = new_capacity;
@@ -163,5 +150,4 @@ void slp_buffer_c::free_data() {
   capacity_ = 0;
 }
 
-}
-
+} // namespace slp

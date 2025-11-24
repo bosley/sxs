@@ -543,9 +543,7 @@ bool slp_object_c::has_data() const {
   return view_ != nullptr && !data_.empty();
 }
 
-const slp_buffer_c &slp_object_c::get_data() const {
-  return data_;
-}
+const slp_buffer_c &slp_object_c::get_data() const { return data_; }
 
 const std::map<std::uint64_t, std::string> &slp_object_c::get_symbols() const {
   return symbols_;

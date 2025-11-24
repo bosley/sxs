@@ -18,4 +18,3 @@
     auto _r = slp::parse("\"" + _v + "\"");                                    \
     return _r.take();                                                          \
   }(val))
-
