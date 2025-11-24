@@ -8,6 +8,7 @@
 #include <map>
 #include <mutex>
 #include <slp/slp.hpp>
+#include <slp/buffer.hpp>
 #include <string>
 
 namespace runtime {
@@ -35,7 +36,7 @@ public:
     session_c *session;
     events::event_category_e category;
     std::uint16_t topic_id;
-    std::vector<std::uint8_t> handler_data;
+    slp::slp_buffer_c handler_data;
     std::map<std::uint64_t, std::string> handler_symbols;
     size_t handler_root_offset;
   };

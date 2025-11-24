@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "slp/buffer.hpp"
+
 class slp_test_accessor;
 
 namespace slp {
@@ -108,18 +110,18 @@ public:
   string_c as_string() const;
   bool has_data() const;
 
-  const std::vector<std::uint8_t> &get_data() const;
+  const slp_buffer_c &get_data() const;
   const std::map<std::uint64_t, std::string> &get_symbols() const;
   size_t get_root_offset() const;
 
   static slp_object_c
-  from_data(const std::vector<std::uint8_t> &data,
+  from_data(const slp_buffer_c &data,
             const std::map<std::uint64_t, std::string> &symbols,
             size_t root_offset);
 
 private:
   slp_unit_of_store_t *view_;
-  std::vector<std::uint8_t> data_;
+  slp_buffer_c data_;
   size_t root_offset_;
   std::map<std::uint64_t, std::string> symbols_;
 

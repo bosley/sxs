@@ -1,9 +1,10 @@
 #include <slp/slp.hpp>
+#include <slp/buffer.hpp>
 #include <snitch/snitch.hpp>
 
 class slp_test_accessor {
 public:
-  static const std::vector<std::uint8_t> &
+  static const slp::slp_buffer_c &
   get_data(const slp::slp_object_c &obj) {
     return obj.data_;
   }
