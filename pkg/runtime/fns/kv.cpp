@@ -11,7 +11,7 @@ function_group_s get_kv_functions(
     function_group_s group;
     group.group_name = "kv";
 
-    group.functions["kv/set"] = [logger, eval_fn, to_string_fn](
+    group.functions["set"] = [logger, eval_fn, to_string_fn](
         session_c *session,
         const slp::slp_object_c &args,
         const processor_c::eval_context_s &context
@@ -50,7 +50,7 @@ function_group_s get_kv_functions(
         return SLP_BOOL(true);
     };
 
-    group.functions["kv/get"] = [logger, to_string_fn](
+    group.functions["get"] = [logger, to_string_fn](
         session_c *session,
         const slp::slp_object_c &args,
         const processor_c::eval_context_s &context
@@ -85,7 +85,7 @@ function_group_s get_kv_functions(
         return SLP_STRING(value);
     };
 
-    group.functions["kv/del"] = [logger](
+    group.functions["del"] = [logger](
         session_c *session,
         const slp::slp_object_c &args,
         const processor_c::eval_context_s &context
@@ -119,7 +119,7 @@ function_group_s get_kv_functions(
         return SLP_BOOL(true);
     };
 
-    group.functions["kv/exists"] = [logger](
+    group.functions["exists"] = [logger](
         session_c *session,
         const slp::slp_object_c &args,
         const processor_c::eval_context_s &context

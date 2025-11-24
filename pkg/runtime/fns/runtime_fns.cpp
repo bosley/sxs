@@ -16,7 +16,7 @@ function_group_s get_runtime_functions(
     function_group_s group;
     group.group_name = "runtime";
 
-    group.functions["runtime/log"] = [logger, eval_fn, to_string_fn](
+    group.functions["log"] = [logger, eval_fn, to_string_fn](
         session_c *session,
         const slp::slp_object_c &args,
         const processor_c::eval_context_s &context
@@ -40,7 +40,7 @@ function_group_s get_runtime_functions(
         return SLP_BOOL(true);
     };
 
-    group.functions["runtime/eval"] = [eval_fn, to_string_fn](
+    group.functions["eval"] = [eval_fn, to_string_fn](
         session_c *session,
         const slp::slp_object_c &args,
         const processor_c::eval_context_s &context
@@ -61,7 +61,7 @@ function_group_s get_runtime_functions(
         return eval_fn(session, parse_result.object(), context);
     };
 
-    group.functions["runtime/await"] = [eval_fn, pending_awaits, pending_awaits_mutex, max_await_timeout](
+    group.functions["await"] = [eval_fn, pending_awaits, pending_awaits_mutex, max_await_timeout](
         session_c *session,
         const slp::slp_object_c &args,
         const processor_c::eval_context_s &context

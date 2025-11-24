@@ -230,9 +230,8 @@ void processor_c::register_builtin_functions() {
   
   for (const auto &group : groups) {
     for (const auto &[name, handler] : group.functions) {
-      register_function(name, handler);
-      logger_->debug("[processor_c] Registered function: {} (group: {})", 
-                     name, group.group_name);
+      std::string qualified_name = std::string(group.group_name) + "/" + name;
+      register_function(qualified_name, handler);
     }
   }
 }

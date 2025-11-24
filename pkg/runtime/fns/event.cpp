@@ -15,7 +15,7 @@ function_group_s get_event_functions(
     function_group_s group;
     group.group_name = "event";
 
-    group.functions["event/pub"] = [logger, eval_fn, to_string_fn](
+    group.functions["pub"] = [logger, eval_fn, to_string_fn](
         session_c *session,
         const slp::slp_object_c &args,
         const processor_c::eval_context_s &context
@@ -89,7 +89,7 @@ function_group_s get_event_functions(
         return SLP_BOOL(true);
     };
 
-    group.functions["event/sub"] = [logger, eval_fn, subscription_handlers, subscription_handlers_mutex](
+    group.functions["sub"] = [logger, eval_fn, subscription_handlers, subscription_handlers_mutex](
         session_c *session,
         const slp::slp_object_c &args,
         const processor_c::eval_context_s &context
