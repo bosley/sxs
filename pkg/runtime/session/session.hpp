@@ -79,7 +79,7 @@ public:
   void set_active(bool active);
   kvds::kv_c *get_store();
 
-  publish_result_e publish_event(events::event_category_e category, 
+  publish_result_e publish_event(events::event_category_e category,
                                  std::uint16_t topic_id,
                                  const std::any &payload);
   bool subscribe_to_topic(events::event_category_e category,

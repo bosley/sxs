@@ -54,7 +54,7 @@ TEST_CASE("entity rps with runtime/await cross-channel limiting",
   event_system.initialize(nullptr);
 
   runtime::processor_c processor(logger.get(), &event_system);
-  
+
   auto processor_consumer = std::shared_ptr<runtime::events::event_consumer_if>(
       &processor, [](runtime::events::event_consumer_if *) {});
   event_system.register_consumer(0, processor_consumer);
@@ -82,22 +82,28 @@ TEST_CASE("entity rps with runtime/await cross-channel limiting",
     for (int i = 0; i < 3; ++i) {
       auto result = session.publish_event(
           runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1, i);
-      if (result == runtime::publish_result_e::OK) successful_publishes++;
-      else failed_publishes++;
+      if (result == runtime::publish_result_e::OK)
+        successful_publishes++;
+      else
+        failed_publishes++;
     }
 
     for (int i = 0; i < 3; ++i) {
       auto result = session.publish_event(
           runtime::events::event_category_e::RUNTIME_BACKCHANNEL_B, 2, i);
-      if (result == runtime::publish_result_e::OK) successful_publishes++;
-      else failed_publishes++;
+      if (result == runtime::publish_result_e::OK)
+        successful_publishes++;
+      else
+        failed_publishes++;
     }
 
     for (int i = 0; i < 3; ++i) {
       auto result = session.publish_event(
           runtime::events::event_category_e::RUNTIME_BACKCHANNEL_C, 3, i);
-      if (result == runtime::publish_result_e::OK) successful_publishes++;
-      else failed_publishes++;
+      if (result == runtime::publish_result_e::OK)
+        successful_publishes++;
+      else
+        failed_publishes++;
     }
 
     CHECK(successful_publishes == 5);
@@ -131,7 +137,7 @@ TEST_CASE("entity rps with runtime/await cross-channel limiting",
     runtime::execution_request_s request;
     request.session = &session;
     request.request_id = "test_1";
-    
+
     request.script_text = R"(
       [
         (event/pub $CHANNEL_A 1 "msg1")
@@ -142,7 +148,8 @@ TEST_CASE("entity rps with runtime/await cross-channel limiting",
     )";
 
     runtime::events::event_s exec_event;
-    exec_event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    exec_event.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
     exec_event.topic_identifier = 0;
     exec_event.payload = request;
 
@@ -193,25 +200,43 @@ TEST_CASE("entity rps limit tracking across channels",
                                &event_system);
 
     int total_published = 0;
-    
-    if (session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1, 1) == runtime::publish_result_e::OK)
+
+    if (session.publish_event(
+            runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1, 1) ==
+        runtime::publish_result_e::OK)
       total_published++;
-    if (session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_B, 2, 2) == runtime::publish_result_e::OK)
+    if (session.publish_event(
+            runtime::events::event_category_e::RUNTIME_BACKCHANNEL_B, 2, 2) ==
+        runtime::publish_result_e::OK)
       total_published++;
-    if (session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_C, 3, 3) == runtime::publish_result_e::OK)
+    if (session.publish_event(
+            runtime::events::event_category_e::RUNTIME_BACKCHANNEL_C, 3, 3) ==
+        runtime::publish_result_e::OK)
       total_published++;
-    if (session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_D, 4, 4) == runtime::publish_result_e::OK)
+    if (session.publish_event(
+            runtime::events::event_category_e::RUNTIME_BACKCHANNEL_D, 4, 4) ==
+        runtime::publish_result_e::OK)
       total_published++;
-    if (session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_E, 5, 5) == runtime::publish_result_e::OK)
+    if (session.publish_event(
+            runtime::events::event_category_e::RUNTIME_BACKCHANNEL_E, 5, 5) ==
+        runtime::publish_result_e::OK)
       total_published++;
-    if (session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_F, 6, 6) == runtime::publish_result_e::OK)
+    if (session.publish_event(
+            runtime::events::event_category_e::RUNTIME_BACKCHANNEL_F, 6, 6) ==
+        runtime::publish_result_e::OK)
       total_published++;
-    
+
     CHECK(total_published == 6);
-    
-    CHECK(session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1, 99) == runtime::publish_result_e::RATE_LIMIT_EXCEEDED);
-    CHECK(session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_B, 2, 99) == runtime::publish_result_e::RATE_LIMIT_EXCEEDED);
-    CHECK(session.publish_event(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_C, 3, 99) == runtime::publish_result_e::RATE_LIMIT_EXCEEDED);
+
+    CHECK(session.publish_event(
+              runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1,
+              99) == runtime::publish_result_e::RATE_LIMIT_EXCEEDED);
+    CHECK(session.publish_event(
+              runtime::events::event_category_e::RUNTIME_BACKCHANNEL_B, 2,
+              99) == runtime::publish_result_e::RATE_LIMIT_EXCEEDED);
+    CHECK(session.publish_event(
+              runtime::events::event_category_e::RUNTIME_BACKCHANNEL_C, 3,
+              99) == runtime::publish_result_e::RATE_LIMIT_EXCEEDED);
   }
 
   event_system.shutdown();

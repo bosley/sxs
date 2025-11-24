@@ -23,7 +23,7 @@ struct options_s {
   size_t event_system_max_threads{4};
   size_t event_system_max_queue_size{1000};
   size_t max_sessions_per_entity{10};
-  size_t num_processors{1}; // 1 lowest each processor is a consumer on a topic. 0th process processes all execution requests for topic 0, proc 1 doers topic 1 and so on. this way we can publish to any given processor
+  size_t num_processors{1};
 };
 
 class runtime_accessor_if {

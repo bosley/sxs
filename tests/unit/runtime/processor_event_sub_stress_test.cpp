@@ -43,8 +43,8 @@ runtime::session_c *
 create_test_session(const std::string &session_id,
                     runtime::events::event_system_c &event_system,
                     kvds::datastore_c &data_ds, runtime::entity_c *entity) {
-  return new runtime::session_c(session_id, "test_entity", "test_scope",
-                                entity, &data_ds, &event_system);
+  return new runtime::session_c(session_id, "test_entity", "test_scope", entity,
+                                &data_ds, &event_system);
 }
 } // namespace
 
@@ -87,17 +87,20 @@ TEST_CASE("multiple sessions subscribe to same topic",
 
   runtime::execution_request_s req1;
   req1.session = session1;
-  req1.script_text = R"((event/sub $CHANNEL_A 400 {(kv/set session1_data $data)}))";
+  req1.script_text =
+      R"((event/sub $CHANNEL_A 400 {(kv/set session1_data $data)}))";
   req1.request_id = "req1";
 
   runtime::execution_request_s req2;
   req2.session = session2;
-  req2.script_text = R"((event/sub $CHANNEL_A 400 {(kv/set session2_data $data)}))";
+  req2.script_text =
+      R"((event/sub $CHANNEL_A 400 {(kv/set session2_data $data)}))";
   req2.request_id = "req2";
 
   runtime::execution_request_s req3;
   req3.session = session3;
-  req3.script_text = R"((event/sub $CHANNEL_A 400 {(kv/set session3_data $data)}))";
+  req3.script_text =
+      R"((event/sub $CHANNEL_A 400 {(kv/set session3_data $data)}))";
   req3.request_id = "req3";
 
   runtime::events::event_s sub_event1;
@@ -123,7 +126,8 @@ TEST_CASE("multiple sessions subscribe to same topic",
   auto writer = producer->get_topic_writer_for_topic(400);
 
   runtime::events::event_s data_event;
-  data_event.category = runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
+  data_event.category =
+      runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
   data_event.topic_identifier = 400;
   data_event.payload = std::string("broadcast message");
 
@@ -369,7 +373,8 @@ TEST_CASE("handler with parse error in body",
   auto writer = producer->get_topic_writer_for_topic(600);
 
   runtime::events::event_s data_event;
-  data_event.category = runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
+  data_event.category =
+      runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
   data_event.topic_identifier = 600;
   data_event.payload = std::string("test");
 
@@ -444,7 +449,8 @@ TEST_CASE("handler with nested function calls",
   auto writer = producer->get_topic_writer_for_topic(700);
 
   runtime::events::event_s data_event;
-  data_event.category = runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
+  data_event.category =
+      runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
   data_event.topic_identifier = 700;
   data_event.payload = std::string("nested test");
 
@@ -527,7 +533,8 @@ TEST_CASE("handler publishes event creating chain",
   auto writer = producer->get_topic_writer_for_topic(800);
 
   runtime::events::event_s data_event;
-  data_event.category = runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
+  data_event.category =
+      runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
   data_event.topic_identifier = 800;
   data_event.payload = std::string("initial");
 
@@ -597,7 +604,8 @@ TEST_CASE("empty handler body", "[unit][runtime][processor][stress]") {
   auto writer = producer->get_topic_writer_for_topic(900);
 
   runtime::events::event_s data_event;
-  data_event.category = runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
+  data_event.category =
+      runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
   data_event.topic_identifier = 900;
   data_event.payload = std::string("test");
 
@@ -610,4 +618,3 @@ TEST_CASE("empty handler body", "[unit][runtime][processor][stress]") {
   ensure_db_cleanup(data_test_path);
   ensure_db_cleanup(entity_test_path);
 }
-

@@ -155,7 +155,7 @@ void session_c::set_active(bool active) { active_ = active; }
 kvds::kv_c *session_c::get_store() { return scoped_store_.get(); }
 
 publish_result_e session_c::publish_event(events::event_category_e category,
-                                          std::uint16_t topic_id, 
+                                          std::uint16_t topic_id,
                                           const std::any &payload) {
   if (!entity_) {
     return publish_result_e::NO_ENTITY;

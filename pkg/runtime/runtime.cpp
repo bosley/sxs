@@ -76,13 +76,16 @@ bool runtime_c::initialize() {
   if (event_subsystem) {
     size_t num_processors = std::max(options_.num_processors, size_t(1));
     logger_->info("Creating and registering {} processor(s)", num_processors);
-    
+
     for (size_t i = 0; i < num_processors; i++) {
       auto processor = std::make_unique<processor_c>(logger_, event_subsystem);
       auto processor_consumer = std::shared_ptr<events::event_consumer_if>(
           processor.get(), [](events::event_consumer_if *) {});
-      event_subsystem->register_consumer(static_cast<std::uint16_t>(i), processor_consumer);
-      logger_->info("Processor {} registered for RUNTIME_EXECUTION_REQUEST on topic {}", i, i);
+      event_subsystem->register_consumer(static_cast<std::uint16_t>(i),
+                                         processor_consumer);
+      logger_->info(
+          "Processor {} registered for RUNTIME_EXECUTION_REQUEST on topic {}",
+          i, i);
       processors_.push_back(std::move(processor));
     }
   }

@@ -211,25 +211,29 @@ TEST_CASE("entity rps multiple sessions share limit",
     int total_published = 0;
 
     for (int i = 0; i < 5; ++i) {
-      if (session1.publish_event(runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
-                                 i) == runtime::publish_result_e::OK) {
+      if (session1.publish_event(
+              runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
+              i) == runtime::publish_result_e::OK) {
         total_published++;
       }
     }
 
     for (int i = 0; i < 5; ++i) {
-      if (session2.publish_event(runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
-                                 i) == runtime::publish_result_e::OK) {
+      if (session2.publish_event(
+              runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
+              i) == runtime::publish_result_e::OK) {
         total_published++;
       }
     }
 
     CHECK(total_published == 10);
 
-    CHECK(session1.publish_event(runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
-                                 99) == runtime::publish_result_e::RATE_LIMIT_EXCEEDED);
-    CHECK(session2.publish_event(runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
-                                 99) == runtime::publish_result_e::RATE_LIMIT_EXCEEDED);
+    CHECK(session1.publish_event(
+              runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
+              99) == runtime::publish_result_e::RATE_LIMIT_EXCEEDED);
+    CHECK(session2.publish_event(
+              runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
+              99) == runtime::publish_result_e::RATE_LIMIT_EXCEEDED);
   }
 
   SECTION("five sessions share 10 rps limit") {
@@ -258,13 +262,14 @@ TEST_CASE("entity rps multiple sessions share limit",
                              &event_system);
 
     std::vector<runtime::session_c *> sessions = {&sess1, &sess2, &sess3,
-                                                   &sess4, &sess5};
+                                                  &sess4, &sess5};
 
     int total_published = 0;
     for (int round = 0; round < 5; ++round) {
       for (auto *sess : sessions) {
-        if (sess->publish_event(runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
-                                round) == runtime::publish_result_e::OK) {
+        if (sess->publish_event(
+                runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
+                round) == runtime::publish_result_e::OK) {
           total_published++;
         }
       }
@@ -274,7 +279,8 @@ TEST_CASE("entity rps multiple sessions share limit",
 
     for (auto *sess : sessions) {
       CHECK(sess->publish_event(
-          runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1, 999) == runtime::publish_result_e::RATE_LIMIT_EXCEEDED);
+                runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
+                999) == runtime::publish_result_e::RATE_LIMIT_EXCEEDED);
     }
   }
 
@@ -358,15 +364,15 @@ TEST_CASE("entity rps concurrent multi-threaded publishing",
     std::vector<std::thread> threads;
 
     for (size_t i = 0; i < sessions.size(); ++i) {
-      threads.emplace_back(
-          [&session = *sessions[i], &successful_publishes]() {
-            for (int j = 0; j < 20; ++j) {
-              if (session.publish_event(
-                      runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1, j) == runtime::publish_result_e::OK) {
-                successful_publishes.fetch_add(1);
-              }
-            }
-          });
+      threads.emplace_back([&session = *sessions[i], &successful_publishes]() {
+        for (int j = 0; j < 20; ++j) {
+          if (session.publish_event(
+                  runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST,
+                  1, j) == runtime::publish_result_e::OK) {
+            successful_publishes.fetch_add(1);
+          }
+        }
+      });
     }
 
     for (auto &thread : threads) {
@@ -377,7 +383,8 @@ TEST_CASE("entity rps concurrent multi-threaded publishing",
 
     for (auto &session : sessions) {
       CHECK(session->publish_event(
-          runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1, 999) == runtime::publish_result_e::RATE_LIMIT_EXCEEDED);
+                runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
+                999) == runtime::publish_result_e::RATE_LIMIT_EXCEEDED);
     }
   }
 
@@ -564,8 +571,9 @@ TEST_CASE("entity rps with permission blocking",
     runtime::session_c session("sess1", "user1", "scope1", entity.get(),
                                &data_ds, &event_system);
 
-    CHECK(session.publish_event(runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST,
-                                1, 0) == runtime::publish_result_e::PERMISSION_DENIED);
+    CHECK(session.publish_event(
+              runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
+              0) == runtime::publish_result_e::PERMISSION_DENIED);
   }
 
   SECTION("both rps and permission must pass") {
@@ -582,12 +590,14 @@ TEST_CASE("entity rps with permission blocking",
                                &data_ds, &event_system);
 
     for (int i = 0; i < 10; ++i) {
-      CHECK(session.publish_event(runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
-                                  i) == runtime::publish_result_e::OK);
+      CHECK(session.publish_event(
+                runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
+                i) == runtime::publish_result_e::OK);
     }
 
-    CHECK(session.publish_event(runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST,
-                                1, 99) == runtime::publish_result_e::RATE_LIMIT_EXCEEDED);
+    CHECK(session.publish_event(
+              runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
+              99) == runtime::publish_result_e::RATE_LIMIT_EXCEEDED);
   }
 
   event_system.shutdown();
@@ -633,8 +643,9 @@ TEST_CASE("entity rps stress test with rapid publishes",
     int failed = 0;
 
     for (int i = 0; i < 200; ++i) {
-      if (session.publish_event(runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
-                                i) == runtime::publish_result_e::OK) {
+      if (session.publish_event(
+              runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
+              i) == runtime::publish_result_e::OK) {
         successful++;
       } else {
         failed++;
@@ -696,16 +707,18 @@ TEST_CASE("entity rps different entities independent limits",
 
     int entity1_publishes = 0;
     for (int i = 0; i < 10; ++i) {
-      if (session1.publish_event(runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
-                                 i) == runtime::publish_result_e::OK) {
+      if (session1.publish_event(
+              runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
+              i) == runtime::publish_result_e::OK) {
         entity1_publishes++;
       }
     }
 
     int entity2_publishes = 0;
     for (int i = 0; i < 15; ++i) {
-      if (session2.publish_event(runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
-                                 i) == runtime::publish_result_e::OK) {
+      if (session2.publish_event(
+              runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 1,
+              i) == runtime::publish_result_e::OK) {
         entity2_publishes++;
       }
     }
@@ -718,4 +731,3 @@ TEST_CASE("entity rps different entities independent limits",
   ensure_db_cleanup(entity_test_path);
   ensure_db_cleanup(data_test_path);
 }
-

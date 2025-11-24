@@ -75,7 +75,7 @@ TEST_CASE("multi processor initialization with 1 processor",
         std::shared_ptr<runtime::events::event_consumer_if>(
             processor.get(), [](runtime::events::event_consumer_if *) {});
     event_system.register_consumer(static_cast<std::uint16_t>(i),
-                                    processor_consumer);
+                                   processor_consumer);
     processors.push_back(std::move(processor));
   }
 
@@ -102,7 +102,7 @@ TEST_CASE("multi processor initialization with 4 processors",
         std::shared_ptr<runtime::events::event_consumer_if>(
             processor.get(), [](runtime::events::event_consumer_if *) {});
     event_system.register_consumer(static_cast<std::uint16_t>(i),
-                                    processor_consumer);
+                                   processor_consumer);
     processors.push_back(std::move(processor));
   }
 
@@ -145,18 +145,17 @@ TEST_CASE("multi processor concurrent execution on different topics",
         std::shared_ptr<runtime::events::event_consumer_if>(
             processor.get(), [](runtime::events::event_consumer_if *) {});
     event_system.register_consumer(static_cast<std::uint16_t>(i),
-                                    processor_consumer);
+                                   processor_consumer);
     processors.push_back(std::move(processor));
 
-    auto entity_opt =
-        entity_manager.get_or_create<runtime::entity_c>("user" +
-                                                        std::to_string(i));
+    auto entity_opt = entity_manager.get_or_create<runtime::entity_c>(
+        "user" + std::to_string(i));
     REQUIRE(entity_opt.has_value());
     auto entity = std::move(entity_opt.value());
 
     auto session = std::make_unique<runtime::session_c>(
-        "session_" + std::to_string(i), "user" + std::to_string(i), "scope_" + std::to_string(i),
-        entity.get(), &data_ds, &event_system);
+        "session_" + std::to_string(i), "user" + std::to_string(i),
+        "scope_" + std::to_string(i), entity.get(), &data_ds, &event_system);
 
     sessions.push_back(std::move(session));
     entities.push_back(std::move(entity));
@@ -169,8 +168,8 @@ TEST_CASE("multi processor concurrent execution on different topics",
     std::thread([&, i]() {
       runtime::execution_request_s request;
       request.session = sessions[i].get();
-      request.script_text =
-          "[" + std::to_string(i * 100) + " " + std::to_string(i * 100 + 50) + "]";
+      request.script_text = "[" + std::to_string(i * 100) + " " +
+                            std::to_string(i * 100 + 50) + "]";
       request.request_id = "req_" + std::to_string(i);
 
       runtime::events::event_s event;
@@ -181,8 +180,8 @@ TEST_CASE("multi processor concurrent execution on different topics",
 
       auto producer = event_system.get_event_producer_for_category(
           runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST);
-      auto writer = producer->get_topic_writer_for_topic(
-          static_cast<std::uint16_t>(i));
+      auto writer =
+          producer->get_topic_writer_for_topic(static_cast<std::uint16_t>(i));
       writer->write_event(event);
 
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -225,8 +224,7 @@ TEST_CASE("multi processor topic isolation",
   }
 
   runtime::events::event_s event;
-  event.category =
-      runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+  event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
   event.topic_identifier = 2;
 
   auto producer = event_system.get_event_producer_for_category(
@@ -278,17 +276,16 @@ TEST_CASE("multi processor with kv operations on different scopes",
         std::shared_ptr<runtime::events::event_consumer_if>(
             processor.get(), [](runtime::events::event_consumer_if *) {});
     event_system.register_consumer(static_cast<std::uint16_t>(i),
-                                    processor_consumer);
+                                   processor_consumer);
     processors.push_back(std::move(processor));
 
-    auto entity_opt =
-        entity_manager.get_or_create<runtime::entity_c>("kv_user" +
-                                                        std::to_string(i));
+    auto entity_opt = entity_manager.get_or_create<runtime::entity_c>(
+        "kv_user" + std::to_string(i));
     REQUIRE(entity_opt.has_value());
     auto entity = std::move(entity_opt.value());
-    
-    entity->grant_permission("kv_scope_" + std::to_string(i), 
-                            runtime::permission::READ_WRITE);
+
+    entity->grant_permission("kv_scope_" + std::to_string(i),
+                             runtime::permission::READ_WRITE);
     entity->save();
 
     auto session = std::make_unique<runtime::session_c>(
@@ -317,8 +314,8 @@ TEST_CASE("multi processor with kv operations on different scopes",
 
       auto producer = event_system.get_event_producer_for_category(
           runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST);
-      auto writer = producer->get_topic_writer_for_topic(
-          static_cast<std::uint16_t>(i));
+      auto writer =
+          producer->get_topic_writer_for_topic(static_cast<std::uint16_t>(i));
       writer->write_event(event);
 
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -384,19 +381,18 @@ TEST_CASE("multi processor stress test with rapid concurrent requests",
         std::shared_ptr<runtime::events::event_consumer_if>(
             processor.get(), [](runtime::events::event_consumer_if *) {});
     event_system.register_consumer(static_cast<std::uint16_t>(i),
-                                    processor_consumer);
+                                   processor_consumer);
     processors.push_back(std::move(processor));
 
-    auto entity_opt =
-        entity_manager.get_or_create<runtime::entity_c>("stress_user" +
-                                                        std::to_string(i));
+    auto entity_opt = entity_manager.get_or_create<runtime::entity_c>(
+        "stress_user" + std::to_string(i));
     REQUIRE(entity_opt.has_value());
     auto entity = std::move(entity_opt.value());
 
     auto session = std::make_unique<runtime::session_c>(
-        "stress_session_" + std::to_string(i), "stress_user" + std::to_string(i),
-        "stress_scope_" + std::to_string(i), entity.get(), &data_ds,
-        &event_system);
+        "stress_session_" + std::to_string(i),
+        "stress_user" + std::to_string(i), "stress_scope_" + std::to_string(i),
+        entity.get(), &data_ds, &event_system);
 
     sessions.push_back(std::move(session));
     entities.push_back(std::move(entity));
@@ -421,8 +417,8 @@ TEST_CASE("multi processor stress test with rapid concurrent requests",
 
         auto producer = event_system.get_event_producer_for_category(
             runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST);
-        auto writer = producer->get_topic_writer_for_topic(
-            static_cast<std::uint16_t>(i));
+        auto writer =
+            producer->get_topic_writer_for_topic(static_cast<std::uint16_t>(i));
         writer->write_event(event);
 
         sent_count.fetch_add(1);
@@ -448,5 +444,3 @@ TEST_CASE("multi processor stress test with rapid concurrent requests",
   ensure_db_cleanup(data_test_path);
   ensure_db_cleanup(entity_test_path);
 }
-
-

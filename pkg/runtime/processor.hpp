@@ -31,9 +31,8 @@ public:
     std::map<std::string, slp::slp_object_c> bindings;
   };
 
-  using function_handler_t =
-      std::function<slp::slp_object_c(session_c *, const slp::slp_object_c &,
-                                      const eval_context_s &)>;
+  using function_handler_t = std::function<slp::slp_object_c(
+      session_c *, const slp::slp_object_c &, const eval_context_s &)>;
 
   processor_c(logger_t logger, events::event_system_c *event_system);
   ~processor_c() = default;
@@ -43,7 +42,6 @@ public:
   void register_function(const std::string &name, function_handler_t handler);
 
 private:
-
   struct subscription_handler_s {
     session_c *session;
     events::event_category_e category;
@@ -85,7 +83,7 @@ private:
   slp::slp_object_c call_function(session_c *session, const std::string &name,
                                   const slp::slp_object_c &args,
                                   const eval_context_s &context);
-  
+
   std::string slp_object_to_string(const slp::slp_object_c &obj) const;
 
   void send_result_to_session(session_c *session,
