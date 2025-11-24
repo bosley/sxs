@@ -9,6 +9,7 @@ add_executable(runtime_tests
   processor_test.cpp
   processor_event_sub_test.cpp
   processor_event_sub_stress_test.cpp
+  multi_processor_test.cpp
 )
 
 target_link_libraries(runtime_tests PRIVATE 
@@ -186,6 +187,19 @@ add_test(NAME processor_runtime_eval_with_kv_operations
 add_test(NAME processor_runtime_await_async_communication
          COMMAND runtime_tests "processor runtime/await async communication")
 
+add_test(NAME multi_processor_initialization_with_1_processor
+         COMMAND runtime_tests "multi processor initialization with 1 processor")
+add_test(NAME multi_processor_initialization_with_4_processors
+         COMMAND runtime_tests "multi processor initialization with 4 processors")
+add_test(NAME multi_processor_concurrent_execution_on_different_topics
+         COMMAND runtime_tests "multi processor concurrent execution on different topics")
+add_test(NAME multi_processor_topic_isolation
+         COMMAND runtime_tests "multi processor topic isolation")
+add_test(NAME multi_processor_with_kv_operations_on_different_scopes
+         COMMAND runtime_tests "multi processor with kv operations on different scopes")
+add_test(NAME multi_processor_stress_test_with_rapid_concurrent_requests
+         COMMAND runtime_tests "multi processor stress test with rapid concurrent requests")
+
 if(WITH_ASAN)
   set_tests_properties(runtime_tests runtime_basic_operations
                        entity_basic_operations
@@ -228,6 +242,12 @@ if(WITH_ASAN)
                        empty_handler_body
                        processor_runtime_eval_operation processor_runtime_await_operation
                        processor_runtime_eval_with_kv_operations processor_runtime_await_async_communication
+                       multi_processor_initialization_with_1_processor
+                       multi_processor_initialization_with_4_processors
+                       multi_processor_concurrent_execution_on_different_topics
+                       multi_processor_topic_isolation
+                       multi_processor_with_kv_operations_on_different_scopes
+                       multi_processor_stress_test_with_rapid_concurrent_requests
     PROPERTIES 
       ENVIRONMENT "ASAN_OPTIONS=detect_container_overflow=0"
   )

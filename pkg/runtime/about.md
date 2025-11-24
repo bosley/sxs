@@ -27,6 +27,8 @@ The processor is an event-driven script execution engine that:
 - Integrates with session-based permissions
 - Enables dynamic pub/sub event handling
 - Supports context-based symbol resolution
+- Filters events by category (only processes RUNTIME_EXECUTION_REQUEST)
+- Supports multiple processor instances for concurrent execution
 
 ## Processor Architecture
 
@@ -73,6 +75,7 @@ sequenceDiagram
     Client->>ES: Publish EXECUTION_REQUEST
     Note over ES: execution_request_s payload<br/>contains session + script
     ES->>Proc: consume_event()
+    Note over Proc: Filter: only RUNTIME_EXECUTION_REQUEST
     Proc->>Parser: parse(script_text)
     Parser-->>Proc: slp_object_c (AST)
     
@@ -96,6 +99,47 @@ sequenceDiagram
     Proc->>ES: Publish BACKCHANNEL_* (result)
     ES->>Client: Deliver result
 ```
+
+## Multi-Processor Architecture
+
+The runtime supports multiple processor instances for concurrent script execution:
+
+### Configuration
+
+Set `num_processors` in `options_s` (minimum: 1, default: 1):
+- With 1 processor: Single processor consumes topic 0
+- With 4 processors: Four processors consume topics 0, 1, 2, 3
+
+### Topic Distribution
+
+Each processor is registered as a consumer on a specific topic:
+
+```
+Processor 0 → Topic 0
+Processor 1 → Topic 1
+Processor 2 → Topic 2
+...
+Processor N-1 → Topic N-1
+```
+
+### Load Distribution
+
+Execution requests are distributed by publishing to different topics:
+
+```cpp
+// Publish to processor 0
+event.topic_identifier = 0;
+
+// Publish to processor 2
+event.topic_identifier = 2;
+```
+
+### Benefits
+
+- **Concurrent Execution**: Multiple scripts execute in parallel
+- **Load Balancing**: Distribute execution across processors
+- **Isolation**: Each processor operates independently
+- **Scalability**: Add more processors for higher throughput
 
 ## Function Calling System
 
