@@ -20,6 +20,8 @@
   return _r.take(); \
 }(val))
 
+constexpr std::chrono::seconds MAX_AWAIT_TIMEOUT = std::chrono::seconds(5);
+
 namespace runtime {
 
 std::string processor_c::slp_object_to_string(const slp::slp_object_c &obj) const {
@@ -660,7 +662,7 @@ void processor_c::register_builtin_functions() {
 
     {
       std::unique_lock<std::mutex> lock(pending->mutex);
-      auto timeout = std::chrono::seconds(5);
+      auto timeout = std::chrono::seconds(MAX_AWAIT_TIMEOUT);
       if (!pending->cv.wait_for(lock, timeout, [&pending] { return pending->completed; })) {
         session->unsubscribe_from_topic(category, topic_id);
         std::lock_guard<std::mutex> await_lock(pending_awaits_mutex_);
