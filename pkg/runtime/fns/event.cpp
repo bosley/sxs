@@ -1,0 +1,211 @@
+#include "runtime/fns/event.hpp"
+#include "runtime/fns/helpers.hpp"
+#include <algorithm>
+#include <any>
+
+namespace runtime::fns {
+
+function_group_s get_event_functions(
+    logger_t logger,
+    std::function<slp::slp_object_c(session_c*, const slp::slp_object_c&, const processor_c::eval_context_s&)> eval_fn,
+    std::function<std::string(const slp::slp_object_c&)> to_string_fn,
+    std::vector<processor_c::subscription_handler_s> *subscription_handlers,
+    std::mutex *subscription_handlers_mutex
+) {
+    function_group_s group;
+    group.group_name = "event";
+
+    group.functions["event/pub"] = [logger, eval_fn, to_string_fn](
+        session_c *session,
+        const slp::slp_object_c &args,
+        const processor_c::eval_context_s &context
+    ) {
+        auto list = args.as_list();
+        if (list.size() < 4) {
+            return SLP_ERROR("event/pub requires channel, topic-id and data (use "
+                           "$CHANNEL_A through $CHANNEL_F)");
+        }
+
+        auto channel_obj = eval_fn(session, list.at(1), context);
+        auto topic_obj = list.at(2);
+        auto data_obj = list.at(3);
+
+        if (channel_obj.type() != slp::slp_type_e::SYMBOL) {
+            return SLP_ERROR("channel must be $CHANNEL_A through $CHANNEL_F");
+        }
+
+        std::string channel_sym = channel_obj.as_symbol();
+        events::event_category_e category;
+
+        if (channel_sym == "A") {
+            category = events::event_category_e::RUNTIME_BACKCHANNEL_A;
+        } else if (channel_sym == "B") {
+            category = events::event_category_e::RUNTIME_BACKCHANNEL_B;
+        } else if (channel_sym == "C") {
+            category = events::event_category_e::RUNTIME_BACKCHANNEL_C;
+        } else if (channel_sym == "D") {
+            category = events::event_category_e::RUNTIME_BACKCHANNEL_D;
+        } else if (channel_sym == "E") {
+            category = events::event_category_e::RUNTIME_BACKCHANNEL_E;
+        } else if (channel_sym == "F") {
+            category = events::event_category_e::RUNTIME_BACKCHANNEL_F;
+        } else {
+            return SLP_ERROR("invalid channel (must be A, B, C, D, E, or F)");
+        }
+
+        if (topic_obj.type() != slp::slp_type_e::INTEGER) {
+            return SLP_ERROR("topic-id must be integer");
+        }
+
+        std::uint16_t topic_id = static_cast<std::uint16_t>(topic_obj.as_int());
+
+        auto data_result = eval_fn(session, data_obj, context);
+        std::string data_str = to_string_fn(data_result);
+
+        publish_result_e result =
+            session->publish_event(category, topic_id, data_str);
+
+        switch (result) {
+        case publish_result_e::OK:
+            break;
+        case publish_result_e::RATE_LIMIT_EXCEEDED:
+            return SLP_ERROR("event/pub failed (rate limit exceeded)");
+        case publish_result_e::PERMISSION_DENIED:
+            return SLP_ERROR("event/pub failed (permission denied)");
+        case publish_result_e::NO_ENTITY:
+            return SLP_ERROR("event/pub failed (no entity)");
+        case publish_result_e::NO_EVENT_SYSTEM:
+            return SLP_ERROR("event/pub failed (no event system)");
+        case publish_result_e::NO_PRODUCER:
+            return SLP_ERROR("event/pub failed (no producer)");
+        case publish_result_e::NO_TOPIC_WRITER:
+            return SLP_ERROR("event/pub failed (no topic writer)");
+        default:
+            return SLP_ERROR("event/pub failed (unknown error)");
+        }
+
+        logger->debug("[event] pub channel {} topic {} data {}",
+                     channel_sym, topic_id, data_str);
+        return SLP_BOOL(true);
+    };
+
+    group.functions["event/sub"] = [logger, eval_fn, subscription_handlers, subscription_handlers_mutex](
+        session_c *session,
+        const slp::slp_object_c &args,
+        const processor_c::eval_context_s &context
+    ) {
+        auto list = args.as_list();
+        if (list.size() < 4) {
+            return SLP_ERROR("event/sub requires channel, topic-id and handler body "
+                           "(use $CHANNEL_A through $CHANNEL_F)");
+        }
+
+        auto channel_obj = eval_fn(session, list.at(1), context);
+        auto topic_obj = list.at(2);
+        auto handler_obj = list.at(3);
+
+        if (channel_obj.type() != slp::slp_type_e::SYMBOL) {
+            return SLP_ERROR("channel must be $CHANNEL_A through $CHANNEL_F");
+        }
+
+        std::string channel_sym = channel_obj.as_symbol();
+        events::event_category_e category;
+
+        if (channel_sym == "A") {
+            category = events::event_category_e::RUNTIME_BACKCHANNEL_A;
+        } else if (channel_sym == "B") {
+            category = events::event_category_e::RUNTIME_BACKCHANNEL_B;
+        } else if (channel_sym == "C") {
+            category = events::event_category_e::RUNTIME_BACKCHANNEL_C;
+        } else if (channel_sym == "D") {
+            category = events::event_category_e::RUNTIME_BACKCHANNEL_D;
+        } else if (channel_sym == "E") {
+            category = events::event_category_e::RUNTIME_BACKCHANNEL_E;
+        } else if (channel_sym == "F") {
+            category = events::event_category_e::RUNTIME_BACKCHANNEL_F;
+        } else {
+            return SLP_ERROR("invalid channel (must be A, B, C, D, E, or F)");
+        }
+
+        if (topic_obj.type() != slp::slp_type_e::INTEGER) {
+            return SLP_ERROR("topic-id must be integer");
+        }
+
+        if (handler_obj.type() != slp::slp_type_e::BRACE_LIST) {
+            return SLP_ERROR("handler must be a brace list {}");
+        }
+
+        std::uint16_t topic_id = static_cast<std::uint16_t>(topic_obj.as_int());
+
+        processor_c::subscription_handler_s handler;
+        handler.session = session;
+        handler.category = category;
+        handler.topic_id = topic_id;
+        handler.handler_data = handler_obj.get_data();
+        handler.handler_symbols = handler_obj.get_symbols();
+        handler.handler_root_offset = handler_obj.get_root_offset();
+
+        {
+            std::lock_guard<std::mutex> lock(*subscription_handlers_mutex);
+            subscription_handlers->push_back(handler);
+        }
+
+        bool success = session->subscribe_to_topic(
+            category, topic_id,
+            [logger, eval_fn, session, category, topic_id, subscription_handlers, subscription_handlers_mutex](const events::event_s &event) {
+                std::lock_guard<std::mutex> lock(*subscription_handlers_mutex);
+                for (const auto &h : *subscription_handlers) {
+                    if (h.session == session && h.category == category &&
+                        h.topic_id == topic_id) {
+                        processor_c::eval_context_s context;
+
+                        std::string event_data;
+                        try {
+                            event_data = std::any_cast<std::string>(event.payload);
+                        } catch (...) {
+                            event_data = "<event data>";
+                        }
+                        context.bindings["$data"] = SLP_STRING(event_data);
+
+                        auto handler_obj = slp::slp_object_c::from_data(
+                            h.handler_data, h.handler_symbols, h.handler_root_offset);
+
+                        auto list = handler_obj.as_list();
+                        for (size_t i = 0; i < list.size(); i++) {
+                            auto result = eval_fn(session, list.at(i), context);
+                            if (result.type() == slp::slp_type_e::ERROR) {
+                                logger->debug("[event] Handler encountered error, "
+                                             "stopping execution");
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+            });
+
+        if (!success) {
+            std::lock_guard<std::mutex> lock(*subscription_handlers_mutex);
+            subscription_handlers->erase(
+                std::remove_if(subscription_handlers->begin(),
+                             subscription_handlers->end(),
+                             [&](const processor_c::subscription_handler_s &sh) {
+                                 return sh.session == session &&
+                                        sh.category == category &&
+                                        sh.topic_id == topic_id &&
+                                        sh.handler_data == handler.handler_data;
+                             }),
+                subscription_handlers->end());
+            return SLP_ERROR("event/sub failed (check permissions)");
+        }
+
+        logger->debug("[event] sub channel {} topic {} with handler",
+                     channel_sym, topic_id);
+        return SLP_BOOL(true);
+    };
+
+    return group;
+}
+
+}
+

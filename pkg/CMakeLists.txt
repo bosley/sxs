@@ -84,6 +84,10 @@ add_library(pkg_runtime STATIC
     runtime/system/system.cpp
     runtime/events/events.cpp
     runtime/processor.cpp
+    runtime/fns/fns.cpp
+    runtime/fns/kv.cpp
+    runtime/fns/event.cpp
+    runtime/fns/runtime_fns.cpp
 )
 
 target_include_directories(pkg_runtime PUBLIC
