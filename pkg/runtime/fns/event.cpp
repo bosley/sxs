@@ -1,26 +1,27 @@
 #include "runtime/fns/event.hpp"
 #include "runtime/fns/helpers.hpp"
+#include "runtime/processor.hpp"
 #include "runtime/session/session.hpp"
 #include <algorithm>
 #include <any>
 
 namespace runtime::fns {
 
-function_group_s get_event_functions(function_provider_if *provider) {
+function_group_s get_event_functions(runtime_information_if &runtime_info) {
   function_group_s group;
   group.group_name = "event";
 
   group.functions["pub"] =
-      [provider](session_c *session, const slp::slp_object_c &args,
-                 const std::map<std::string, slp::slp_object_c> &context) {
-        auto logger = provider->get_logger();
+      [&runtime_info](session_c *session, const slp::slp_object_c &args,
+                      const std::map<std::string, slp::slp_object_c> &context) {
+        auto logger = runtime_info.get_logger();
         auto list = args.as_list();
         if (list.size() < 4) {
           return SLP_ERROR("event/pub requires channel, topic-id and data (use "
                            "$CHANNEL_A through $CHANNEL_F)");
         }
 
-        auto channel_obj = provider->eval_object(session, list.at(1), context);
+        auto channel_obj = runtime_info.eval_object(session, list.at(1), context);
         auto topic_obj = list.at(2);
         auto data_obj = list.at(3);
 
@@ -53,8 +54,8 @@ function_group_s get_event_functions(function_provider_if *provider) {
 
         std::uint16_t topic_id = static_cast<std::uint16_t>(topic_obj.as_int());
 
-        auto data_result = provider->eval_object(session, data_obj, context);
-        std::string data_str = provider->object_to_string(data_result);
+        auto data_result = runtime_info.eval_object(session, data_obj, context);
+        std::string data_str = runtime_info.object_to_string(data_result);
 
         publish_result_e result =
             session->publish_event(category, topic_id, data_str);
@@ -84,12 +85,12 @@ function_group_s get_event_functions(function_provider_if *provider) {
       };
 
   group.functions["sub"] =
-      [provider](session_c *session, const slp::slp_object_c &args,
-                 const std::map<std::string, slp::slp_object_c> &context) {
-        auto logger = provider->get_logger();
-        auto subscription_handlers = provider->get_subscription_handlers();
+      [&runtime_info](session_c *session, const slp::slp_object_c &args,
+                      const std::map<std::string, slp::slp_object_c> &context) {
+        auto logger = runtime_info.get_logger();
+        auto subscription_handlers = runtime_info.get_subscription_handlers();
         auto subscription_handlers_mutex =
-            provider->get_subscription_handlers_mutex();
+            runtime_info.get_subscription_handlers_mutex();
         auto list = args.as_list();
         if (list.size() < 4) {
           return SLP_ERROR(
@@ -97,7 +98,7 @@ function_group_s get_event_functions(function_provider_if *provider) {
               "(use $CHANNEL_A through $CHANNEL_F)");
         }
 
-        auto channel_obj = provider->eval_object(session, list.at(1), context);
+        auto channel_obj = runtime_info.eval_object(session, list.at(1), context);
         auto topic_obj = list.at(2);
         auto handler_obj = list.at(3);
 
@@ -134,7 +135,7 @@ function_group_s get_event_functions(function_provider_if *provider) {
 
         std::uint16_t topic_id = static_cast<std::uint16_t>(topic_obj.as_int());
 
-        function_provider_if::subscription_handler_s handler;
+        runtime_information_if::subscription_handler_s handler;
         handler.session = session;
         handler.category = category;
         handler.topic_id = topic_id;
@@ -149,13 +150,13 @@ function_group_s get_event_functions(function_provider_if *provider) {
 
         bool success = session->subscribe_to_topic(
             category, topic_id,
-            [provider, session, category,
+            [&runtime_info, session, category,
              topic_id](const events::event_s &event) {
-              auto logger = provider->get_logger();
+              auto logger = runtime_info.get_logger();
               auto subscription_handlers =
-                  provider->get_subscription_handlers();
+                  runtime_info.get_subscription_handlers();
               auto subscription_handlers_mutex =
-                  provider->get_subscription_handlers_mutex();
+                  runtime_info.get_subscription_handlers_mutex();
               std::lock_guard<std::mutex> lock(*subscription_handlers_mutex);
               for (const auto &h : *subscription_handlers) {
                 if (h.session == session && h.category == category &&
@@ -175,8 +176,8 @@ function_group_s get_event_functions(function_provider_if *provider) {
 
                   auto list = handler_obj.as_list();
                   for (size_t i = 0; i < list.size(); i++) {
-                    auto result = provider->eval_object(session, list.at(i),
-                                                        handler_context);
+                    auto result = runtime_info.eval_object(session, list.at(i),
+                                                           handler_context);
                     if (result.type() == slp::slp_type_e::ERROR) {
                       logger->debug("[event] Handler encountered error, "
                                     "stopping execution");
@@ -193,7 +194,7 @@ function_group_s get_event_functions(function_provider_if *provider) {
           subscription_handlers->erase(
               std::remove_if(
                   subscription_handlers->begin(), subscription_handlers->end(),
-                  [&](const function_provider_if::subscription_handler_s &sh) {
+                  [&](const runtime_information_if::subscription_handler_s &sh) {
                     return sh.session == session && sh.category == category &&
                            sh.topic_id == topic_id &&
                            sh.handler_data == handler.handler_data;

@@ -6,12 +6,12 @@
 namespace runtime::fns {
 
 std::vector<function_group_s>
-get_all_function_groups(function_provider_if *provider) {
+get_all_function_groups(runtime_information_if &runtime_info) {
   std::vector<function_group_s> groups;
 
-  groups.push_back(get_kv_functions(provider));
-  groups.push_back(get_event_functions(provider));
-  groups.push_back(get_runtime_functions(provider));
+  groups.push_back(get_kv_functions(runtime_info));
+  groups.push_back(get_event_functions(runtime_info));
+  groups.push_back(get_runtime_functions(runtime_info));
 
   return groups;
 }

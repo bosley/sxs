@@ -1,19 +1,20 @@
 #include "runtime/fns/runtime_fns.hpp"
 #include "runtime/fns/helpers.hpp"
+#include "runtime/processor.hpp"
 #include "runtime/session/session.hpp"
 #include <any>
 #include <sstream>
 
 namespace runtime::fns {
 
-function_group_s get_runtime_functions(function_provider_if *provider) {
+function_group_s get_runtime_functions(runtime_information_if &runtime_info) {
   function_group_s group;
   group.group_name = "runtime";
 
   group.functions["log"] =
-      [provider](session_c *session, const slp::slp_object_c &args,
-                 const std::map<std::string, slp::slp_object_c> &context) {
-        auto logger = provider->get_logger();
+      [&runtime_info](session_c *session, const slp::slp_object_c &args,
+                      const std::map<std::string, slp::slp_object_c> &context) {
+        auto logger = runtime_info.get_logger();
         auto list = args.as_list();
         if (list.size() < 2) {
           return SLP_ERROR("runtime/log requires message");
@@ -24,8 +25,8 @@ function_group_s get_runtime_functions(function_provider_if *provider) {
           if (i > 1) {
             ss << " ";
           }
-          auto msg_result = provider->eval_object(session, list.at(i), context);
-          ss << provider->object_to_string(msg_result);
+          auto msg_result = runtime_info.eval_object(session, list.at(i), context);
+          ss << runtime_info.object_to_string(msg_result);
         }
 
         std::string message = ss.str();
@@ -34,32 +35,32 @@ function_group_s get_runtime_functions(function_provider_if *provider) {
       };
 
   group.functions["eval"] =
-      [provider](session_c *session, const slp::slp_object_c &args,
-                 const std::map<std::string, slp::slp_object_c> &context) {
+      [&runtime_info](session_c *session, const slp::slp_object_c &args,
+                      const std::map<std::string, slp::slp_object_c> &context) {
         auto list = args.as_list();
         if (list.size() < 2) {
           return SLP_ERROR("runtime/eval requires script text");
         }
 
-        auto script_obj = provider->eval_object(session, list.at(1), context);
-        std::string script_text = provider->object_to_string(script_obj);
+        auto script_obj = runtime_info.eval_object(session, list.at(1), context);
+        std::string script_text = runtime_info.object_to_string(script_obj);
 
         auto parse_result = slp::parse(script_text);
         if (parse_result.is_error()) {
           return SLP_ERROR("runtime/eval parse error");
         }
 
-        return provider->eval_object(session, parse_result.object(), context);
+        return runtime_info.eval_object(session, parse_result.object(), context);
       };
 
-  group.functions["await"] = [provider](
+  group.functions["await"] = [&runtime_info](
                                  session_c *session,
                                  const slp::slp_object_c &args,
                                  const std::map<std::string, slp::slp_object_c>
                                      &context) {
-    auto pending_awaits = provider->get_pending_awaits();
-    auto pending_awaits_mutex = provider->get_pending_awaits_mutex();
-    auto max_await_timeout = provider->get_max_await_timeout();
+    auto pending_awaits = runtime_info.get_pending_awaits();
+    auto pending_awaits_mutex = runtime_info.get_pending_awaits_mutex();
+    auto max_await_timeout = runtime_info.get_max_await_timeout();
     auto list = args.as_list();
     if (list.size() < 4) {
       return SLP_ERROR(
@@ -67,7 +68,7 @@ function_group_s get_runtime_functions(function_provider_if *provider) {
     }
 
     auto body_obj = list.at(1);
-    auto resp_channel_obj = provider->eval_object(session, list.at(2), context);
+    auto resp_channel_obj = runtime_info.eval_object(session, list.at(2), context);
     auto resp_topic_obj = list.at(3);
 
     if (resp_channel_obj.type() != slp::slp_type_e::SYMBOL) {
@@ -106,7 +107,7 @@ function_group_s get_runtime_functions(function_provider_if *provider) {
         std::to_string(
             std::chrono::steady_clock::now().time_since_epoch().count());
 
-    auto pending = std::make_shared<function_provider_if::pending_await_s>();
+    auto pending = std::make_shared<runtime_information_if::pending_await_s>();
 
     {
       std::lock_guard<std::mutex> lock(*pending_awaits_mutex);
@@ -136,7 +137,7 @@ function_group_s get_runtime_functions(function_provider_if *provider) {
       return SLP_ERROR("runtime/await failed to subscribe");
     }
 
-    auto body_result = provider->eval_object(session, body_obj, context);
+    auto body_result = runtime_info.eval_object(session, body_obj, context);
     if (body_result.type() == slp::slp_type_e::ERROR) {
       session->unsubscribe_from_topic(category, topic_id);
       std::lock_guard<std::mutex> lock(*pending_awaits_mutex);

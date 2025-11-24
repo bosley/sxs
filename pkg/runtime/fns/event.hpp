@@ -3,6 +3,6 @@
 
 namespace runtime::fns {
 
-function_group_s get_event_functions(function_provider_if *provider);
+function_group_s get_event_functions(runtime_information_if &runtime_info);
 
 }

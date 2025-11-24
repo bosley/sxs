@@ -211,7 +211,7 @@ void processor_c::register_function(const std::string &name,
 }
 
 void processor_c::register_builtin_functions() {
-  auto groups = fns::get_all_function_groups(this);
+  auto groups = fns::get_all_function_groups(*this);
 
   for (const auto &group : groups) {
     for (const auto &[name, handler] : group.functions) {
@@ -233,10 +233,10 @@ std::string processor_c::object_to_string(const slp::slp_object_c &obj) {
   return slp_object_to_string(obj);
 }
 
-std::vector<fns::function_provider_if::subscription_handler_s> *
+std::vector<runtime_information_if::subscription_handler_s> *
 processor_c::get_subscription_handlers() {
   return reinterpret_cast<
-      std::vector<fns::function_provider_if::subscription_handler_s> *>(
+      std::vector<runtime_information_if::subscription_handler_s> *>(
       &subscription_handlers_);
 }
 
@@ -244,8 +244,7 @@ std::mutex *processor_c::get_subscription_handlers_mutex() {
   return &subscription_handlers_mutex_;
 }
 
-std::map<std::string,
-         std::shared_ptr<fns::function_provider_if::pending_await_s>> *
+std::map<std::string, std::shared_ptr<runtime_information_if::pending_await_s>> *
 processor_c::get_pending_awaits() {
   return &pending_awaits_;
 }
