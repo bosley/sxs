@@ -1193,3 +1193,99 @@ TEST_CASE("processor runtime/await async communication",
   ensure_db_cleanup(data_test_path);
   ensure_db_cleanup(entity_test_path);
 }
+
+TEST_CASE("processor ignores wrong category events",
+          "[unit][runtime][processor]") {
+  auto logger = create_test_logger();
+  runtime::events::event_system_c event_system(logger.get(), 2, 100);
+
+  auto accessor = std::make_shared<test_accessor_c>();
+  event_system.initialize(accessor);
+
+  kvds::datastore_c data_ds;
+  std::string data_test_path =
+      get_unique_test_path("/tmp/processor_test_wrong_category");
+  ensure_db_cleanup(data_test_path);
+  CHECK(data_ds.open(data_test_path));
+
+  kvds::datastore_c entity_ds;
+  std::string entity_test_path =
+      get_unique_test_path("/tmp/processor_test_wrong_category_entity");
+  ensure_db_cleanup(entity_test_path);
+  CHECK(entity_ds.open(entity_test_path));
+
+  record::record_manager_c entity_manager(entity_ds, logger);
+  auto entity_opt = entity_manager.get_or_create<runtime::entity_c>("user1");
+  REQUIRE(entity_opt.has_value());
+  auto entity = std::move(entity_opt.value());
+
+  runtime::processor_c processor(logger.get(), &event_system);
+
+  SECTION("processor ignores BACKCHANNEL_A events") {
+    runtime::session_c *session =
+        create_test_session(event_system, data_ds, entity.get());
+
+    runtime::execution_request_s request;
+    request.session = session;
+    request.script_text = "42";
+    request.request_id = "req1";
+
+    runtime::events::event_s event;
+    event.category = runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
+    event.topic_identifier = 0;
+    event.payload = request;
+
+    processor.consume_event(event);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    delete session;
+  }
+
+  SECTION("processor ignores BACKCHANNEL_B events") {
+    runtime::session_c *session =
+        create_test_session(event_system, data_ds, entity.get());
+
+    runtime::execution_request_s request;
+    request.session = session;
+    request.script_text = "100";
+    request.request_id = "req2";
+
+    runtime::events::event_s event;
+    event.category = runtime::events::event_category_e::RUNTIME_BACKCHANNEL_B;
+    event.topic_identifier = 0;
+    event.payload = request;
+
+    processor.consume_event(event);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    delete session;
+  }
+
+  SECTION("processor still processes RUNTIME_EXECUTION_REQUEST") {
+    runtime::session_c *session =
+        create_test_session(event_system, data_ds, entity.get());
+
+    runtime::execution_request_s request;
+    request.session = session;
+    request.script_text = "42";
+    request.request_id = "req3";
+
+    runtime::events::event_s event;
+    event.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.topic_identifier = 0;
+    event.payload = request;
+
+    processor.consume_event(event);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    delete session;
+  }
+
+  event_system.shutdown();
+  ensure_db_cleanup(data_test_path);
+  ensure_db_cleanup(entity_test_path);
+}

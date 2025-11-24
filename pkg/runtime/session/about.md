@@ -8,7 +8,7 @@ The session system provides permission-based resource access control through the
 
 ### Entity (`entity_c`)
 
-Persistent permission holder that maintains two independent permission maps:
+Persistent permission holder that maintains two independent permission maps and rate limiting:
 
 - **Scope Permissions**: Control access to KV store namespaces
   - `READ_ONLY` ("R"): Read operations only
@@ -20,6 +20,11 @@ Persistent permission holder that maintains two independent permission maps:
   - `SUBSCRIBE` ("S"): Can subscribe to topic events
   - `PUBSUB` ("PS"): Both publish and subscribe
 
+- **Rate Limiting**: Controls event publishing frequency
+  - `max_rps`: Maximum events per second (0 = unlimited)
+  - Enforced via sliding window of timestamps
+  - Applies to all event publishing operations
+
 ### Session (`session_c`)
 
 Temporary runtime context that links an entity, a scope, and the event system:
@@ -27,7 +32,8 @@ Temporary runtime context that links an entity, a scope, and the event system:
 - Creates a scoped KV store wrapper at construction
 - Validates entity permissions on every operation
 - Enables dynamic event category selection per publish
-- Returns `false` on permission denial (fail silently)
+- Returns detailed `publish_result_e` from event publishing operations
+- Returns `false` from KV operations on permission denial (fail silently)
 
 ### Scoped KV Store (`scoped_kv_c`)
 
@@ -100,10 +106,16 @@ sequenceDiagram
         ES-->>Sess: producer
         Sess->>Prod: get_topic_writer_for_topic(topic_id)
         Prod-->>Sess: topic_writer
-        Sess->>Writer: write_event()
-        Note over Writer: Event published with category
+        Sess->>Ent: try_publish() - check rate limit
+        alt Rate limit not exceeded
+            Sess->>Writer: write_event()
+            Note over Writer: Event published with category
+            Sess-->>Sess: return OK
+        else Rate limit exceeded
+            Sess-->>Sess: return RATE_LIMIT_EXCEEDED
+        end
     else No permission
-        Sess-->>Sess: return false
+        Sess-->>Sess: return PERMISSION_DENIED
     end
 ```
 
@@ -157,6 +169,28 @@ sequenceDiagram
 - Failed operations return false (fail silently)
 - Unsubscribing requires both category and topic_id: `unsubscribe_from_topic(category, topic_id)`
 - Note: Consumer remains registered in event system (no unregister API), but won't be invoked
+
+### Rate Limiting
+
+- Entity-level rate limiting controls event publishing frequency
+- Configured via `entity->set_max_rps(count)` (0 = unlimited)
+- Uses sliding window algorithm tracking timestamps over 1 second
+- Rate limit checked AFTER permission check but BEFORE event write
+- Returns `RATE_LIMIT_EXCEEDED` when limit exceeded
+- Rate limit applies to all topics for a given entity
+- Timestamps automatically cleaned up (events older than 1 second removed)
+
+### Publish Result Types
+
+Event publishing returns `publish_result_e` with the following values:
+
+- `OK`: Event successfully published
+- `RATE_LIMIT_EXCEEDED`: Entity max_rps limit exceeded
+- `PERMISSION_DENIED`: Entity lacks PUBLISH or PUBSUB permission
+- `NO_ENTITY`: Session has no associated entity
+- `NO_EVENT_SYSTEM`: Event system not available
+- `NO_PRODUCER`: Event producer not found for category
+- `NO_TOPIC_WRITER`: Topic writer not found for topic_id
 
 ### Session Lifecycle
 
@@ -216,24 +250,42 @@ session->subscribe_to_topic(
     event_category_e::RUNTIME_BACKCHANNEL_A, 
     100, 
     [](const event_s& event) {
-        // Handler only receives events published to BACKCHANNEL_A on topic 100
-        // Events on BACKCHANNEL_B topic 100 will NOT trigger this handler
     }
 );
 
 // Publish to topic 200 (entity has PUBLISH permission)
 session->publish_event(event_category_e::RUNTIME_BACKCHANNEL_A, 200, data);
-// Returns true - succeeds with PUBLISH permission
-
-// Attempting to subscribe to topic 200 would fail (no SUBSCRIBE permission)
-// session->subscribe_to_topic(event_category_e::RUNTIME_BACKCHANNEL_A, 200, handler);
-// Returns false - entity only has PUBLISH, not SUBSCRIBE or PUBSUB
 
 // Unsubscribe from specific category+topic combination
 session->unsubscribe_from_topic(event_category_e::RUNTIME_BACKCHANNEL_A, 100);
 ```
 
-### Example 4: Category-Scoped Subscription Isolation
+### Example 4: Rate Limiting
+
+```cpp
+entity->grant_topic_permission(100, topic_permission::PUBLISH);
+entity->set_max_rps(10);
+entity->save();
+
+auto session = subsystem.create_session("user123", "data");
+
+for (int i = 0; i < 15; i++) {
+    auto result = session->publish_event(
+        event_category_e::RUNTIME_BACKCHANNEL_A, 
+        100, 
+        "data"
+    );
+    
+    if (result == publish_result_e::OK) {
+    } else if (result == publish_result_e::RATE_LIMIT_EXCEEDED) {
+    }
+}
+
+entity->set_max_rps(0);
+entity->save();
+```
+
+### Example 5: Category-Scoped Subscription Isolation
 
 ```cpp
 entity->grant_topic_permission(500, topic_permission::PUBSUB);
@@ -244,29 +296,21 @@ auto session = subsystem.create_session("user123", "data");
 std::atomic<int> channel_a_count{0};
 std::atomic<int> channel_b_count{0};
 
-// Subscribe to topic 500 on BACKCHANNEL_A
 session->subscribe_to_topic(
     event_category_e::RUNTIME_BACKCHANNEL_A, 
     500, 
     [&](const event_s& event) { channel_a_count++; }
 );
 
-// Subscribe to the SAME topic 500 but on BACKCHANNEL_B
 session->subscribe_to_topic(
     event_category_e::RUNTIME_BACKCHANNEL_B, 
     500, 
     [&](const event_s& event) { channel_b_count++; }
 );
 
-// Publish to BACKCHANNEL_A topic 500
 session->publish_event(event_category_e::RUNTIME_BACKCHANNEL_A, 500, "data1");
-// Result: channel_a_count = 1, channel_b_count = 0
 
-// Publish to BACKCHANNEL_B topic 500
 session->publish_event(event_category_e::RUNTIME_BACKCHANNEL_B, 500, "data2");
-// Result: channel_a_count = 1, channel_b_count = 1
-
-// Each handler only receives events from its subscribed category
 ```
 
 ## Design Rationale
@@ -290,13 +334,15 @@ session->publish_event(event_category_e::RUNTIME_BACKCHANNEL_B, 500, "data2");
 
 ## Permission Matrix
 
-| Operation | Signature | Requires Scope Permission | Requires Topic Permission |
-|-----------|-----------|--------------------------|--------------------------|
-| `store->get()` | `get(key)` | READ_ONLY or READ_WRITE | N/A |
-| `store->set()` | `set(key, value)` | WRITE_ONLY or READ_WRITE | N/A |
-| `session->publish_event()` | `publish_event(category, topic_id, payload)` | N/A | PUBLISH or PUBSUB |
-| `session->subscribe_to_topic()` | `subscribe_to_topic(category, topic_id, handler)` | N/A | SUBSCRIBE or PUBSUB |
-| `session->unsubscribe_from_topic()` | `unsubscribe_from_topic(category, topic_id)` | N/A | N/A (just removes handler) |
+| Operation | Signature | Requires Scope Permission | Requires Topic Permission | Rate Limited |
+|-----------|-----------|--------------------------|--------------------------|--------------|
+| `store->get()` | `get(key)` | READ_ONLY or READ_WRITE | N/A | No |
+| `store->set()` | `set(key, value)` | WRITE_ONLY or READ_WRITE | N/A | No |
+| `session->publish_event()` | `publish_event(category, topic_id, payload)` | N/A | PUBLISH or PUBSUB | Yes (entity max_rps) |
+| `session->subscribe_to_topic()` | `subscribe_to_topic(category, topic_id, handler)` | N/A | SUBSCRIBE or PUBSUB | No |
+| `session->unsubscribe_from_topic()` | `unsubscribe_from_topic(category, topic_id)` | N/A | N/A (just removes handler) | No |
 
-**Note**: Topic permissions are checked per `topic_id` only. The `category` parameter in subscribe/publish controls event routing but does not require separate permissions per category.
+**Notes**: 
+- Topic permissions are checked per `topic_id` only. The `category` parameter in subscribe/publish controls event routing but does not require separate permissions per category.
+- Rate limiting is enforced at the entity level and applies to all event publishing operations. Set `max_rps` to 0 for unlimited publishing.
 

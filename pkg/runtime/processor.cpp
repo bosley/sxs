@@ -57,7 +57,13 @@ processor_c::processor_c(logger_t logger, events::event_system_c *event_system)
 }
 
 void processor_c::consume_event(const events::event_s &event) {
-  logger_->debug("[processor_c] Received event for topic {}",
+  if (event.category != events::event_category_e::RUNTIME_EXECUTION_REQUEST) {
+    logger_->debug("[processor_c] Ignoring event with category {} on topic {}",
+                   static_cast<int>(event.category), event.topic_identifier);
+    return;
+  }
+
+  logger_->debug("[processor_c] Received execution request event for topic {}",
                  event.topic_identifier);
 
   try {
