@@ -154,29 +154,34 @@ void session_c::set_active(bool active) { active_ = active; }
 
 kvds::kv_c *session_c::get_store() { return scoped_store_.get(); }
 
-bool session_c::publish_event(events::event_category_e category,
-                              std::uint16_t topic_id, const std::any &payload) {
+publish_result_e session_c::publish_event(events::event_category_e category,
+                                          std::uint16_t topic_id, 
+                                          const std::any &payload) {
   if (!entity_) {
-    return false;
+    return publish_result_e::NO_ENTITY;
   }
 
   if (!entity_->is_permitted_topic(topic_id, topic_permission::PUBLISH) &&
       !entity_->is_permitted_topic(topic_id, topic_permission::PUBSUB)) {
-    return false;
+    return publish_result_e::PERMISSION_DENIED;
   }
 
   if (!event_system_) {
-    return false;
+    return publish_result_e::NO_EVENT_SYSTEM;
   }
 
   auto producer = event_system_->get_event_producer_for_category(category);
   if (!producer) {
-    return false;
+    return publish_result_e::NO_PRODUCER;
   }
 
   auto topic_writer = producer->get_topic_writer_for_topic(topic_id);
   if (!topic_writer) {
-    return false;
+    return publish_result_e::NO_TOPIC_WRITER;
+  }
+
+  if (!entity_->try_publish()) {
+    return publish_result_e::RATE_LIMIT_EXCEEDED;
   }
 
   events::event_s event;
@@ -185,7 +190,7 @@ bool session_c::publish_event(events::event_category_e category,
   event.payload = payload;
 
   topic_writer->write_event(event);
-  return true;
+  return publish_result_e::OK;
 }
 
 bool session_c::subscribe_to_topic(

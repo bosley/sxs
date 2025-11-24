@@ -402,10 +402,25 @@ void processor_c::register_builtin_functions() {
     auto data_result = eval_object_with_context(session, data_obj, context);
     std::string data_str = slp_object_to_string(data_result);
 
-    bool success = session->publish_event(category, topic_id, data_str);
+    publish_result_e result = session->publish_event(category, topic_id, data_str);
 
-    if (!success) {
-      return SLP_ERROR("event/pub failed (check permissions)");
+    switch (result) {
+      case publish_result_e::OK:
+        break;
+      case publish_result_e::RATE_LIMIT_EXCEEDED:
+        return SLP_ERROR("event/pub failed (rate limit exceeded)");
+      case publish_result_e::PERMISSION_DENIED:
+        return SLP_ERROR("event/pub failed (permission denied)");
+      case publish_result_e::NO_ENTITY:
+        return SLP_ERROR("event/pub failed (no entity)");
+      case publish_result_e::NO_EVENT_SYSTEM:
+        return SLP_ERROR("event/pub failed (no event system)");
+      case publish_result_e::NO_PRODUCER:
+        return SLP_ERROR("event/pub failed (no producer)");
+      case publish_result_e::NO_TOPIC_WRITER:
+        return SLP_ERROR("event/pub failed (no topic writer)");
+      default:
+        return SLP_ERROR("event/pub failed (unknown error)");
     }
 
     logger_->debug("[processor_c] event/pub channel {} topic {} data {}", 
@@ -557,7 +572,7 @@ void processor_c::register_builtin_functions() {
 
     auto parse_result = slp::parse(script_text);
     if (parse_result.is_error()) {
-      return SLP_ERROR("runtime/eval parse error: " + parse_result.error().message);
+      return SLP_ERROR("runtime/eval parse error");
     }
 
     return eval_object_with_context(session, parse_result.object(), context);
@@ -645,7 +660,13 @@ void processor_c::register_builtin_functions() {
 
     {
       std::unique_lock<std::mutex> lock(pending->mutex);
-      pending->cv.wait(lock, [&pending] { return pending->completed; });
+      auto timeout = std::chrono::seconds(5);
+      if (!pending->cv.wait_for(lock, timeout, [&pending] { return pending->completed; })) {
+        session->unsubscribe_from_topic(category, topic_id);
+        std::lock_guard<std::mutex> await_lock(pending_awaits_mutex_);
+        pending_awaits_.erase(await_id);
+        return SLP_ERROR("runtime/await timeout waiting for response");
+      }
     }
 
     session->unsubscribe_from_topic(category, topic_id);

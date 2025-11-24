@@ -1,7 +1,10 @@
 #pragma once
 
 #include "runtime/runtime.hpp"
+#include <chrono>
+#include <deque>
 #include <map>
+#include <mutex>
 #include <record/record.hpp>
 #include <string>
 
@@ -43,14 +46,22 @@ public:
   void revoke_topic_permission(std::uint16_t topic_id);
   std::map<std::uint16_t, std::string> get_topic_permissions() const;
 
+  void set_max_rps(std::uint32_t max_rps);
+  std::uint32_t get_max_rps() const;
+  bool try_publish();
+
 private:
   std::map<std::string, std::string> permissions_;
   std::map<std::uint16_t, std::string> topic_permissions_;
+  std::uint32_t max_rps_;
+  std::deque<std::chrono::steady_clock::time_point> publish_timestamps_;
+  mutable std::mutex publish_mutex_;
 
   std::string serialize_permissions() const;
   void deserialize_permissions(const std::string &data);
   std::string serialize_topic_permissions() const;
   void deserialize_topic_permissions(const std::string &data);
+  void cleanup_old_timestamps();
 };
 
 class entity_subsystem_c : public runtime_subsystem_if {

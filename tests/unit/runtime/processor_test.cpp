@@ -1075,11 +1075,33 @@ TEST_CASE("processor runtime/await async communication",
 
   runtime::processor_c processor(logger.get(), &event_system);
 
+  auto processor_consumer = std::shared_ptr<runtime::events::event_consumer_if>(
+      &processor, [](runtime::events::event_consumer_if *) {});
+  event_system.register_consumer(0, processor_consumer);
+
   SECTION("await with kv storage") {
     runtime::session_c *session1 =
         create_test_session(event_system, data_ds, entity.get());
     runtime::session_c *session2 =
         create_test_session(event_system, data_ds, entity.get());
+
+    runtime::execution_request_s request2;
+    request2.session = session2;
+    request2.script_text = R"(
+      (event/sub $CHANNEL_B 200 {
+        (event/pub $CHANNEL_B 201 "computed-value-42")
+      })
+    )";
+    request2.request_id = "req2";
+
+    runtime::events::event_s event2;
+    event2.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event2.topic_identifier = 0;
+    event2.payload = request2;
+
+    processor.consume_event(event2);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     std::atomic<bool> session1_done{false};
     std::thread session1_thread([&]() {
@@ -1103,25 +1125,6 @@ TEST_CASE("processor runtime/await async communication",
       processor.consume_event(event);
       session1_done = true;
     });
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    runtime::execution_request_s request2;
-    request2.session = session2;
-    request2.script_text = R"(
-      (event/sub $CHANNEL_B 200 {
-        (event/pub $CHANNEL_B 201 "computed-value-42")
-      })
-    )";
-    request2.request_id = "req2";
-
-    runtime::events::event_s event2;
-    event2.category =
-        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
-    event2.topic_identifier = 0;
-    event2.payload = request2;
-
-    processor.consume_event(event2);
 
     session1_thread.join();
     CHECK(session1_done);

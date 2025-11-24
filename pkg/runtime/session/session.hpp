@@ -15,6 +15,16 @@ namespace runtime {
 
 class entity_c;
 
+enum class publish_result_e {
+  OK,
+  RATE_LIMIT_EXCEEDED,
+  PERMISSION_DENIED,
+  NO_ENTITY,
+  NO_EVENT_SYSTEM,
+  NO_PRODUCER,
+  NO_TOPIC_WRITER
+};
+
 class scoped_kv_c : public kvds::kv_c {
 public:
   scoped_kv_c(kvds::kv_c *underlying, const std::string &scope,
@@ -69,8 +79,9 @@ public:
   void set_active(bool active);
   kvds::kv_c *get_store();
 
-  bool publish_event(events::event_category_e category, std::uint16_t topic_id,
-                     const std::any &payload);
+  publish_result_e publish_event(events::event_category_e category, 
+                                 std::uint16_t topic_id,
+                                 const std::any &payload);
   bool subscribe_to_topic(events::event_category_e category,
                           std::uint16_t topic_id,
                           std::function<void(const events::event_s &)> handler);

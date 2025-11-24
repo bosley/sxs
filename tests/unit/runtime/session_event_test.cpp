@@ -204,7 +204,7 @@ TEST_CASE("session publish with permissions",
 
     CHECK(session.publish_event(
         runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 100,
-        std::string("test_payload")));
+        std::string("test_payload")) == runtime::publish_result_e::OK);
   }
 
   SECTION("can publish with pubsub permission") {
@@ -216,16 +216,16 @@ TEST_CASE("session publish with permissions",
 
     CHECK(session.publish_event(
         runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 101,
-        std::string("test_payload")));
+        std::string("test_payload")) == runtime::publish_result_e::OK);
   }
 
   SECTION("cannot publish without permission") {
     runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
                                &data_ds, &event_system);
 
-    CHECK_FALSE(session.publish_event(
+    CHECK(session.publish_event(
         runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 102,
-        std::string("test_payload")));
+        std::string("test_payload")) == runtime::publish_result_e::PERMISSION_DENIED);
   }
 
   SECTION("cannot publish with only subscribe permission") {
@@ -235,9 +235,9 @@ TEST_CASE("session publish with permissions",
     runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
                                &data_ds, &event_system);
 
-    CHECK_FALSE(session.publish_event(
+    CHECK(session.publish_event(
         runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 103,
-        std::string("test_payload")));
+        std::string("test_payload")) == runtime::publish_result_e::PERMISSION_DENIED);
   }
 
   event_system.shutdown();
@@ -379,7 +379,7 @@ TEST_CASE("session event publish and consume",
     CHECK(session.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 300, handler));
     CHECK(session.publish_event(
         runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 300,
-        std::string("hello_world")));
+        std::string("hello_world")) == runtime::publish_result_e::OK);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
@@ -422,7 +422,7 @@ TEST_CASE("session event publish and consume",
     CHECK(session2.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 400, handler2));
     CHECK(session1.publish_event(
         runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 400,
-        std::string("message_from_user1")));
+        std::string("message_from_user1")) == runtime::publish_result_e::OK);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
@@ -475,7 +475,7 @@ TEST_CASE("session event publish and consume",
 
     CHECK(session1.publish_event(
         runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 500,
-        std::string("broadcast")));
+        std::string("broadcast")) == runtime::publish_result_e::OK);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
@@ -526,7 +526,7 @@ TEST_CASE("session unsubscribe from topics",
   CHECK(session.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 600, handler));
   CHECK(session.publish_event(
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 600,
-      std::string("msg1")));
+      std::string("msg1")) == runtime::publish_result_e::OK);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
   CHECK(event_count.load() == 1);
@@ -534,7 +534,7 @@ TEST_CASE("session unsubscribe from topics",
   CHECK(session.unsubscribe_from_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 600));
   CHECK(session.publish_event(
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 600,
-      std::string("msg2")));
+      std::string("msg2")) == runtime::publish_result_e::OK);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
   CHECK(event_count.load() == 1);
@@ -589,16 +589,16 @@ TEST_CASE("session multiple topic subscriptions",
 
   CHECK(session.publish_event(
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 700,
-      std::string("msg700")));
+      std::string("msg700")) == runtime::publish_result_e::OK);
   CHECK(session.publish_event(
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 701,
-      std::string("msg701")));
+      std::string("msg701")) == runtime::publish_result_e::OK);
   CHECK(session.publish_event(
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 701,
-      std::string("msg701_2")));
+      std::string("msg701_2")) == runtime::publish_result_e::OK);
   CHECK(session.publish_event(
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 702,
-      std::string("msg702")));
+      std::string("msg702")) == runtime::publish_result_e::OK);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -652,7 +652,7 @@ TEST_CASE("session event payload types", "[unit][runtime][session][events]") {
     CHECK(session.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 800, handler));
     CHECK(session.publish_event(
         runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 800,
-        std::string("test_string")));
+        std::string("test_string")) == runtime::publish_result_e::OK);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     CHECK(received == "test_string");
@@ -668,7 +668,7 @@ TEST_CASE("session event payload types", "[unit][runtime][session][events]") {
 
     CHECK(session.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 801, handler));
     CHECK(session.publish_event(
-        runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 801, 42));
+        runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 801, 42) == runtime::publish_result_e::OK);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     CHECK(received == 42);
@@ -719,7 +719,7 @@ TEST_CASE("session event category verification",
   CHECK(session.subscribe_to_topic(runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 900, handler));
   CHECK(session.publish_event(
       runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST, 900,
-      std::string("test")));
+      std::string("test")) == runtime::publish_result_e::OK);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
   CHECK(received_category ==
@@ -797,10 +797,10 @@ TEST_CASE("bidirectional communication on same topic",
 
   CHECK(session1.publish_event(
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1000,
-      std::string("hello_from_1")));
+      std::string("hello_from_1")) == runtime::publish_result_e::OK);
   CHECK(session2.publish_event(
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1000,
-      std::string("hello_from_2")));
+      std::string("hello_from_2")) == runtime::publish_result_e::OK);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -862,13 +862,13 @@ TEST_CASE("topic isolation prevents cross-topic leakage",
 
   CHECK(session.publish_event(
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1100,
-      std::string("to_1100")));
+      std::string("to_1100")) == runtime::publish_result_e::OK);
   CHECK(session.publish_event(
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1100,
-      std::string("to_1100_again")));
+      std::string("to_1100_again")) == runtime::publish_result_e::OK);
   CHECK(session.publish_event(
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1101,
-      std::string("to_1101")));
+      std::string("to_1101")) == runtime::publish_result_e::OK);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
@@ -941,13 +941,13 @@ TEST_CASE("mixed permissions on same topic",
 
   CHECK(session1.publish_event(
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1200,
-      std::string("from_publisher")));
-  CHECK_FALSE(session2.publish_event(
+      std::string("from_publisher")) == runtime::publish_result_e::OK);
+  CHECK(session2.publish_event(
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1200,
-      std::string("should_fail")));
-  CHECK_FALSE(session3.publish_event(
+      std::string("should_fail")) == runtime::publish_result_e::PERMISSION_DENIED);
+  CHECK(session3.publish_event(
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1200,
-      std::string("should_fail")));
+      std::string("should_fail")) == runtime::publish_result_e::PERMISSION_DENIED);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
@@ -1002,7 +1002,7 @@ TEST_CASE("multiple sessions per entity receive events",
 
   CHECK(session_a.publish_event(
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1300,
-      std::string("message")));
+      std::string("message")) == runtime::publish_result_e::OK);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
 

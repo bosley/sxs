@@ -1,6 +1,8 @@
 add_executable(runtime_tests
   runtime_test.cpp
   entity_test.cpp
+  entity_rps_test.cpp
+  entity_rps_await_test.cpp
   session_test.cpp
   session_event_test.cpp
   events_test.cpp
@@ -81,6 +83,31 @@ add_test(NAME entity_permission_edge_cases
          COMMAND runtime_tests "entity permission edge cases")
 add_test(NAME entity_deletion
          COMMAND runtime_tests "entity deletion")
+
+add_test(NAME entity_rps_basic_set_and_get
+         COMMAND runtime_tests "entity rps basic set and get")
+add_test(NAME entity_rps_unlimited_publishing
+         COMMAND runtime_tests "entity rps unlimited publishing")
+add_test(NAME entity_rps_single_session_rate_limiting
+         COMMAND runtime_tests "entity rps single session rate limiting")
+add_test(NAME entity_rps_multiple_sessions_share_limit
+         COMMAND runtime_tests "entity rps multiple sessions share limit")
+add_test(NAME entity_rps_concurrent_multi_threaded_publishing
+         COMMAND runtime_tests "entity rps concurrent multi-threaded publishing")
+add_test(NAME entity_rps_sliding_window_behavior
+         COMMAND runtime_tests "entity rps sliding window behavior")
+add_test(NAME entity_rps_edge_cases
+         COMMAND runtime_tests "entity rps edge cases")
+add_test(NAME entity_rps_with_permission_blocking
+         COMMAND runtime_tests "entity rps with permission blocking")
+add_test(NAME entity_rps_stress_test_with_rapid_publishes
+         COMMAND runtime_tests "entity rps stress test with rapid publishes")
+add_test(NAME entity_rps_different_entities_independent_limits
+         COMMAND runtime_tests "entity rps different entities independent limits")
+add_test(NAME entity_rps_with_runtime_await_cross_channel_limiting
+         COMMAND runtime_tests "entity rps with runtime/await cross-channel limiting")
+add_test(NAME entity_rps_limit_tracking_across_channels
+         COMMAND runtime_tests "entity rps limit tracking across channels")
 
 add_test(NAME entity_topic_permission_granting
          COMMAND runtime_tests "entity topic permission granting")
@@ -167,6 +194,12 @@ if(WITH_ASAN)
                        entity_permission_persistence entity_get_and_set_permissions
                        multiple_entities_with_different_permissions entity_permission_edge_cases
                        entity_deletion
+                       entity_rps_basic_set_and_get entity_rps_unlimited_publishing
+                       entity_rps_single_session_rate_limiting entity_rps_multiple_sessions_share_limit
+                       entity_rps_concurrent_multi_threaded_publishing entity_rps_sliding_window_behavior
+                       entity_rps_edge_cases entity_rps_with_permission_blocking
+                       entity_rps_stress_test_with_rapid_publishes entity_rps_different_entities_independent_limits
+                       entity_rps_with_runtime_await_cross_channel_limiting entity_rps_limit_tracking_across_channels
                        entity_topic_permission_granting entity_topic_permission_revocation
                        entity_topic_permission_persistence
                        session_subsystem_initialization session_creation_with_entity_and_scope
