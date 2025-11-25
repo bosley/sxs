@@ -6,12 +6,17 @@
 #include <vector>
 
 namespace runtime {
+namespace events {
+class event_system_c;
+}
 
 using logger_t = spdlog::logger *;
 class runtime_c;
 class runtime_subsystem_if;
 class runtime_accessor_if;
 class processor_c;
+class system_c;
+class session_subsystem_c;
 using runtime_t = std::shared_ptr<runtime_c>;
 using runtime_subsystem_t = std::unique_ptr<runtime_subsystem_if>;
 using runtime_accessor_t = std::shared_ptr<runtime_accessor_if>;
@@ -59,6 +64,11 @@ public:
   logger_t get_logger() const;
 
 private:
+  bool initialize_event_system();
+  bool initialize_system();
+  bool initialize_session_subsystem();
+  void wire_subsystems();
+  void create_processors();
   /*
     When we create a subsystem we hand it a specific_accessor_c so it can
     raise errors and interface with the runtime in a way that we track
@@ -86,7 +96,9 @@ private:
   logger_t logger_;
   std::shared_ptr<spdlog::logger> spdlog_logger_;
 
-  std::vector<runtime_subsystem_t> subsystems_;
+  std::unique_ptr<events::event_system_c> event_system_;
+  std::unique_ptr<system_c> system_;
+  std::unique_ptr<session_subsystem_c> session_subsystem_;
   std::vector<std::unique_ptr<processor_c>> processors_;
 };
 

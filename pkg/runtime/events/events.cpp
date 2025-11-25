@@ -169,7 +169,8 @@ event_system_c::specific_topic_writer_c::specific_topic_writer_c(
     std::uint16_t topic_identifier)
     : event_system_(event_system), category_(category),
       topic_identifier_(topic_identifier) {
-  assert(static_cast<int>(category) >= 0 &&
+  assert(static_cast<int>(category) >
+             static_cast<int>(event_category_e::RUNTIME_SUBSYSTEM_UNKNOWN) &&
          static_cast<int>(category) <
              static_cast<int>(event_category_e::SENTINEL) &&
          "event category must be between 0 and 8");
@@ -189,7 +190,8 @@ void event_system_c::specific_topic_writer_c::write_event(
 event_system_c::specific_event_producer_c::specific_event_producer_c(
     event_system_c &event_system, event_category_e category)
     : event_system_(event_system), category_(category) {
-  assert(static_cast<int>(category) >= 0 &&
+  assert(static_cast<int>(category) >
+             static_cast<int>(event_category_e::RUNTIME_SUBSYSTEM_UNKNOWN) &&
          static_cast<int>(category) <
              static_cast<int>(event_category_e::SENTINEL) &&
          "event category must be between 0 and 8");
