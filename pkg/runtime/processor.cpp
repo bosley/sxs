@@ -25,7 +25,7 @@ processor_c::slp_object_to_string(const slp::slp_object_c &obj) const {
   return "nil";
 }
 
-processor_c::processor_c(logger_t logger, events::event_system_c *event_system)
+processor_c::processor_c(logger_t logger, events::event_system_c &event_system)
     : logger_(logger), event_system_(event_system) {
   logger_->info("[processor_c] Initializing processor");
 
@@ -62,7 +62,7 @@ void processor_c::consume_event(const events::event_s &event) {
     logger_->info("[processor_c] Executing script for session {} request {}",
                   request.session->get_id(), request.request_id);
 
-    auto result = execute_script(request.session, request.script_text,
+    auto result = execute_script(*request.session, request.script_text,
                                  request.request_id);
 
     send_result_to_session(request.session, result);
@@ -75,7 +75,7 @@ void processor_c::consume_event(const events::event_s &event) {
   }
 }
 
-execution_result_s processor_c::execute_script(session_c *session,
+execution_result_s processor_c::execute_script(session_c &session,
                                                const std::string &script_text,
                                                const std::string &request_id) {
   execution_result_s result;
@@ -110,14 +110,14 @@ execution_result_s processor_c::execute_script(session_c *session,
   return result;
 }
 
-slp::slp_object_c processor_c::eval_object(session_c *session,
+slp::slp_object_c processor_c::eval_object(session_c &session,
                                            const slp::slp_object_c &obj) {
   eval_context_s empty_context;
   return eval_object_with_context(session, obj, empty_context);
 }
 
 slp::slp_object_c
-processor_c::eval_object_with_context(session_c *session,
+processor_c::eval_object_with_context(session_c &session,
                                       const slp::slp_object_c &obj,
                                       const eval_context_s &context) {
   auto type = obj.type();
@@ -179,7 +179,7 @@ processor_c::eval_object_with_context(session_c *session,
   return slp::parse("0").take();
 }
 
-slp::slp_object_c processor_c::call_function(session_c *session,
+slp::slp_object_c processor_c::call_function(session_c &session,
                                              const std::string &name,
                                              const slp::slp_object_c &args,
                                              const eval_context_s &context) {
@@ -223,7 +223,7 @@ void processor_c::register_builtin_functions() {
 
 logger_t processor_c::get_logger() { return logger_; }
 
-slp::slp_object_c processor_c::eval_object(session_c *session,
+slp::slp_object_c processor_c::eval_object(session_c &session,
                                            const slp::slp_object_c &obj,
                                            const eval_context_s &context) {
   return eval_object_with_context(session, obj, context);
@@ -244,7 +244,8 @@ std::mutex *processor_c::get_subscription_handlers_mutex() {
   return &subscription_handlers_mutex_;
 }
 
-std::map<std::string, std::shared_ptr<runtime_information_if::pending_await_s>> *
+std::map<std::string,
+         std::shared_ptr<runtime_information_if::pending_await_s>> *
 processor_c::get_pending_awaits() {
   return &pending_awaits_;
 }

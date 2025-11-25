@@ -15,7 +15,7 @@ namespace runtime::fns {
 struct function_group_s {
   const char *group_name;
   std::map<std::string, std::function<slp::slp_object_c(
-                            session_c *, const slp::slp_object_c &,
+                            session_c &, const slp::slp_object_c &,
                             const std::map<std::string, slp::slp_object_c> &)>>
       functions;
 };

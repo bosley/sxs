@@ -75,7 +75,7 @@ TEST_CASE("event/sub with handler body executes on event",
   entity->grant_topic_permission(300, runtime::topic_permission::PUBSUB);
   entity->save();
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
   runtime::session_c *session =
       create_test_session(event_system, data_ds, entity.get());
 

@@ -53,7 +53,7 @@ TEST_CASE("entity rps with runtime/await cross-channel limiting",
   runtime::events::event_system_c event_system(logger.get());
   event_system.initialize(nullptr);
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
 
   auto processor_consumer = std::shared_ptr<runtime::events::event_consumer_if>(
       &processor, [](runtime::events::event_consumer_if *) {});

@@ -12,7 +12,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
   group.group_name = "kv";
 
   group.functions["set"] =
-      [&runtime_info](session_c *session, const slp::slp_object_c &args,
+      [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto logger = runtime_info.get_logger();
         auto list = args.as_list();
@@ -32,10 +32,11 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
           return SLP_ERROR("key must be symbol or string");
         }
 
-        auto value_result = runtime_info.eval_object(session, value_obj, context);
+        auto value_result =
+            runtime_info.eval_object(session, value_obj, context);
         std::string value = runtime_info.object_to_string(value_result);
 
-        auto *store = session->get_store();
+        auto *store = session.get_store();
         if (!store) {
           return SLP_ERROR("session store not available");
         }
@@ -50,7 +51,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
       };
 
   group.functions["get"] =
-      [&runtime_info](session_c *session, const slp::slp_object_c &args,
+      [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto logger = runtime_info.get_logger();
         auto list = args.as_list();
@@ -68,7 +69,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
           return SLP_ERROR("key must be symbol or string");
         }
 
-        auto *store = session->get_store();
+        auto *store = session.get_store();
         if (!store) {
           return SLP_ERROR("session store not available");
         }
@@ -84,7 +85,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
       };
 
   group.functions["del"] =
-      [&runtime_info](session_c *session, const slp::slp_object_c &args,
+      [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto logger = runtime_info.get_logger();
         auto list = args.as_list();
@@ -102,7 +103,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
           return SLP_ERROR("key must be symbol or string");
         }
 
-        auto *store = session->get_store();
+        auto *store = session.get_store();
         if (!store) {
           return SLP_ERROR("session store not available");
         }
@@ -117,7 +118,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
       };
 
   group.functions["exists"] =
-      [&runtime_info](session_c *session, const slp::slp_object_c &args,
+      [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto logger = runtime_info.get_logger();
         auto list = args.as_list();
@@ -135,7 +136,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
           return SLP_ERROR("key must be symbol or string");
         }
 
-        auto *store = session->get_store();
+        auto *store = session.get_store();
         if (!store) {
           return SLP_ERROR("session store not available");
         }

@@ -76,7 +76,7 @@ TEST_CASE("multiple sessions subscribe to same topic",
   entity->grant_topic_permission(400, runtime::topic_permission::PUBSUB);
   entity->save();
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
 
   runtime::session_c *session1 =
       create_test_session("session1", event_system, data_ds, entity.get());
@@ -181,7 +181,7 @@ TEST_CASE("session subscribes to multiple topics",
   entity->grant_topic_permission(403, runtime::topic_permission::PUBSUB);
   entity->save();
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
   runtime::session_c *session =
       create_test_session("session1", event_system, data_ds, entity.get());
 
@@ -272,7 +272,7 @@ TEST_CASE("rapid fire event delivery to handler",
   entity->grant_topic_permission(500, runtime::topic_permission::PUBSUB);
   entity->save();
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
   runtime::session_c *session =
       create_test_session("session1", event_system, data_ds, entity.get());
 
@@ -346,7 +346,7 @@ TEST_CASE("handler with parse error in body",
   entity->grant_topic_permission(600, runtime::topic_permission::PUBSUB);
   entity->save();
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
   runtime::session_c *session =
       create_test_session("session1", event_system, data_ds, entity.get());
 
@@ -418,7 +418,7 @@ TEST_CASE("handler with nested function calls",
   entity->grant_topic_permission(700, runtime::topic_permission::PUBSUB);
   entity->save();
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
   runtime::session_c *session =
       create_test_session("session1", event_system, data_ds, entity.get());
 
@@ -501,7 +501,7 @@ TEST_CASE("handler publishes event creating chain",
   entity->grant_topic_permission(801, runtime::topic_permission::PUBSUB);
   entity->save();
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
   runtime::session_c *session =
       create_test_session("session1", event_system, data_ds, entity.get());
 
@@ -580,7 +580,7 @@ TEST_CASE("empty handler body", "[unit][runtime][processor][stress]") {
   entity->grant_topic_permission(900, runtime::topic_permission::PUBSUB);
   entity->save();
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
   runtime::session_c *session =
       create_test_session("session1", event_system, data_ds, entity.get());
 

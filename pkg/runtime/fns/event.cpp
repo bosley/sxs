@@ -12,7 +12,7 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
   group.group_name = "event";
 
   group.functions["pub"] =
-      [&runtime_info](session_c *session, const slp::slp_object_c &args,
+      [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto logger = runtime_info.get_logger();
         auto list = args.as_list();
@@ -21,7 +21,8 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
                            "$CHANNEL_A through $CHANNEL_F)");
         }
 
-        auto channel_obj = runtime_info.eval_object(session, list.at(1), context);
+        auto channel_obj =
+            runtime_info.eval_object(session, list.at(1), context);
         auto topic_obj = list.at(2);
         auto data_obj = list.at(3);
 
@@ -58,7 +59,7 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
         std::string data_str = runtime_info.object_to_string(data_result);
 
         publish_result_e result =
-            session->publish_event(category, topic_id, data_str);
+            session.publish_event(category, topic_id, data_str);
 
         switch (result) {
         case publish_result_e::OK:
@@ -84,129 +85,129 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
         return SLP_BOOL(true);
       };
 
-  group.functions["sub"] =
-      [&runtime_info](session_c *session, const slp::slp_object_c &args,
-                      const std::map<std::string, slp::slp_object_c> &context) {
-        auto logger = runtime_info.get_logger();
-        auto subscription_handlers = runtime_info.get_subscription_handlers();
-        auto subscription_handlers_mutex =
-            runtime_info.get_subscription_handlers_mutex();
-        auto list = args.as_list();
-        if (list.size() < 4) {
-          return SLP_ERROR(
-              "event/sub requires channel, topic-id and handler body "
-              "(use $CHANNEL_A through $CHANNEL_F)");
-        }
+  group.functions["sub"] = [&runtime_info](
+                               session_c &session,
+                               const slp::slp_object_c &args,
+                               const std::map<std::string, slp::slp_object_c>
+                                   &context) {
+    auto logger = runtime_info.get_logger();
+    auto subscription_handlers = runtime_info.get_subscription_handlers();
+    auto subscription_handlers_mutex =
+        runtime_info.get_subscription_handlers_mutex();
+    auto list = args.as_list();
+    if (list.size() < 4) {
+      return SLP_ERROR("event/sub requires channel, topic-id and handler body "
+                       "(use $CHANNEL_A through $CHANNEL_F)");
+    }
 
-        auto channel_obj = runtime_info.eval_object(session, list.at(1), context);
-        auto topic_obj = list.at(2);
-        auto handler_obj = list.at(3);
+    auto channel_obj = runtime_info.eval_object(session, list.at(1), context);
+    auto topic_obj = list.at(2);
+    auto handler_obj = list.at(3);
 
-        if (channel_obj.type() != slp::slp_type_e::SYMBOL) {
-          return SLP_ERROR("channel must be $CHANNEL_A through $CHANNEL_F");
-        }
+    if (channel_obj.type() != slp::slp_type_e::SYMBOL) {
+      return SLP_ERROR("channel must be $CHANNEL_A through $CHANNEL_F");
+    }
 
-        std::string channel_sym = channel_obj.as_symbol();
-        events::event_category_e category;
+    std::string channel_sym = channel_obj.as_symbol();
+    events::event_category_e category;
 
-        if (channel_sym == "A") {
-          category = events::event_category_e::RUNTIME_BACKCHANNEL_A;
-        } else if (channel_sym == "B") {
-          category = events::event_category_e::RUNTIME_BACKCHANNEL_B;
-        } else if (channel_sym == "C") {
-          category = events::event_category_e::RUNTIME_BACKCHANNEL_C;
-        } else if (channel_sym == "D") {
-          category = events::event_category_e::RUNTIME_BACKCHANNEL_D;
-        } else if (channel_sym == "E") {
-          category = events::event_category_e::RUNTIME_BACKCHANNEL_E;
-        } else if (channel_sym == "F") {
-          category = events::event_category_e::RUNTIME_BACKCHANNEL_F;
-        } else {
-          return SLP_ERROR("invalid channel (must be A, B, C, D, E, or F)");
-        }
+    if (channel_sym == "A") {
+      category = events::event_category_e::RUNTIME_BACKCHANNEL_A;
+    } else if (channel_sym == "B") {
+      category = events::event_category_e::RUNTIME_BACKCHANNEL_B;
+    } else if (channel_sym == "C") {
+      category = events::event_category_e::RUNTIME_BACKCHANNEL_C;
+    } else if (channel_sym == "D") {
+      category = events::event_category_e::RUNTIME_BACKCHANNEL_D;
+    } else if (channel_sym == "E") {
+      category = events::event_category_e::RUNTIME_BACKCHANNEL_E;
+    } else if (channel_sym == "F") {
+      category = events::event_category_e::RUNTIME_BACKCHANNEL_F;
+    } else {
+      return SLP_ERROR("invalid channel (must be A, B, C, D, E, or F)");
+    }
 
-        if (topic_obj.type() != slp::slp_type_e::INTEGER) {
-          return SLP_ERROR("topic-id must be integer");
-        }
+    if (topic_obj.type() != slp::slp_type_e::INTEGER) {
+      return SLP_ERROR("topic-id must be integer");
+    }
 
-        if (handler_obj.type() != slp::slp_type_e::BRACE_LIST) {
-          return SLP_ERROR("handler must be a brace list {}");
-        }
+    if (handler_obj.type() != slp::slp_type_e::BRACE_LIST) {
+      return SLP_ERROR("handler must be a brace list {}");
+    }
 
-        std::uint16_t topic_id = static_cast<std::uint16_t>(topic_obj.as_int());
+    std::uint16_t topic_id = static_cast<std::uint16_t>(topic_obj.as_int());
 
-        runtime_information_if::subscription_handler_s handler;
-        handler.session = session;
-        handler.category = category;
-        handler.topic_id = topic_id;
-        handler.handler_data = handler_obj.get_data();
-        handler.handler_symbols = handler_obj.get_symbols();
-        handler.handler_root_offset = handler_obj.get_root_offset();
+    runtime_information_if::subscription_handler_s handler;
+    handler.session = &session;
+    handler.category = category;
+    handler.topic_id = topic_id;
+    handler.handler_data = handler_obj.get_data();
+    handler.handler_symbols = handler_obj.get_symbols();
+    handler.handler_root_offset = handler_obj.get_root_offset();
 
-        {
+    {
+      std::lock_guard<std::mutex> lock(*subscription_handlers_mutex);
+      subscription_handlers->push_back(handler);
+    }
+
+    bool success = session.subscribe_to_topic(
+        category, topic_id,
+        [&runtime_info, &session, category,
+         topic_id](const events::event_s &event) {
+          auto logger = runtime_info.get_logger();
+          auto subscription_handlers = runtime_info.get_subscription_handlers();
+          auto subscription_handlers_mutex =
+              runtime_info.get_subscription_handlers_mutex();
           std::lock_guard<std::mutex> lock(*subscription_handlers_mutex);
-          subscription_handlers->push_back(handler);
-        }
+          for (const auto &h : *subscription_handlers) {
+            if (h.session == &session && h.category == category &&
+                h.topic_id == topic_id) {
+              std::map<std::string, slp::slp_object_c> handler_context;
 
-        bool success = session->subscribe_to_topic(
-            category, topic_id,
-            [&runtime_info, session, category,
-             topic_id](const events::event_s &event) {
-              auto logger = runtime_info.get_logger();
-              auto subscription_handlers =
-                  runtime_info.get_subscription_handlers();
-              auto subscription_handlers_mutex =
-                  runtime_info.get_subscription_handlers_mutex();
-              std::lock_guard<std::mutex> lock(*subscription_handlers_mutex);
-              for (const auto &h : *subscription_handlers) {
-                if (h.session == session && h.category == category &&
-                    h.topic_id == topic_id) {
-                  std::map<std::string, slp::slp_object_c> handler_context;
+              std::string event_data;
+              try {
+                event_data = std::any_cast<std::string>(event.payload);
+              } catch (...) {
+                event_data = "<event data>";
+              }
+              handler_context["$data"] = SLP_STRING(event_data);
 
-                  std::string event_data;
-                  try {
-                    event_data = std::any_cast<std::string>(event.payload);
-                  } catch (...) {
-                    event_data = "<event data>";
-                  }
-                  handler_context["$data"] = SLP_STRING(event_data);
+              auto handler_obj = slp::slp_object_c::from_data(
+                  h.handler_data, h.handler_symbols, h.handler_root_offset);
 
-                  auto handler_obj = slp::slp_object_c::from_data(
-                      h.handler_data, h.handler_symbols, h.handler_root_offset);
-
-                  auto list = handler_obj.as_list();
-                  for (size_t i = 0; i < list.size(); i++) {
-                    auto result = runtime_info.eval_object(session, list.at(i),
-                                                           handler_context);
-                    if (result.type() == slp::slp_type_e::ERROR) {
-                      logger->debug("[event] Handler encountered error, "
-                                    "stopping execution");
-                      break;
-                    }
-                  }
+              auto list = handler_obj.as_list();
+              for (size_t i = 0; i < list.size(); i++) {
+                auto result = runtime_info.eval_object(session, list.at(i),
+                                                       handler_context);
+                if (result.type() == slp::slp_type_e::ERROR) {
+                  logger->debug("[event] Handler encountered error, "
+                                "stopping execution");
                   break;
                 }
               }
-            });
+              break;
+            }
+          }
+        });
 
-        if (!success) {
-          std::lock_guard<std::mutex> lock(*subscription_handlers_mutex);
-          subscription_handlers->erase(
-              std::remove_if(
-                  subscription_handlers->begin(), subscription_handlers->end(),
-                  [&](const runtime_information_if::subscription_handler_s &sh) {
-                    return sh.session == session && sh.category == category &&
-                           sh.topic_id == topic_id &&
-                           sh.handler_data == handler.handler_data;
-                  }),
-              subscription_handlers->end());
-          return SLP_ERROR("event/sub failed (check permissions)");
-        }
+    if (!success) {
+      std::lock_guard<std::mutex> lock(*subscription_handlers_mutex);
+      subscription_handlers->erase(
+          std::remove_if(
+              subscription_handlers->begin(), subscription_handlers->end(),
+              [&](const runtime_information_if::subscription_handler_s &sh) {
+                return sh.session == &session && sh.category == category &&
+                       sh.topic_id == topic_id &&
+                       sh.handler_data == handler.handler_data;
+              }),
+          subscription_handlers->end());
+      return SLP_ERROR("event/sub failed (check permissions)");
+    }
 
-        logger->debug("[event] sub channel {} topic {} with handler",
-                      channel_sym, topic_id);
-        return SLP_BOOL(true);
-      };
+    logger->debug("[event] sub channel {} topic {} with handler", channel_sym,
+                  topic_id);
+    return SLP_BOOL(true);
+  };
 
   return group;
 }

@@ -70,7 +70,7 @@ TEST_CASE("multi processor initialization with 1 processor",
 
   for (size_t i = 0; i < num_processors; i++) {
     auto processor =
-        std::make_unique<runtime::processor_c>(logger.get(), &event_system);
+        std::make_unique<runtime::processor_c>(logger.get(), event_system);
     auto processor_consumer =
         std::shared_ptr<runtime::events::event_consumer_if>(
             processor.get(), [](runtime::events::event_consumer_if *) {});
@@ -97,7 +97,7 @@ TEST_CASE("multi processor initialization with 4 processors",
 
   for (size_t i = 0; i < num_processors; i++) {
     auto processor =
-        std::make_unique<runtime::processor_c>(logger.get(), &event_system);
+        std::make_unique<runtime::processor_c>(logger.get(), event_system);
     auto processor_consumer =
         std::shared_ptr<runtime::events::event_consumer_if>(
             processor.get(), [](runtime::events::event_consumer_if *) {});
@@ -140,7 +140,7 @@ TEST_CASE("multi processor concurrent execution on different topics",
 
   for (size_t i = 0; i < num_processors; i++) {
     auto processor =
-        std::make_unique<runtime::processor_c>(logger.get(), &event_system);
+        std::make_unique<runtime::processor_c>(logger.get(), event_system);
     auto processor_consumer =
         std::shared_ptr<runtime::events::event_consumer_if>(
             processor.get(), [](runtime::events::event_consumer_if *) {});
@@ -271,7 +271,7 @@ TEST_CASE("multi processor with kv operations on different scopes",
 
   for (size_t i = 0; i < num_processors; i++) {
     auto processor =
-        std::make_unique<runtime::processor_c>(logger.get(), &event_system);
+        std::make_unique<runtime::processor_c>(logger.get(), event_system);
     auto processor_consumer =
         std::shared_ptr<runtime::events::event_consumer_if>(
             processor.get(), [](runtime::events::event_consumer_if *) {});
@@ -376,7 +376,7 @@ TEST_CASE("multi processor stress test with rapid concurrent requests",
 
   for (size_t i = 0; i < num_processors; i++) {
     auto processor =
-        std::make_unique<runtime::processor_c>(logger.get(), &event_system);
+        std::make_unique<runtime::processor_c>(logger.get(), event_system);
     auto processor_consumer =
         std::shared_ptr<runtime::events::event_consumer_if>(
             processor.get(), [](runtime::events::event_consumer_if *) {});

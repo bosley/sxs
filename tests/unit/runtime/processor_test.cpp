@@ -55,7 +55,7 @@ TEST_CASE("processor initialization", "[unit][runtime][processor]") {
   event_system.initialize(accessor);
 
   SECTION("processor can be created") {
-    runtime::processor_c processor(logger.get(), &event_system);
+    runtime::processor_c processor(logger.get(), event_system);
   }
 
   event_system.shutdown();
@@ -86,7 +86,7 @@ TEST_CASE("processor execute simple integer script",
   REQUIRE(entity_opt.has_value());
   auto entity = std::move(entity_opt.value());
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
 
   SECTION("evaluate integer literal") {
     runtime::session_c *session =
@@ -179,7 +179,7 @@ TEST_CASE("processor kv/set and kv/get operations",
   entity->grant_permission("test_scope", runtime::permission::READ_WRITE);
   entity->save();
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
   runtime::session_c *session =
       create_test_session(event_system, data_ds, entity.get());
 
@@ -271,7 +271,7 @@ TEST_CASE("processor kv/del and kv/exists operations",
   entity->grant_permission("test_scope", runtime::permission::READ_WRITE);
   entity->save();
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
   runtime::session_c *session =
       create_test_session(event_system, data_ds, entity.get());
 
@@ -344,7 +344,7 @@ TEST_CASE("processor event/pub operation", "[unit][runtime][processor]") {
   entity->grant_topic_permission(100, runtime::topic_permission::PUBLISH);
   entity->save();
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
   runtime::session_c *session =
       create_test_session(event_system, data_ds, entity.get());
 
@@ -410,7 +410,7 @@ TEST_CASE("processor event/sub operation", "[unit][runtime][processor]") {
   entity->grant_topic_permission(200, runtime::topic_permission::SUBSCRIBE);
   entity->save();
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
   runtime::session_c *session =
       create_test_session(event_system, data_ds, entity.get());
 
@@ -458,7 +458,7 @@ TEST_CASE("processor runtime/log operation", "[unit][runtime][processor]") {
   REQUIRE(entity_opt.has_value());
   auto entity = std::move(entity_opt.value());
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
   runtime::session_c *session =
       create_test_session(event_system, data_ds, entity.get());
 
@@ -522,7 +522,7 @@ TEST_CASE("processor error handling", "[unit][runtime][processor]") {
   REQUIRE(entity_opt.has_value());
   auto entity = std::move(entity_opt.value());
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
 
   SECTION("null session pointer is handled") {
     runtime::execution_request_s request;
@@ -609,7 +609,7 @@ TEST_CASE("processor permission denied scenarios",
   REQUIRE(entity_opt.has_value());
   auto entity = std::move(entity_opt.value());
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
   runtime::session_c *session =
       create_test_session(event_system, data_ds, entity.get());
 
@@ -677,7 +677,7 @@ TEST_CASE("processor bracket list execution", "[unit][runtime][processor]") {
   entity->grant_permission("test_scope", runtime::permission::READ_WRITE);
   entity->save();
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
   runtime::session_c *session =
       create_test_session(event_system, data_ds, entity.get());
 
@@ -735,7 +735,7 @@ TEST_CASE("processor complex script execution", "[unit][runtime][processor]") {
   entity->grant_topic_permission(100, runtime::topic_permission::PUBSUB);
   entity->save();
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
   runtime::session_c *session =
       create_test_session(event_system, data_ds, entity.get());
 
@@ -801,7 +801,7 @@ TEST_CASE("processor runtime/eval operation", "[unit][runtime][processor]") {
   entity->grant_permission("test_scope", runtime::permission::READ_WRITE);
   entity->save();
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
 
   SECTION("evaluate simple integer literal") {
     runtime::session_c *session =
@@ -919,7 +919,7 @@ TEST_CASE("processor runtime/eval with kv operations",
   entity->grant_permission("test_scope", runtime::permission::READ_WRITE);
   entity->save();
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
 
   SECTION("store result of eval in kv") {
     runtime::session_c *session =
@@ -983,7 +983,7 @@ TEST_CASE("processor runtime/await operation", "[unit][runtime][processor]") {
   entity->grant_topic_permission(101, runtime::topic_permission::PUBSUB);
   entity->save();
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
 
   SECTION("basic await with response") {
     runtime::session_c *session1 =
@@ -1073,7 +1073,7 @@ TEST_CASE("processor runtime/await async communication",
   entity->grant_topic_permission(201, runtime::topic_permission::PUBSUB);
   entity->save();
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
 
   auto processor_consumer = std::shared_ptr<runtime::events::event_consumer_if>(
       &processor, [](runtime::events::event_consumer_if *) {});
@@ -1219,7 +1219,7 @@ TEST_CASE("processor ignores wrong category events",
   REQUIRE(entity_opt.has_value());
   auto entity = std::move(entity_opt.value());
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
 
   SECTION("processor ignores BACKCHANNEL_A events") {
     runtime::session_c *session =
