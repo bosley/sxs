@@ -164,6 +164,26 @@ processor_c::eval_object_with_context(session_c &session,
     return last_result;
   }
 
+  if (type == slp::slp_type_e::BRACKET_LIST) {
+    /*
+        This is where we will call a function to take the [] list and turn it
+       into a function!
+
+        We neeed to presere the parameter names so we can inject the $vars later
+        as seen in VISION_TODO.md
+
+        We should be able to use the SOME object but it might behoove us to make
+       an "aberrant" enum type for a SLP (in slp) that slp doesnt itself
+       generate so we can add another abstraction "into" the object to switch on
+       aberrant so we can make more than one special type
+
+        aberrant -> (fn specialType1 specialType2) etc
+
+        if we can get by without it and without making a hack hat would be nice
+       though
+    */
+  }
+
   return slp::parse("0").take();
 }
 
@@ -202,9 +222,9 @@ void processor_c::register_builtin_functions() {
   auto groups = fns::get_all_function_groups(*this);
 
   for (const auto &group : groups) {
-    for (const auto &[name, handler] : group.functions) {
+    for (const auto &[name, function_info] : group.functions) {
       std::string qualified_name = std::string(group.group_name) + "/" + name;
-      register_function(qualified_name, handler);
+      register_function(qualified_name, function_info.function);
     }
   }
 }

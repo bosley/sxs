@@ -11,7 +11,9 @@ function_group_s get_expr_functions(runtime_information_if &runtime_info) {
   function_group_s group;
   group.group_name = "core/expr";
 
-  group.functions["eval"] =
+  group.functions["eval"].return_type = slp::slp_type_e::NONE;
+  group.functions["eval"].parameters = {{"script_text", slp::slp_type_e::NONE}};
+  group.functions["eval"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto list = args.as_list();
@@ -32,11 +34,15 @@ function_group_s get_expr_functions(runtime_information_if &runtime_info) {
                                         context);
       };
 
-  group.functions["await"] = [&runtime_info](
-                                 session_c &session,
-                                 const slp::slp_object_c &args,
-                                 const std::map<std::string, slp::slp_object_c>
-                                     &context) {
+  group.functions["await"].return_type = slp::slp_type_e::DQ_LIST;
+  group.functions["await"].parameters = {
+      {"body", slp::slp_type_e::NONE},
+      {"response_channel", slp::slp_type_e::SYMBOL},
+      {"response_topic", slp::slp_type_e::INTEGER}};
+  group.functions["await"]
+      .function = [&runtime_info](
+                      session_c &session, const slp::slp_object_c &args,
+                      const std::map<std::string, slp::slp_object_c> &context) {
     auto pending_awaits = runtime_info.get_pending_awaits();
     auto pending_awaits_mutex = runtime_info.get_pending_awaits_mutex();
     auto max_await_timeout = runtime_info.get_max_await_timeout();

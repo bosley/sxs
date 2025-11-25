@@ -11,7 +11,11 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
   function_group_s group;
   group.group_name = "core/event";
 
-  group.functions["pub"] =
+  group.functions["pub"].return_type = slp::slp_type_e::SYMBOL;
+  group.functions["pub"].parameters = {{"channel", slp::slp_type_e::SYMBOL},
+                                       {"topic_id", slp::slp_type_e::INTEGER},
+                                       {"data", slp::slp_type_e::NONE}};
+  group.functions["pub"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto logger = runtime_info.get_logger();
@@ -94,11 +98,15 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
         return SLP_BOOL(true);
       };
 
-  group.functions["sub"] = [&runtime_info](
-                               session_c &session,
-                               const slp::slp_object_c &args,
-                               const std::map<std::string, slp::slp_object_c>
-                                   &context) {
+  group.functions["sub"].return_type = slp::slp_type_e::SYMBOL;
+  group.functions["sub"].parameters = {
+      {"channel", slp::slp_type_e::SYMBOL},
+      {"topic_id", slp::slp_type_e::INTEGER},
+      {"handler_body", slp::slp_type_e::BRACE_LIST}};
+  group.functions["sub"]
+      .function = [&runtime_info](
+                      session_c &session, const slp::slp_object_c &args,
+                      const std::map<std::string, slp::slp_object_c> &context) {
     auto logger = runtime_info.get_logger();
     auto subscription_handlers = runtime_info.get_subscription_handlers();
     auto subscription_handlers_mutex =

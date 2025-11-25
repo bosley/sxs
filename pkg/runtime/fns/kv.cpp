@@ -11,7 +11,10 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
   function_group_s group;
   group.group_name = "core/kv";
 
-  group.functions["set"] =
+  group.functions["set"].return_type = slp::slp_type_e::SYMBOL;
+  group.functions["set"].parameters = {{"key", slp::slp_type_e::SYMBOL},
+                                       {"value", slp::slp_type_e::NONE}};
+  group.functions["set"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto logger = runtime_info.get_logger();
@@ -46,7 +49,9 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         return SLP_BOOL(true);
       };
 
-  group.functions["get"] =
+  group.functions["get"].return_type = slp::slp_type_e::DQ_LIST;
+  group.functions["get"].parameters = {{"key", slp::slp_type_e::SYMBOL}};
+  group.functions["get"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto logger = runtime_info.get_logger();
@@ -77,7 +82,9 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         return SLP_STRING(value);
       };
 
-  group.functions["del"] =
+  group.functions["del"].return_type = slp::slp_type_e::SYMBOL;
+  group.functions["del"].parameters = {{"key", slp::slp_type_e::SYMBOL}};
+  group.functions["del"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto logger = runtime_info.get_logger();
@@ -106,7 +113,9 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         return SLP_BOOL(true);
       };
 
-  group.functions["exists"] =
+  group.functions["exists"].return_type = slp::slp_type_e::SYMBOL;
+  group.functions["exists"].parameters = {{"key", slp::slp_type_e::SYMBOL}};
+  group.functions["exists"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto logger = runtime_info.get_logger();
@@ -131,7 +140,10 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         return SLP_BOOL(exists);
       };
 
-  group.functions["snx"] =
+  group.functions["snx"].return_type = slp::slp_type_e::SYMBOL;
+  group.functions["snx"].parameters = {{"key", slp::slp_type_e::SYMBOL},
+                                       {"value", slp::slp_type_e::NONE}};
+  group.functions["snx"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto logger = runtime_info.get_logger();
@@ -167,7 +179,12 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         return SLP_BOOL(true);
       };
 
-  group.functions["cas"] =
+  group.functions["cas"].return_type = slp::slp_type_e::SYMBOL;
+  group.functions["cas"].parameters = {
+      {"key", slp::slp_type_e::SYMBOL},
+      {"expected_value", slp::slp_type_e::NONE},
+      {"new_value", slp::slp_type_e::NONE}};
+  group.functions["cas"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto logger = runtime_info.get_logger();
@@ -212,103 +229,106 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         return SLP_BOOL(true);
       };
 
-  group.functions["iterate"] =
-      [&runtime_info](session_c &session, const slp::slp_object_c &args,
+  group.functions["iterate"].return_type = slp::slp_type_e::SYMBOL;
+  group.functions["iterate"].parameters = {
+      {"prefix", slp::slp_type_e::SYMBOL},
+      {"offset", slp::slp_type_e::INTEGER},
+      {"limit", slp::slp_type_e::INTEGER},
+      {"handler_body", slp::slp_type_e::BRACE_LIST}};
+  group.functions["iterate"]
+      .function = [&runtime_info](
+                      session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
-        auto logger = runtime_info.get_logger();
-        auto list = args.as_list();
-        if (list.size() < 5) {
-          return SLP_ERROR(
-              "core/kv/iterate requires prefix, offset, limit, and "
-              "handler body");
-        }
+    auto logger = runtime_info.get_logger();
+    auto list = args.as_list();
+    if (list.size() < 5) {
+      return SLP_ERROR("core/kv/iterate requires prefix, offset, limit, and "
+                       "handler body");
+    }
 
-        auto prefix_obj = list.at(1);
-        auto offset_obj = list.at(2);
-        auto limit_obj = list.at(3);
-        auto handler_obj = list.at(4);
+    auto prefix_obj = list.at(1);
+    auto offset_obj = list.at(2);
+    auto limit_obj = list.at(3);
+    auto handler_obj = list.at(4);
 
-        auto prefix_result =
-            runtime_info.eval_object(session, prefix_obj, context);
-        std::string prefix;
-        if (prefix_result.type() == slp::slp_type_e::SYMBOL) {
-          prefix = prefix_result.as_symbol();
-        } else if (prefix_result.type() == slp::slp_type_e::DQ_LIST) {
-          prefix = prefix_result.as_string().to_string();
-        } else {
-          return SLP_ERROR("prefix must be symbol or string");
-        }
+    auto prefix_result = runtime_info.eval_object(session, prefix_obj, context);
+    std::string prefix;
+    if (prefix_result.type() == slp::slp_type_e::SYMBOL) {
+      prefix = prefix_result.as_symbol();
+    } else if (prefix_result.type() == slp::slp_type_e::DQ_LIST) {
+      prefix = prefix_result.as_string().to_string();
+    } else {
+      return SLP_ERROR("prefix must be symbol or string");
+    }
 
-        if (offset_obj.type() != slp::slp_type_e::INTEGER) {
-          return SLP_ERROR("offset must be integer");
-        }
+    if (offset_obj.type() != slp::slp_type_e::INTEGER) {
+      return SLP_ERROR("offset must be integer");
+    }
 
-        if (limit_obj.type() != slp::slp_type_e::INTEGER) {
-          return SLP_ERROR("limit must be integer");
-        }
+    if (limit_obj.type() != slp::slp_type_e::INTEGER) {
+      return SLP_ERROR("limit must be integer");
+    }
 
-        if (handler_obj.type() != slp::slp_type_e::BRACE_LIST) {
-          return SLP_ERROR("handler must be a brace list {}");
-        }
+    if (handler_obj.type() != slp::slp_type_e::BRACE_LIST) {
+      return SLP_ERROR("handler must be a brace list {}");
+    }
 
-        std::int64_t offset = offset_obj.as_int();
-        std::int64_t limit = limit_obj.as_int();
+    std::int64_t offset = offset_obj.as_int();
+    std::int64_t limit = limit_obj.as_int();
 
-        if (offset < 0) {
-          return SLP_ERROR("offset must be non-negative");
-        }
+    if (offset < 0) {
+      return SLP_ERROR("offset must be non-negative");
+    }
 
-        if (limit < 0) {
-          return SLP_ERROR("limit must be non-negative");
-        }
+    if (limit < 0) {
+      return SLP_ERROR("limit must be non-negative");
+    }
 
-        auto *store = session.get_store();
-        if (!store) {
-          return SLP_ERROR("session store not available");
-        }
+    auto *store = session.get_store();
+    if (!store) {
+      return SLP_ERROR("session store not available");
+    }
 
-        std::int64_t current_index = 0;
-        std::int64_t processed_count = 0;
+    std::int64_t current_index = 0;
+    std::int64_t processed_count = 0;
 
-        store->iterate(
-            prefix,
-            [&](const std::string &key, const std::string &value) -> bool {
-              if (current_index < offset) {
-                current_index++;
-                return true;
-              }
+    store->iterate(
+        prefix, [&](const std::string &key, const std::string &value) -> bool {
+          if (current_index < offset) {
+            current_index++;
+            return true;
+          }
 
-              if (processed_count >= limit) {
-                return false;
-              }
+          if (processed_count >= limit) {
+            return false;
+          }
 
-              std::map<std::string, slp::slp_object_c> handler_context;
-              for (const auto &[k, v] : context) {
-                handler_context[k] = slp::slp_object_c::from_data(
-                    v.get_data(), v.get_symbols(), v.get_root_offset());
-              }
-              handler_context["$key"] = SLP_STRING(key);
+          std::map<std::string, slp::slp_object_c> handler_context;
+          for (const auto &[k, v] : context) {
+            handler_context[k] = slp::slp_object_c::from_data(
+                v.get_data(), v.get_symbols(), v.get_root_offset());
+          }
+          handler_context["$key"] = SLP_STRING(key);
 
-              auto handler_list = handler_obj.as_list();
-              for (size_t i = 0; i < handler_list.size(); i++) {
-                auto result = runtime_info.eval_object(
-                    session, handler_list.at(i), handler_context);
-                if (result.type() == slp::slp_type_e::ERROR) {
-                  logger->debug(
-                      "[kv] iterate handler encountered error, stopping");
-                  return false;
-                }
-              }
+          auto handler_list = handler_obj.as_list();
+          for (size_t i = 0; i < handler_list.size(); i++) {
+            auto result = runtime_info.eval_object(session, handler_list.at(i),
+                                                   handler_context);
+            if (result.type() == slp::slp_type_e::ERROR) {
+              logger->debug("[kv] iterate handler encountered error, stopping");
+              return false;
+            }
+          }
 
-              current_index++;
-              processed_count++;
-              return true;
-            });
+          current_index++;
+          processed_count++;
+          return true;
+        });
 
-        logger->debug("[kv] iterate prefix {} offset {} limit {} processed {}",
-                      prefix, offset, limit, processed_count);
-        return SLP_BOOL(true);
-      };
+    logger->debug("[kv] iterate prefix {} offset {} limit {} processed {}",
+                  prefix, offset, limit, processed_count);
+    return SLP_BOOL(true);
+  };
 
   return group;
 }

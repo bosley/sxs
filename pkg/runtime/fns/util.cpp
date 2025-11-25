@@ -10,7 +10,10 @@ function_group_s get_util_functions(runtime_information_if &runtime_info) {
   function_group_s group;
   group.group_name = "core/util";
 
-  group.functions["log"] =
+  group.functions["log"].return_type = slp::slp_type_e::SYMBOL;
+  group.functions["log"].parameters = {{"message", slp::slp_type_e::NONE}};
+  group.functions["log"].is_variadic = true;
+  group.functions["log"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto logger = runtime_info.get_logger();
