@@ -3,8 +3,9 @@
 namespace pkg::ts {
 
 type_checker_c::type_checker_c(
-    const std::map<std::string, function_signature_s> &signatures)
-    : function_signatures_(signatures) {}
+    const std::map<std::string, function_signature_s> &signatures,
+    const std::map<std::string, slp::slp_type_e> &global_dollar_vars)
+    : function_signatures_(signatures), global_dollar_vars_(global_dollar_vars) {}
 
 type_checker_c::check_result_s
 type_checker_c::check(const slp::slp_object_c &program) {
@@ -49,8 +50,19 @@ type_checker_c::infer_type(const slp::slp_object_c &obj,
   case slp::slp_type_e::DQ_LIST:
     return type_info_s(slp::slp_type_e::DQ_LIST, false);
 
-  case slp::slp_type_e::SYMBOL:
+  case slp::slp_type_e::SYMBOL: {
+    std::string sym = obj.as_symbol();
+    
+    if (!sym.empty() && sym[0] == '$') {
+      auto it = global_dollar_vars_.find(sym);
+      if (it != global_dollar_vars_.end()) {
+        return type_info_s(it->second, false);
+      }
+      return type_info_s(slp::slp_type_e::ERROR, false);
+    }
+    
     return type_info_s(slp::slp_type_e::SYMBOL, false);
+  }
 
   case slp::slp_type_e::BRACE_LIST:
     return type_info_s(slp::slp_type_e::BRACE_LIST, false);
@@ -114,16 +126,20 @@ type_checker_c::infer_type(const slp::slp_object_c &obj,
         return type_info_s(slp::slp_type_e::ERROR, false);
       }
 
-      auto it = symbol_map.find(key_name);
-      if (it == symbol_map.end()) {
-        symbol_map[key_name] = value_type;
-      }
+      symbol_map[key_name] = value_type;
 
       return type_info_s(sig.return_type, sig.can_return_error);
     }
 
     if (sig.is_getter && list.size() >= 2) {
       auto key_obj = list.at(1);
+
+      if (key_obj.type() == slp::slp_type_e::SYMBOL) {
+        std::string key_name = key_obj.as_symbol();
+        if (!key_name.empty() && key_name[0] == '$') {
+          return type_info_s(slp::slp_type_e::ERROR, false);
+        }
+      }
 
       if (key_obj.type() != slp::slp_type_e::SYMBOL) {
         return type_info_s(slp::slp_type_e::ERROR, false);
@@ -137,6 +153,21 @@ type_checker_c::infer_type(const slp::slp_object_c &obj,
       }
 
       return type_info_s(it->second.type, true);
+    }
+
+    if (sig.is_loader && list.size() >= 2) {
+      auto key_obj = list.at(1);
+
+      if (key_obj.type() == slp::slp_type_e::SYMBOL) {
+        std::string key_name = key_obj.as_symbol();
+        if (key_name != "$key") {
+          return type_info_s(slp::slp_type_e::ERROR, false);
+        }
+      } else {
+        return type_info_s(slp::slp_type_e::ERROR, false);
+      }
+
+      return type_info_s(slp::slp_type_e::SOME, false);
     }
 
     if (sig.is_detainter && list.size() >= 2) {
@@ -172,6 +203,26 @@ type_checker_c::infer_type(const slp::slp_object_c &obj,
           if (arg_obj.type() != param.type) {
             return type_info_s(slp::slp_type_e::ERROR, false);
           }
+        }
+      }
+    }
+
+    if (!sig.handler_context_vars.empty()) {
+      for (size_t i = 0; i < sig.parameters.size(); i++) {
+        if (sig.parameters[i].type == slp::slp_type_e::BRACE_LIST && 
+            !sig.parameters[i].is_evaluated) {
+          
+          auto handler_obj = list.at(i + 1);
+          if (handler_obj.type() == slp::slp_type_e::BRACE_LIST) {
+            auto handler_list = handler_obj.as_list();
+            for (size_t j = 0; j < handler_list.size(); j++) {
+              auto result = infer_type(handler_list.at(j), symbol_map);
+              if (result.type == slp::slp_type_e::ERROR) {
+                return result;
+              }
+            }
+          }
+          break;
         }
       }
     }

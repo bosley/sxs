@@ -144,10 +144,12 @@ Set a key-value pair in the session store.
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
-| key | symbol | no | Key to set |
+| key | symbol | no | Key to set (literal symbol name) |
 | value | any | yes | Value to store (evaluated, then converted to string) |
 
 **Returns:** `true` on success, ERROR on failure
+
+**Note:** The key parameter is used as a literal symbol name for storage. It is not evaluated, so using context variables like `$key` would create a key literally named "$key" rather than using the dynamic value.
 
 **Example:**
 
@@ -167,9 +169,11 @@ Retrieve a value by key from the session store.
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
-| key | symbol | no | Key to retrieve |
+| key | symbol | no | Key to retrieve (static symbols only, not $ variables) |
 
 **Returns:** String value on success, ERROR if key not found or no permission
+
+**Note:** This function requires a static symbol key and does NOT accept `$` context variables. For dynamic key access using `$` variables (e.g., `$key` in iteration handlers), use `core/kv/load` instead.
 
 **Example:**
 
@@ -188,7 +192,7 @@ Delete a key from the session store.
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
-| key | symbol | no | Key to delete |
+| key | symbol | no | Key to delete (literal symbol name) |
 
 **Returns:** `true` on success, ERROR on failure
 
@@ -209,7 +213,7 @@ Check if a key exists in the session store.
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
-| key | symbol | no | Key to check |
+| key | symbol | no | Key to check (literal symbol name) |
 
 **Returns:** `true` if exists, `false` if not
 
@@ -230,10 +234,12 @@ Set a key-value pair only if the key does not already exist (atomic operation).
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
-| key | symbol | no | Key to set |
+| key | symbol | no | Key to set (literal symbol name) |
 | value | any | yes | Value to store if key doesn't exist |
 
 **Returns:** `true` if set successfully, `false` if key already exists
+
+**Note:** Like `core/kv/set`, the key parameter is a literal symbol name and is not evaluated.
 
 **Example:**
 
@@ -252,7 +258,7 @@ Compare and swap: atomically set a new value only if the current value matches t
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
-| key | symbol | no | Key to update |
+| key | symbol | no | Key to update (literal symbol name) |
 | expected_value | any | yes | Expected current value (evaluated) |
 | new_value | any | yes | New value to set if expectation matches |
 
@@ -290,6 +296,31 @@ Iterate over keys matching a prefix, executing a handler for each key. Injects `
 (core/kv/iterate "user:" 0 10 {
   (core/util/log "Found key:" $key)
   (core/kv/del $key)
+})
+```
+
+---
+
+### core/kv/load
+
+Retrieve and parse a value by key from the session store, returning it as a quoted SLP object. Requires the `$key` context variable.
+
+**Signature:** `(core/kv/load key)`
+
+| Parameter | Type | Evaluated | Description |
+|-----------|------|-----------|-------------|
+| key | symbol | no | Must be `$key` context variable specifically |
+
+**Returns:** Quoted SLP object (SOME type, pure/untainted) on success, ERROR if key not found or no permission
+
+**Note:** Unlike `core/kv/get` which accepts static symbol keys and returns tainted types, `core/kv/load` ONLY accepts the `$key` context variable (injected by `core/kv/iterate` handlers) and returns a pure SOME type. This enables type-safe dynamic key access within iteration handlers. Use `core/expr/eval` to evaluate the loaded SOME value if needed.
+
+**Example:**
+
+```
+(core/kv/iterate user: 0 10 {
+  (core/util/log "Loading value for key:" $key)
+  (core/kv/load $key)
 })
 ```
 
@@ -408,4 +439,27 @@ Log one or more messages to the session logger.
 ```
 (core/util/log "Processing started")
 (core/util/log "User" "Alice" "logged in" "at" 12345)
+```
+
+---
+
+### core/util/insist
+
+Assert that a value does not evaluate to an error, throwing an exception if it does.
+
+**Signature:** `(core/util/insist value)`
+
+| Parameter | Type | Evaluated | Description |
+|-----------|------|-----------|-------------|
+| value | any | yes | Value to assert is not an error |
+
+**Returns:** The evaluated value itself (passes through if not an error)
+
+**Note:** This function does NOT return ERROR types. Instead, if the evaluated value is an ERROR, it throws `insist_failure_exception`, terminating the current expression evaluation. This is useful for assertion-like behavior where you want to halt execution on error conditions rather than propagate error values.
+
+**Example:**
+
+```
+(core/util/insist (core/kv/get required_key))
+(core/util/insist (core/kv/cas counter "5" "6"))
 ```

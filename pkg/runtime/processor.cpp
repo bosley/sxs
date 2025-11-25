@@ -199,6 +199,9 @@ slp::slp_object_c processor_c::call_function(session_c &session,
 
   try {
     return it->second(session, args, context);
+  } catch (const insist_failure_exception &e) {
+    // this is required for the guarantee of detainting an object
+    throw;
   } catch (const std::exception &e) {
     logger_->error("[processor_c] Function {} threw exception: {}", name,
                    e.what());

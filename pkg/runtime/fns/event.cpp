@@ -103,6 +103,8 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
       {"channel", slp::slp_type_e::SYMBOL, true},
       {"topic_id", slp::slp_type_e::INTEGER, false},
       {"handler_body", slp::slp_type_e::BRACE_LIST, false}};
+  group.functions["sub"].handler_context_vars = {
+      {"$data", slp::slp_type_e::SOME}};
   group.functions["sub"]
       .function = [&runtime_info](
                       session_c &session, const slp::slp_object_c &args,

@@ -30,11 +30,14 @@ struct function_signature_s {
   bool is_detainter{false};
   bool is_setter{false};
   bool is_getter{false};
+  bool is_loader{false};
+  std::map<std::string, slp::slp_type_e> handler_context_vars;
 };
 
 class type_checker_c {
 public:
-  type_checker_c(const std::map<std::string, function_signature_s> &signatures);
+  type_checker_c(const std::map<std::string, function_signature_s> &signatures,
+                 const std::map<std::string, slp::slp_type_e> &global_dollar_vars);
 
   struct check_result_s {
     bool success{false};
@@ -48,6 +51,7 @@ private:
                          std::map<std::string, type_info_s> &symbol_map);
 
   std::map<std::string, function_signature_s> function_signatures_;
+  std::map<std::string, slp::slp_type_e> global_dollar_vars_;
 };
 
 } // namespace pkg::ts

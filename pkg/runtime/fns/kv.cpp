@@ -235,6 +235,8 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
       {"offset", slp::slp_type_e::INTEGER, false},
       {"limit", slp::slp_type_e::INTEGER, false},
       {"handler_body", slp::slp_type_e::BRACE_LIST, false}};
+  group.functions["iterate"].handler_context_vars = {
+      {"$key", slp::slp_type_e::DQ_LIST}};
   group.functions["iterate"]
       .function = [&runtime_info](
                       session_c &session, const slp::slp_object_c &args,
@@ -329,6 +331,54 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
                   prefix, offset, limit, processed_count);
     return SLP_BOOL(true);
   };
+
+  group.functions["load"].return_type = slp::slp_type_e::SOME;
+  group.functions["load"].parameters = {{"key", slp::slp_type_e::SYMBOL, false}};
+  group.functions["load"].can_return_error = false;
+  group.functions["load"].function =
+      [&runtime_info](session_c &session, const slp::slp_object_c &args,
+                      const std::map<std::string, slp::slp_object_c> &context) {
+        auto logger = runtime_info.get_logger();
+        auto list = args.as_list();
+        if (list.size() < 2) {
+          return SLP_ERROR("core/kv/load requires key");
+        }
+
+        auto key_obj = list.at(1);
+        if (key_obj.type() != slp::slp_type_e::SYMBOL) {
+          return SLP_ERROR("key must be a symbol");
+        }
+        std::string key_symbol = key_obj.as_symbol();
+
+        if (key_symbol != "$key") {
+          return SLP_ERROR("core/kv/load requires $key context variable");
+        }
+
+        auto context_it = context.find("$key");
+        if (context_it == context.end()) {
+          return SLP_ERROR("$key not available in context");
+        }
+
+        std::string key = runtime_info.object_to_string(context_it->second);
+
+        auto *store = session.get_store();
+        if (!store) {
+          return SLP_ERROR("session store not available");
+        }
+
+        std::string value;
+        bool success = store->get(key, value);
+        if (!success) {
+          return SLP_ERROR("core/kv/load failed (key not found or no permission)");
+        }
+
+        logger->debug("[kv] load {} = {}", key, value);
+        auto result = slp::parse("'" + value);
+        if (result.is_error()) {
+          return SLP_ERROR("core/kv/load failed to quote value");
+        }
+        return result.take();
+      };
 
   return group;
 }

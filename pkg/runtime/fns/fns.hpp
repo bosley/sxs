@@ -27,6 +27,8 @@ struct function_information_s {
 
   bool can_return_error{true};
 
+  std::map<std::string, slp::slp_type_e> handler_context_vars;
+
   std::function<slp::slp_object_c(
       session_c &, const slp::slp_object_c &,
       const std::map<std::string, slp::slp_object_c> &)>

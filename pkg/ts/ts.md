@@ -22,6 +22,7 @@ graph TB
         FNCALL[Function Call<br/>Type Resolution]
         SETTER[Setter Operation<br/>Track symbol→type]
         GETTER[Getter Operation<br/>Validate symbol exists]
+        LOADER[Loader Operation<br/>Dynamic $ key access]
         DETAINT[Detaint Operation<br/>Remove taint]
     end
     
@@ -37,6 +38,7 @@ graph TB
     INFER --> FNCALL
     FNCALL --> SETTER
     FNCALL --> GETTER
+    FNCALL --> LOADER
     FNCALL --> DETAINT
     SETTER --> SYMMAP
     GETTER --> SYMMAP
@@ -67,11 +69,14 @@ classDiagram
         +bool is_detainter
         +bool is_setter
         +bool is_getter
+        +bool is_loader
+        +map~string,slp_type_e~ handler_context_vars
     }
     
     class type_checker_c {
         -map~string,function_signature_s~ function_signatures_
-        +type_checker_c(signatures)
+        -map~string,slp_type_e~ global_dollar_vars_
+        +type_checker_c(signatures, global_dollar_vars)
         +check_result_s check(program)
         -type_info_s infer_type(obj, symbol_map)
     }
@@ -179,6 +184,15 @@ If the input is ERROR at runtime, execution terminates. This is the primitive th
 
 ## Setter/Getter Tracking
 
+The type checker maintains a symbol→type map that tracks what type each symbol holds. Setters update this map, and getters validate against it.
+
+**Key behaviors:**
+- Setters store/update the symbol→type mapping (e.g., `core/kv/set`, `core/kv/snx`)
+- Re-setting a symbol updates its type in the map
+- Setters reject tainted values (must detaint first)
+- Getters look up the symbol in the map and return tainted version of that type
+- Getting a symbol that was never set causes type check failure
+
 ```mermaid
 stateDiagram-v2
     [*] --> Empty: Start
@@ -245,7 +259,10 @@ flowchart TD
     SETTER_LOGIC[1. Get key symbol<br/>2. Infer value type<br/>3. Check not tainted<br/>4. Store in symbol_map]
     
     CHECK_GETTER{is_getter?}
-    GETTER_LOGIC[1. Get key symbol<br/>2. Lookup in symbol_map<br/>3. Return tainted type]
+    GETTER_LOGIC[1. Get key symbol<br/>2. Reject $ vars<br/>3. Lookup in symbol_map<br/>4. Return tainted type]
+    
+    CHECK_LOADER{is_loader?}
+    LOADER_LOGIC[1. Get key symbol<br/>2. Require $key specifically<br/>3. Return pure SOME]
     
     CHECK_DETAINT{is_detainter?}
     DETAINT_LOGIC[1. Infer arg type<br/>2. Check IS tainted<br/>3. Return pure type]
@@ -271,13 +288,17 @@ flowchart TD
     CHECK_SETTER -->|NO| CHECK_GETTER
     
     CHECK_GETTER -->|YES| GETTER_LOGIC
-    CHECK_GETTER -->|NO| CHECK_DETAINT
+    CHECK_GETTER -->|NO| CHECK_LOADER
+    
+    CHECK_LOADER -->|YES| LOADER_LOGIC
+    CHECK_LOADER -->|NO| CHECK_DETAINT
     
     CHECK_DETAINT -->|YES| DETAINT_LOGIC
     CHECK_DETAINT -->|NO| VALIDATE_PARAMS
     
     SETTER_LOGIC --> RET_FN
     GETTER_LOGIC --> RET_FN
+    LOADER_LOGIC --> RET_FN
     DETAINT_LOGIC --> RET_FN
     VALIDATE_PARAMS --> RET_FN
     
@@ -420,14 +441,18 @@ The type system doesn't track "variable types" in the traditional sense. Symbols
 - **What type was stored at that symbol** (for getter return type inference)
 
 ### 2. Dataflow Analysis
-The type checker processes expressions sequentially, maintaining a symbol→type map that grows as setters execute:
+The type checker processes expressions sequentially, maintaining a symbol→type map that updates as setters execute:
 
 ```
 State 0: {}
 (set x 42) → State 1: {x → INTEGER}
 (set y "hello") → State 2: {x → INTEGER, y → DQ_LIST}
 (get x) → Uses State 2, returns #INTEGER
+(set x "changed") → State 3: {x → DQ_LIST, y → DQ_LIST}
+(get x) → Uses State 3, returns #DQ_LIST
 ```
+
+Setters always update the symbol→type mapping, allowing type changes during program execution.
 
 ### 3. Taint Propagation
 Taint propagates through function calls. If a function `can_return_error`, its return type is tainted:
@@ -441,12 +466,88 @@ Taint propagates through function calls. If a function `can_return_error`, its r
 
 ### 4. Generic Function Specification
 Functions are marked with flags rather than hardcoded names:
-- `is_setter` - stores symbol→type mapping
-- `is_getter` - retrieves type from symbol→type mapping  
-- `is_detainter` - removes taint from type
+- `is_setter` - stores symbol→type mapping (e.g., `core/kv/set`, `core/kv/snx`)
+- `is_getter` - retrieves type from symbol→type mapping (e.g., `core/kv/get`)
+- `is_loader` - dynamic key access via `$key` specifically, returns pure SOME (e.g., `core/kv/load`)
+- `is_detainter` - removes taint from type (e.g., `core/insist`)
 - `can_return_error` - return type is tainted
+- `handler_context_vars` - which $ variables are injected in handler bodies
 
 This makes the type system extensible for future functions without modifying the core type checker logic.
+
+### 5. $ Variable System
+
+All `$`-prefixed symbols are **globally available** at the bytecode level:
+
+| Variable | Type | Description |
+|----------|------|-------------|
+| `$CHANNEL_A` | SYMBOL | Event channel identifier |
+| `$CHANNEL_B` | SYMBOL | Event channel identifier |
+| `$CHANNEL_C` | SYMBOL | Event channel identifier |
+| `$CHANNEL_D` | SYMBOL | Event channel identifier |
+| `$CHANNEL_E` | SYMBOL | Event channel identifier |
+| `$CHANNEL_F` | SYMBOL | Event channel identifier |
+| `$key` | DQ_LIST | Injected in `core/kv/iterate` handlers |
+| `$data` | SOME | Injected in `core/event/sub` handlers (off-wire data) |
+
+**Key Properties:**
+- All $ variables are **pure types** (never tainted)
+- Available everywhere (global scope at this bytecode level)
+- Type checker constructor requires `global_dollar_vars` map
+- When a SYMBOL starts with `$`, type checker looks it up in `global_dollar_vars_`
+- Unknown `$` variables cause type check failure
+
+**Rationale:** At this middle-layer, users don't create their own `$` variables. The runtime provides them, so we treat them as globally known and trusted.
+
+### 6. Static vs Dynamic Key Access
+
+The type system distinguishes between two types of KV access:
+
+**`core/kv/get` - Static Key Access:**
+- Accepts only **known symbols** (not `$` variables)
+- Returns **tainted tracked type** from symbol→type map
+- Type: `#T` where T is the type that was set
+- Rejects `$` variables with type error
+- Example: `(core/kv/set x 42) (core/kv/get x)` → returns `#INTEGER`
+
+**`core/kv/load` - Dynamic Key Access:**
+- Accepts only **`$key`** specifically (not regular symbols or other $ variables)
+- Returns **pure SOME** (quote-prefixed value)
+- Type: `SOME` (not tainted)
+- Rejects non-`$key` symbols with type error
+- Example: `(core/kv/load $key)` → returns `SOME`
+- Only usable within `core/kv/iterate` handlers where `$key` is injected
+
+**Why the separation?**
+- Static keys can be tracked: we know `x` was set as INTEGER
+- Dynamic keys can't be tracked: `$key` could be any key at runtime
+- Solution: dynamic access returns generic SOME type that must be explicitly evaluated
+- Type-safe because SOME is a known type, even if its contents aren't
+- Restriction to `$key` prevents misuse (e.g., trying to load `$CHANNEL_A` as a KV key)
+
+### 7. Handler Body Type Checking
+
+Functions with **handler context variables** have their BRACE_LIST handler bodies recursively type-checked:
+
+**Functions with handlers:**
+- `core/kv/iterate` - injects `$key` (DQ_LIST) into handler body
+- `core/event/sub` - injects `$data` (SOME) into handler body - off-wire data, dynamically typed
+
+**Type checking process:**
+1. Function has non-empty `handler_context_vars` map
+2. Find the BRACE_LIST parameter (unevaluated)
+3. Recursively call `infer_type` on each expression inside the BRACE_LIST
+4. All handler expressions are validated against the same symbol_map
+5. $ variables (like `$key`, `$data`) resolve from `global_dollar_vars_`
+
+**Example:**
+```
+(core/kv/iterate user: 0 10 {
+  (core/util/log $key)          ; $key is valid - globally available
+  (core/kv/load $key)            ; Returns pure SOME
+  (core/expr/eval (core/kv/load $key))  ; Evaluates the SOME
+})
+```
 
 ## Usage Example
 
@@ -455,11 +556,16 @@ mock_runtime_info_c mock;
 auto groups = get_all_function_groups(mock);
 auto signatures = build_type_signatures(groups);
 
-signatures["core/kv/set"].is_setter = true;
-signatures["core/kv/get"].is_getter = true;
-signatures["core/insist"].is_detainter = true;
+auto dollar_vars = extract_dollar_vars_from_signatures(signatures);
 
-type_checker_c checker(signatures);
+function_signature_s insist_sig;
+insist_sig.return_type = slp::slp_type_e::NONE;
+insist_sig.can_return_error = false;
+insist_sig.is_detainter = true;
+insist_sig.parameters.push_back({slp::slp_type_e::NONE, true});
+signatures["core/insist"] = insist_sig;
+
+type_checker_c checker(signatures, dollar_vars);
 
 auto parse_result = slp::parse("((core/kv/set x 42) (core/insist (core/kv/get x)))");
 auto result = checker.check(parse_result.object());
@@ -468,6 +574,60 @@ if (result.success) {
     // Type check passed - safe to execute
 } else {
     // Type error: result.error_message
+}
+```
+
+Where helper functions are defined as:
+
+```cpp
+std::map<std::string, function_signature_s>
+build_type_signatures(const std::vector<function_group_s> &groups) {
+  std::map<std::string, function_signature_s> signatures;
+  for (const auto &group : groups) {
+    for (const auto &[name, info] : group.functions) {
+      std::string full_name = std::string(group.group_name) + "/" + name;
+      function_signature_s sig;
+      sig.return_type = info.return_type;
+      sig.can_return_error = info.can_return_error;
+      sig.is_variadic = info.is_variadic;
+      sig.handler_context_vars = info.handler_context_vars;
+      for (const auto &param : info.parameters) {
+        function_parameter_info_s param_info;
+        param_info.type = param.type;
+        param_info.is_evaluated = param.is_evaluated;
+        sig.parameters.push_back(param_info);
+      }
+      if (full_name == "core/kv/set") {
+        sig.is_setter = true;
+      } else if (full_name == "core/kv/snx") {
+        sig.is_setter = true;
+      } else if (full_name == "core/kv/get") {
+        sig.is_getter = true;
+      } else if (full_name == "core/kv/load") {
+        sig.is_loader = true;
+      }
+      signatures[full_name] = sig;
+    }
+  }
+  return signatures;
+}
+
+std::map<std::string, slp::slp_type_e> 
+extract_dollar_vars_from_signatures(
+    const std::map<std::string, function_signature_s> &signatures) {
+  std::map<std::string, slp::slp_type_e> dollar_vars;
+  for (const auto &[fn_name, sig] : signatures) {
+    for (const auto &[var_name, var_type] : sig.handler_context_vars) {
+      dollar_vars[var_name] = var_type;
+    }
+  }
+  dollar_vars["$CHANNEL_A"] = slp::slp_type_e::SYMBOL;
+  dollar_vars["$CHANNEL_B"] = slp::slp_type_e::SYMBOL;
+  dollar_vars["$CHANNEL_C"] = slp::slp_type_e::SYMBOL;
+  dollar_vars["$CHANNEL_D"] = slp::slp_type_e::SYMBOL;
+  dollar_vars["$CHANNEL_E"] = slp::slp_type_e::SYMBOL;
+  dollar_vars["$CHANNEL_F"] = slp::slp_type_e::SYMBOL;
+  return dollar_vars;
 }
 ```
 

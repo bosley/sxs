@@ -12,8 +12,15 @@
 #include <slp/buffer.hpp>
 #include <slp/slp.hpp>
 #include <string>
+#include <stdexcept>
 
 namespace runtime {
+
+class insist_failure_exception : public std::runtime_error {
+public:
+  explicit insist_failure_exception(const std::string &msg) 
+    : std::runtime_error(msg) {}
+};
 
 struct execution_request_s {
   session_c &session;
