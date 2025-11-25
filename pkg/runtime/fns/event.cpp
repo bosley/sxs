@@ -22,8 +22,16 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
               "$CHANNEL_A through $CHANNEL_F)");
         }
 
+        std::map<std::string, slp::slp_object_c> channel_context;
+        channel_context["$CHANNEL_A"] = slp::parse("A").take();
+        channel_context["$CHANNEL_B"] = slp::parse("B").take();
+        channel_context["$CHANNEL_C"] = slp::parse("C").take();
+        channel_context["$CHANNEL_D"] = slp::parse("D").take();
+        channel_context["$CHANNEL_E"] = slp::parse("E").take();
+        channel_context["$CHANNEL_F"] = slp::parse("F").take();
+
         auto channel_obj =
-            runtime_info.eval_object(session, list.at(1), context);
+            runtime_info.eval_object(session, list.at(1), channel_context);
         auto topic_obj = list.at(2);
         auto data_obj = list.at(3);
 
@@ -102,7 +110,15 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
           "(use $CHANNEL_A through $CHANNEL_F)");
     }
 
-    auto channel_obj = runtime_info.eval_object(session, list.at(1), context);
+    std::map<std::string, slp::slp_object_c> channel_context;
+    channel_context["$CHANNEL_A"] = slp::parse("A").take();
+    channel_context["$CHANNEL_B"] = slp::parse("B").take();
+    channel_context["$CHANNEL_C"] = slp::parse("C").take();
+    channel_context["$CHANNEL_D"] = slp::parse("D").take();
+    channel_context["$CHANNEL_E"] = slp::parse("E").take();
+    channel_context["$CHANNEL_F"] = slp::parse("F").take();
+
+    auto channel_obj = runtime_info.eval_object(session, list.at(1), channel_context);
     auto topic_obj = list.at(2);
     auto handler_obj = list.at(3);
 

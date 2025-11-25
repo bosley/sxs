@@ -23,14 +23,10 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         auto key_obj = list.at(1);
         auto value_obj = list.at(2);
 
-        std::string key;
-        if (key_obj.type() == slp::slp_type_e::SYMBOL) {
-          key = key_obj.as_symbol();
-        } else if (key_obj.type() == slp::slp_type_e::DQ_LIST) {
-          key = key_obj.as_string().to_string();
-        } else {
-          return SLP_ERROR("key must be symbol or string");
+        if (key_obj.type() != slp::slp_type_e::SYMBOL) {
+          return SLP_ERROR("key must be a symbol");
         }
+        std::string key = key_obj.as_symbol();
 
         auto value_result =
             runtime_info.eval_object(session, value_obj, context);
@@ -60,14 +56,10 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         }
 
         auto key_obj = list.at(1);
-        std::string key;
-        if (key_obj.type() == slp::slp_type_e::SYMBOL) {
-          key = key_obj.as_symbol();
-        } else if (key_obj.type() == slp::slp_type_e::DQ_LIST) {
-          key = key_obj.as_string().to_string();
-        } else {
-          return SLP_ERROR("key must be symbol or string");
+        if (key_obj.type() != slp::slp_type_e::SYMBOL) {
+          return SLP_ERROR("key must be a symbol");
         }
+        std::string key = key_obj.as_symbol();
 
         auto *store = session.get_store();
         if (!store) {
@@ -95,14 +87,10 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         }
 
         auto key_obj = list.at(1);
-        std::string key;
-        if (key_obj.type() == slp::slp_type_e::SYMBOL) {
-          key = key_obj.as_symbol();
-        } else if (key_obj.type() == slp::slp_type_e::DQ_LIST) {
-          key = key_obj.as_string().to_string();
-        } else {
-          return SLP_ERROR("key must be symbol or string");
+        if (key_obj.type() != slp::slp_type_e::SYMBOL) {
+          return SLP_ERROR("key must be a symbol");
         }
+        std::string key = key_obj.as_symbol();
 
         auto *store = session.get_store();
         if (!store) {
@@ -128,14 +116,10 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         }
 
         auto key_obj = list.at(1);
-        std::string key;
-        if (key_obj.type() == slp::slp_type_e::SYMBOL) {
-          key = key_obj.as_symbol();
-        } else if (key_obj.type() == slp::slp_type_e::DQ_LIST) {
-          key = key_obj.as_string().to_string();
-        } else {
-          return SLP_ERROR("key must be symbol or string");
+        if (key_obj.type() != slp::slp_type_e::SYMBOL) {
+          return SLP_ERROR("key must be a symbol");
         }
+        std::string key = key_obj.as_symbol();
 
         auto *store = session.get_store();
         if (!store) {
@@ -159,14 +143,10 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         auto key_obj = list.at(1);
         auto value_obj = list.at(2);
 
-        std::string key;
-        if (key_obj.type() == slp::slp_type_e::SYMBOL) {
-          key = key_obj.as_symbol();
-        } else if (key_obj.type() == slp::slp_type_e::DQ_LIST) {
-          key = key_obj.as_string().to_string();
-        } else {
-          return SLP_ERROR("key must be symbol or string");
+        if (key_obj.type() != slp::slp_type_e::SYMBOL) {
+          return SLP_ERROR("key must be a symbol");
         }
+        std::string key = key_obj.as_symbol();
 
         auto value_result =
             runtime_info.eval_object(session, value_obj, context);
@@ -201,14 +181,10 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         auto expected_obj = list.at(2);
         auto new_value_obj = list.at(3);
 
-        std::string key;
-        if (key_obj.type() == slp::slp_type_e::SYMBOL) {
-          key = key_obj.as_symbol();
-        } else if (key_obj.type() == slp::slp_type_e::DQ_LIST) {
-          key = key_obj.as_string().to_string();
-        } else {
-          return SLP_ERROR("key must be symbol or string");
+        if (key_obj.type() != slp::slp_type_e::SYMBOL) {
+          return SLP_ERROR("key must be a symbol");
         }
+        std::string key = key_obj.as_symbol();
 
         auto expected_result =
             runtime_info.eval_object(session, expected_obj, context);

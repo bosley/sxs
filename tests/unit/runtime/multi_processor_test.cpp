@@ -303,7 +303,7 @@ TEST_CASE("multi processor with kv operations on different scopes",
       runtime::execution_request_s request;
       request.session = sessions[i].get();
       request.script_text =
-          "[(core/kv/set \"key\" \"value_" + std::to_string(i) + "\")]";
+          "[(core/kv/set key \"value_" + std::to_string(i) + "\")]";
       request.request_id = "kv_req_" + std::to_string(i);
 
       runtime::events::event_s event;

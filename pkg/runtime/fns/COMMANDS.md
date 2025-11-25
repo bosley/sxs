@@ -121,6 +121,21 @@ Moving `slp_object_c` is efficient (uses vector move semantics), but extracting 
 
 All commands return `true` (boolean) on success or an ERROR type `@"message"` on failure. Parameters are positional starting at index 1 (index 0 is the command itself).
 
+### Symbol Semantics
+
+**Important:** In the KV store, symbols represent explicit storage locations (like variables). You must explicitly use `core/kv/set` to store values and `core/kv/get` to retrieve them. There is no implicit value loading.
+
+**Exception:** Symbols prefixed with `$` are context variables:
+
+**Event Function Context Variables** (available only in event-related functions):
+- `$CHANNEL_A` through `$CHANNEL_F` - evaluate to symbols `A` through `F`, used in core/event/pub, core/event/sub, and core/expr/await
+
+**Handler-Injected Context Variables** (available only in specific handlers):
+- `$key` - injected in `core/kv/iterate` handler bodies, contains the current iteration key
+- `$data` - injected in `core/event/sub` handler bodies, contains the event payload
+
+These context variables are provided by the runtime and do not require explicit loading from the KV store.
+
 ### core/kv/set
 
 Set a key-value pair in the session store.
@@ -129,7 +144,7 @@ Set a key-value pair in the session store.
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
-| key | symbol or string | no | Key to set (accepts symbol or DQ_LIST) |
+| key | symbol | no | Key to set |
 | value | any | yes | Value to store (evaluated, then converted to string) |
 
 **Returns:** `true` on success, ERROR on failure
@@ -139,7 +154,7 @@ Set a key-value pair in the session store.
 ```
 (core/kv/set mykey "hello world")
 (core/kv/set counter 42)
-(core/kv/set "user:123" "active")
+(core/kv/set user:123 "active")
 ```
 
 ---
@@ -152,7 +167,7 @@ Retrieve a value by key from the session store.
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
-| key | symbol or string | no | Key to retrieve (accepts symbol or DQ_LIST) |
+| key | symbol | no | Key to retrieve |
 
 **Returns:** String value on success, ERROR if key not found or no permission
 
@@ -160,7 +175,7 @@ Retrieve a value by key from the session store.
 
 ```
 (core/kv/get mykey)
-(core/kv/get "user:123")
+(core/kv/get user:123)
 ```
 
 ---
@@ -173,7 +188,7 @@ Delete a key from the session store.
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
-| key | symbol or string | no | Key to delete (accepts symbol or DQ_LIST) |
+| key | symbol | no | Key to delete |
 
 **Returns:** `true` on success, ERROR on failure
 
@@ -181,7 +196,7 @@ Delete a key from the session store.
 
 ```
 (core/kv/del mykey)
-(core/kv/del "user:123")
+(core/kv/del user:123)
 ```
 
 ---
@@ -194,7 +209,7 @@ Check if a key exists in the session store.
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
-| key | symbol or string | no | Key to check (accepts symbol or DQ_LIST) |
+| key | symbol | no | Key to check |
 
 **Returns:** `true` if exists, `false` if not
 
@@ -202,7 +217,7 @@ Check if a key exists in the session store.
 
 ```
 (core/kv/exists mykey)
-(core/kv/exists "user:123")
+(core/kv/exists user:123)
 ```
 
 ---
@@ -215,7 +230,7 @@ Set a key-value pair only if the key does not already exist (atomic operation).
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
-| key | symbol or string | no | Key to set (accepts symbol or DQ_LIST) |
+| key | symbol | no | Key to set |
 | value | any | yes | Value to store if key doesn't exist |
 
 **Returns:** `true` if set successfully, `false` if key already exists
@@ -224,7 +239,7 @@ Set a key-value pair only if the key does not already exist (atomic operation).
 
 ```
 (core/kv/snx lock:resource1 "acquired")
-(core/kv/snx "counter" 0)
+(core/kv/snx counter 0)
 ```
 
 ---
@@ -237,7 +252,7 @@ Compare and swap: atomically set a new value only if the current value matches t
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
-| key | symbol or string | no | Key to update (accepts symbol or DQ_LIST) |
+| key | symbol | no | Key to update |
 | expected_value | any | yes | Expected current value (evaluated) |
 | new_value | any | yes | New value to set if expectation matches |
 
@@ -247,7 +262,7 @@ Compare and swap: atomically set a new value only if the current value matches t
 
 ```
 (core/kv/cas counter "5" "6")
-(core/kv/cas "status" "pending" "active")
+(core/kv/cas status "pending" "active")
 ```
 
 ---

@@ -29,13 +29,6 @@ processor_c::processor_c(logger_t logger, events::event_system_c &event_system)
     : logger_(logger), event_system_(event_system) {
   logger_->info("[processor_c] Initializing processor");
 
-  global_context_["$CHANNEL_A"] = slp::parse("A").take();
-  global_context_["$CHANNEL_B"] = slp::parse("B").take();
-  global_context_["$CHANNEL_C"] = slp::parse("C").take();
-  global_context_["$CHANNEL_D"] = slp::parse("D").take();
-  global_context_["$CHANNEL_E"] = slp::parse("E").take();
-  global_context_["$CHANNEL_F"] = slp::parse("F").take();
-
   register_builtin_functions();
   logger_->info("[processor_c] Registered {} builtin functions",
                 function_registry_.size());
