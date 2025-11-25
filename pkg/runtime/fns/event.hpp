@@ -1,0 +1,8 @@
+#pragma once
+#include "runtime/fns/fns.hpp"
+
+namespace runtime::fns {
+
+function_group_s get_event_functions(runtime_information_if &runtime_info);
+
+}

@@ -55,7 +55,7 @@ Objects are stored as `slp_unit_of_store_t` structures in a contiguous byte buff
 Symbols are deduplicated via a symbol table mapping uint64 IDs to strings, reducing memory overhead for repeated symbols.
 
 ### View-Based Access
-`slp_object_c` provides a view over the binary data without copying. Objects use move semantics only - no copy constructor or assignment.
+`slp_object_c` provides a view over the binary data without copying. Objects use move semantics only - no copy constructor or assignment. The underlying buffer is managed by `slp_buffer_c`, a custom buffer class that handles raw memory allocation.
 
 ### List and String Accessors
 - `list_c`: Type-safe list iteration with `size()`, `empty()`, `at(index)`

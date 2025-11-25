@@ -78,7 +78,7 @@ bool runtime_c::initialize() {
     logger_->info("Creating and registering {} processor(s)", num_processors);
 
     for (size_t i = 0; i < num_processors; i++) {
-      auto processor = std::make_unique<processor_c>(logger_, event_subsystem);
+      auto processor = std::make_unique<processor_c>(logger_, *event_subsystem);
       auto processor_consumer = std::shared_ptr<events::event_consumer_if>(
           processor.get(), [](events::event_consumer_if *) {});
       event_subsystem->register_consumer(static_cast<std::uint16_t>(i),

@@ -1,27 +1,8 @@
 #include "runtime/processor.hpp"
-#include <algorithm>
+#include "runtime/fns/fns.hpp"
 #include <any>
 #include <chrono>
 #include <spdlog/spdlog.h>
-#include <sstream>
-
-#define SLP_ERROR(msg)                                                         \
-  ([]() {                                                                      \
-    auto _r = slp::parse("@\"" msg "\"");                                      \
-    return _r.take();                                                          \
-  }())
-
-#define SLP_BOOL(val)                                                          \
-  ([](bool _v) {                                                               \
-    auto _r = slp::parse(_v ? "true" : "false");                               \
-    return _r.take();                                                          \
-  }(val))
-
-#define SLP_STRING(val)                                                        \
-  ([](const std::string &_v) {                                                 \
-    auto _r = slp::parse("\"" + _v + "\"");                                    \
-    return _r.take();                                                          \
-  }(val))
 
 constexpr std::chrono::seconds MAX_AWAIT_TIMEOUT = std::chrono::seconds(5);
 
@@ -44,16 +25,9 @@ processor_c::slp_object_to_string(const slp::slp_object_c &obj) const {
   return "nil";
 }
 
-processor_c::processor_c(logger_t logger, events::event_system_c *event_system)
+processor_c::processor_c(logger_t logger, events::event_system_c &event_system)
     : logger_(logger), event_system_(event_system) {
   logger_->info("[processor_c] Initializing processor");
-
-  global_context_.bindings["$CHANNEL_A"] = slp::parse("A").take();
-  global_context_.bindings["$CHANNEL_B"] = slp::parse("B").take();
-  global_context_.bindings["$CHANNEL_C"] = slp::parse("C").take();
-  global_context_.bindings["$CHANNEL_D"] = slp::parse("D").take();
-  global_context_.bindings["$CHANNEL_E"] = slp::parse("E").take();
-  global_context_.bindings["$CHANNEL_F"] = slp::parse("F").take();
 
   register_builtin_functions();
   logger_->info("[processor_c] Registered {} builtin functions",
@@ -81,7 +55,7 @@ void processor_c::consume_event(const events::event_s &event) {
     logger_->info("[processor_c] Executing script for session {} request {}",
                   request.session->get_id(), request.request_id);
 
-    auto result = execute_script(request.session, request.script_text,
+    auto result = execute_script(*request.session, request.script_text,
                                  request.request_id);
 
     send_result_to_session(request.session, result);
@@ -94,7 +68,7 @@ void processor_c::consume_event(const events::event_s &event) {
   }
 }
 
-execution_result_s processor_c::execute_script(session_c *session,
+execution_result_s processor_c::execute_script(session_c &session,
                                                const std::string &script_text,
                                                const std::string &request_id) {
   execution_result_s result;
@@ -129,14 +103,14 @@ execution_result_s processor_c::execute_script(session_c *session,
   return result;
 }
 
-slp::slp_object_c processor_c::eval_object(session_c *session,
+slp::slp_object_c processor_c::eval_object(session_c &session,
                                            const slp::slp_object_c &obj) {
   eval_context_s empty_context;
   return eval_object_with_context(session, obj, empty_context);
 }
 
 slp::slp_object_c
-processor_c::eval_object_with_context(session_c *session,
+processor_c::eval_object_with_context(session_c &session,
                                       const slp::slp_object_c &obj,
                                       const eval_context_s &context) {
   auto type = obj.type();
@@ -150,16 +124,16 @@ processor_c::eval_object_with_context(session_c *session,
   if (type == slp::slp_type_e::SYMBOL) {
     std::string sym = obj.as_symbol();
 
-    auto it = context.bindings.find(sym);
-    if (it != context.bindings.end()) {
+    auto it = context.find(sym);
+    if (it != context.end()) {
       const auto &bound_obj = it->second;
       return slp::slp_object_c::from_data(bound_obj.get_data(),
                                           bound_obj.get_symbols(),
                                           bound_obj.get_root_offset());
     }
 
-    auto global_it = global_context_.bindings.find(sym);
-    if (global_it != global_context_.bindings.end()) {
+    auto global_it = global_context_.find(sym);
+    if (global_it != global_context_.end()) {
       const auto &bound_obj = global_it->second;
       return slp::slp_object_c::from_data(bound_obj.get_data(),
                                           bound_obj.get_symbols(),
@@ -198,7 +172,7 @@ processor_c::eval_object_with_context(session_c *session,
   return slp::parse("0").take();
 }
 
-slp::slp_object_c processor_c::call_function(session_c *session,
+slp::slp_object_c processor_c::call_function(session_c &session,
                                              const std::string &name,
                                              const slp::slp_object_c &args,
                                              const eval_context_s &context) {
@@ -230,480 +204,51 @@ void processor_c::register_function(const std::string &name,
 }
 
 void processor_c::register_builtin_functions() {
-  register_function("kv/set", [this](session_c *session,
-                                     const slp::slp_object_c &args,
-                                     const eval_context_s &context) {
-    auto list = args.as_list();
-    if (list.size() < 3) {
-      return SLP_ERROR("kv/set requires key and value");
+  auto groups = fns::get_all_function_groups(*this);
+
+  for (const auto &group : groups) {
+    for (const auto &[name, handler] : group.functions) {
+      std::string qualified_name = std::string(group.group_name) + "/" + name;
+      register_function(qualified_name, handler);
     }
+  }
+}
 
-    auto key_obj = list.at(1);
-    auto value_obj = list.at(2);
+logger_t processor_c::get_logger() { return logger_; }
 
-    std::string key;
-    if (key_obj.type() == slp::slp_type_e::SYMBOL) {
-      key = key_obj.as_symbol();
-    } else if (key_obj.type() == slp::slp_type_e::DQ_LIST) {
-      key = key_obj.as_string().to_string();
-    } else {
-      return SLP_ERROR("key must be symbol or string");
-    }
-
-    auto value_result = eval_object_with_context(session, value_obj, context);
-    std::string value = slp_object_to_string(value_result);
-
-    auto *store = session->get_store();
-    if (!store) {
-      return SLP_ERROR("session store not available");
-    }
-
-    bool success = store->set(key, value);
-    if (!success) {
-      return SLP_ERROR("kv/set failed (check permissions)");
-    }
-
-    logger_->debug("[processor_c] kv/set {} = {}", key, value);
-    return SLP_BOOL(true);
-  });
-
-  register_function("kv/get", [this](session_c *session,
-                                     const slp::slp_object_c &args,
-                                     const eval_context_s &context) {
-    auto list = args.as_list();
-    if (list.size() < 2) {
-      return SLP_ERROR("kv/get requires key");
-    }
-
-    auto key_obj = list.at(1);
-    std::string key;
-    if (key_obj.type() == slp::slp_type_e::SYMBOL) {
-      key = key_obj.as_symbol();
-    } else if (key_obj.type() == slp::slp_type_e::DQ_LIST) {
-      key = key_obj.as_string().to_string();
-    } else {
-      return SLP_ERROR("key must be symbol or string");
-    }
-
-    auto *store = session->get_store();
-    if (!store) {
-      return SLP_ERROR("session store not available");
-    }
-
-    std::string value;
-    bool success = store->get(key, value);
-    if (!success) {
-      return SLP_ERROR("kv/get failed (key not found or no permission)");
-    }
-
-    logger_->debug("[processor_c] kv/get {} = {}", key, value);
-    return SLP_STRING(value);
-  });
-
-  register_function("kv/del",
-                    [this](session_c *session, const slp::slp_object_c &args,
-                           const eval_context_s &context) {
-                      auto list = args.as_list();
-                      if (list.size() < 2) {
-                        return SLP_ERROR("kv/del requires key");
-                      }
-
-                      auto key_obj = list.at(1);
-                      std::string key;
-                      if (key_obj.type() == slp::slp_type_e::SYMBOL) {
-                        key = key_obj.as_symbol();
-                      } else if (key_obj.type() == slp::slp_type_e::DQ_LIST) {
-                        key = key_obj.as_string().to_string();
-                      } else {
-                        return SLP_ERROR("key must be symbol or string");
-                      }
-
-                      auto *store = session->get_store();
-                      if (!store) {
-                        return SLP_ERROR("session store not available");
-                      }
-
-                      bool success = store->del(key);
-                      if (!success) {
-                        return SLP_ERROR("kv/del failed (check permissions)");
-                      }
-
-                      logger_->debug("[processor_c] kv/del {}", key);
-                      return SLP_BOOL(true);
-                    });
-
-  register_function("kv/exists", [this](session_c *session,
-                                        const slp::slp_object_c &args,
-                                        const eval_context_s &context) {
-    auto list = args.as_list();
-    if (list.size() < 2) {
-      return SLP_ERROR("kv/exists requires key");
-    }
-
-    auto key_obj = list.at(1);
-    std::string key;
-    if (key_obj.type() == slp::slp_type_e::SYMBOL) {
-      key = key_obj.as_symbol();
-    } else if (key_obj.type() == slp::slp_type_e::DQ_LIST) {
-      key = key_obj.as_string().to_string();
-    } else {
-      return SLP_ERROR("key must be symbol or string");
-    }
-
-    auto *store = session->get_store();
-    if (!store) {
-      return SLP_ERROR("session store not available");
-    }
-
-    bool exists = store->exists(key);
-    logger_->debug("[processor_c] kv/exists {} = {}", key, exists);
-    return SLP_BOOL(exists);
-  });
-
-  register_function("event/pub", [this](session_c *session,
-                                        const slp::slp_object_c &args,
-                                        const eval_context_s &context) {
-    auto list = args.as_list();
-    if (list.size() < 4) {
-      return SLP_ERROR("event/pub requires channel, topic-id and data (use "
-                       "$CHANNEL_A through $CHANNEL_F)");
-    }
-
-    // Evaluate the channel argument to resolve symbols like $CHANNEL_A
-    auto channel_obj = eval_object_with_context(session, list.at(1), context);
-    auto topic_obj = list.at(2);
-    auto data_obj = list.at(3);
-
-    if (channel_obj.type() != slp::slp_type_e::SYMBOL) {
-      return SLP_ERROR("channel must be $CHANNEL_A through $CHANNEL_F");
-    }
-
-    std::string channel_sym = channel_obj.as_symbol();
-    events::event_category_e category;
-
-    if (channel_sym == "A") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_A;
-    } else if (channel_sym == "B") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_B;
-    } else if (channel_sym == "C") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_C;
-    } else if (channel_sym == "D") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_D;
-    } else if (channel_sym == "E") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_E;
-    } else if (channel_sym == "F") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_F;
-    } else {
-      return SLP_ERROR("invalid channel (must be A, B, C, D, E, or F)");
-    }
-
-    if (topic_obj.type() != slp::slp_type_e::INTEGER) {
-      return SLP_ERROR("topic-id must be integer");
-    }
-
-    std::uint16_t topic_id = static_cast<std::uint16_t>(topic_obj.as_int());
-
-    auto data_result = eval_object_with_context(session, data_obj, context);
-    std::string data_str = slp_object_to_string(data_result);
-
-    publish_result_e result =
-        session->publish_event(category, topic_id, data_str);
-
-    switch (result) {
-    case publish_result_e::OK:
-      break;
-    case publish_result_e::RATE_LIMIT_EXCEEDED:
-      return SLP_ERROR("event/pub failed (rate limit exceeded)");
-    case publish_result_e::PERMISSION_DENIED:
-      return SLP_ERROR("event/pub failed (permission denied)");
-    case publish_result_e::NO_ENTITY:
-      return SLP_ERROR("event/pub failed (no entity)");
-    case publish_result_e::NO_EVENT_SYSTEM:
-      return SLP_ERROR("event/pub failed (no event system)");
-    case publish_result_e::NO_PRODUCER:
-      return SLP_ERROR("event/pub failed (no producer)");
-    case publish_result_e::NO_TOPIC_WRITER:
-      return SLP_ERROR("event/pub failed (no topic writer)");
-    default:
-      return SLP_ERROR("event/pub failed (unknown error)");
-    }
-
-    logger_->debug("[processor_c] event/pub channel {} topic {} data {}",
-                   channel_sym, topic_id, data_str);
-    return SLP_BOOL(true);
-  });
-
-  register_function("event/sub", [this](session_c *session,
-                                        const slp::slp_object_c &args,
-                                        const eval_context_s &context) {
-    auto list = args.as_list();
-    if (list.size() < 4) {
-      return SLP_ERROR("event/sub requires channel, topic-id and handler body "
-                       "(use $CHANNEL_A through $CHANNEL_F)");
-    }
-
-    // Evaluate the channel argument to resolve symbols like $CHANNEL_A
-    auto channel_obj = eval_object_with_context(session, list.at(1), context);
-    auto topic_obj = list.at(2);
-    auto handler_obj = list.at(3);
-
-    if (channel_obj.type() != slp::slp_type_e::SYMBOL) {
-      return SLP_ERROR("channel must be $CHANNEL_A through $CHANNEL_F");
-    }
-
-    std::string channel_sym = channel_obj.as_symbol();
-    events::event_category_e category;
-
-    if (channel_sym == "A") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_A;
-    } else if (channel_sym == "B") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_B;
-    } else if (channel_sym == "C") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_C;
-    } else if (channel_sym == "D") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_D;
-    } else if (channel_sym == "E") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_E;
-    } else if (channel_sym == "F") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_F;
-    } else {
-      return SLP_ERROR("invalid channel (must be A, B, C, D, E, or F)");
-    }
-
-    if (topic_obj.type() != slp::slp_type_e::INTEGER) {
-      return SLP_ERROR("topic-id must be integer");
-    }
-
-    if (handler_obj.type() != slp::slp_type_e::BRACE_LIST) {
-      return SLP_ERROR("handler must be a brace list {}");
-    }
-
-    std::uint16_t topic_id = static_cast<std::uint16_t>(topic_obj.as_int());
-
-    subscription_handler_s handler;
-    handler.session = session;
-    handler.category = category;
-    handler.topic_id = topic_id;
-    handler.handler_data = handler_obj.get_data();
-    handler.handler_symbols = handler_obj.get_symbols();
-    handler.handler_root_offset = handler_obj.get_root_offset();
-
-    {
-      std::lock_guard<std::mutex> lock(subscription_handlers_mutex_);
-      subscription_handlers_.push_back(handler);
-    }
-
-    bool success = session->subscribe_to_topic(
-        category, topic_id,
-        [this, session, category, topic_id](const events::event_s &event) {
-          std::lock_guard<std::mutex> lock(subscription_handlers_mutex_);
-          for (const auto &h : subscription_handlers_) {
-            if (h.session == session && h.category == category &&
-                h.topic_id == topic_id) {
-              eval_context_s context;
-
-              std::string event_data;
-              try {
-                event_data = std::any_cast<std::string>(event.payload);
-              } catch (...) {
-                event_data = "<event data>";
-              }
-              context.bindings["$data"] = SLP_STRING(event_data);
-
-              auto handler_obj = slp::slp_object_c::from_data(
-                  h.handler_data, h.handler_symbols, h.handler_root_offset);
-
-              auto list = handler_obj.as_list();
-              for (size_t i = 0; i < list.size(); i++) {
-                auto result =
-                    eval_object_with_context(session, list.at(i), context);
-                if (result.type() == slp::slp_type_e::ERROR) {
-                  logger_->debug("[processor_c] Handler encountered error, "
-                                 "stopping execution");
-                  break;
-                }
-              }
-              break;
-            }
-          }
-        });
-
-    if (!success) {
-      std::lock_guard<std::mutex> lock(subscription_handlers_mutex_);
-      subscription_handlers_.erase(
-          std::remove_if(subscription_handlers_.begin(),
-                         subscription_handlers_.end(),
-                         [&](const subscription_handler_s &sh) {
-                           return sh.session == session &&
-                                  sh.category == category &&
-                                  sh.topic_id == topic_id &&
-                                  sh.handler_data == handler.handler_data;
-                         }),
-          subscription_handlers_.end());
-      return SLP_ERROR("event/sub failed (check permissions)");
-    }
-
-    logger_->debug("[processor_c] event/sub channel {} topic {} with handler",
-                   channel_sym, topic_id);
-    return SLP_BOOL(true);
-  });
-
-  register_function("runtime/log", [this](session_c *session,
-                                          const slp::slp_object_c &args,
-                                          const eval_context_s &context) {
-    auto list = args.as_list();
-    if (list.size() < 2) {
-      return SLP_ERROR("runtime/log requires message");
-    }
-
-    std::stringstream ss;
-    for (size_t i = 1; i < list.size(); i++) {
-      if (i > 1) {
-        ss << " ";
-      }
-      auto msg_result = eval_object_with_context(session, list.at(i), context);
-      ss << slp_object_to_string(msg_result);
-    }
-
-    std::string message = ss.str();
-    logger_->info("[session:{}] {}", session->get_id(), message);
-    return SLP_BOOL(true);
-  });
-
-  register_function("runtime/eval", [this](session_c *session,
-                                           const slp::slp_object_c &args,
+slp::slp_object_c processor_c::eval_object(session_c &session,
+                                           const slp::slp_object_c &obj,
                                            const eval_context_s &context) {
-    auto list = args.as_list();
-    if (list.size() < 2) {
-      return SLP_ERROR("runtime/eval requires script text");
-    }
+  return eval_object_with_context(session, obj, context);
+}
 
-    auto script_obj = eval_object_with_context(session, list.at(1), context);
-    std::string script_text = slp_object_to_string(script_obj);
+std::string processor_c::object_to_string(const slp::slp_object_c &obj) {
+  return slp_object_to_string(obj);
+}
 
-    auto parse_result = slp::parse(script_text);
-    if (parse_result.is_error()) {
-      return SLP_ERROR("runtime/eval parse error");
-    }
+std::vector<runtime_information_if::subscription_handler_s> *
+processor_c::get_subscription_handlers() {
+  return reinterpret_cast<
+      std::vector<runtime_information_if::subscription_handler_s> *>(
+      &subscription_handlers_);
+}
 
-    return eval_object_with_context(session, parse_result.object(), context);
-  });
+std::mutex *processor_c::get_subscription_handlers_mutex() {
+  return &subscription_handlers_mutex_;
+}
 
-  register_function("runtime/await", [this](session_c *session,
-                                            const slp::slp_object_c &args,
-                                            const eval_context_s &context) {
-    auto list = args.as_list();
-    if (list.size() < 4) {
-      return SLP_ERROR(
-          "runtime/await requires body, response-channel and response-topic");
-    }
+std::map<std::string,
+         std::shared_ptr<runtime_information_if::pending_await_s>> *
+processor_c::get_pending_awaits() {
+  return &pending_awaits_;
+}
 
-    auto body_obj = list.at(1);
-    auto resp_channel_obj =
-        eval_object_with_context(session, list.at(2), context);
-    auto resp_topic_obj = list.at(3);
+std::mutex *processor_c::get_pending_awaits_mutex() {
+  return &pending_awaits_mutex_;
+}
 
-    if (resp_channel_obj.type() != slp::slp_type_e::SYMBOL) {
-      return SLP_ERROR(
-          "response channel must be $CHANNEL_A through $CHANNEL_F");
-    }
-
-    if (resp_topic_obj.type() != slp::slp_type_e::INTEGER) {
-      return SLP_ERROR("response topic must be integer");
-    }
-
-    std::string channel_sym = resp_channel_obj.as_symbol();
-    events::event_category_e category;
-
-    if (channel_sym == "A") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_A;
-    } else if (channel_sym == "B") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_B;
-    } else if (channel_sym == "C") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_C;
-    } else if (channel_sym == "D") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_D;
-    } else if (channel_sym == "E") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_E;
-    } else if (channel_sym == "F") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_F;
-    } else {
-      return SLP_ERROR("invalid channel (must be A, B, C, D, E, or F)");
-    }
-
-    std::uint16_t topic_id =
-        static_cast<std::uint16_t>(resp_topic_obj.as_int());
-
-    std::string await_id =
-        session->get_id() + "_" +
-        std::to_string(
-            std::chrono::steady_clock::now().time_since_epoch().count());
-
-    auto pending = std::make_shared<pending_await_s>();
-
-    {
-      std::lock_guard<std::mutex> lock(pending_awaits_mutex_);
-      pending_awaits_[await_id] = pending;
-    }
-
-    bool sub_success = session->subscribe_to_topic(
-        category, topic_id,
-        [this, await_id, pending](const events::event_s &event) {
-          std::string event_data;
-          try {
-            event_data = std::any_cast<std::string>(event.payload);
-          } catch (...) {
-            event_data = "<event data>";
-          }
-
-          std::lock_guard<std::mutex> lock(pending->mutex);
-          pending->result = SLP_STRING(event_data);
-          pending->completed = true;
-          pending->cv.notify_one();
-        });
-
-    if (!sub_success) {
-      std::lock_guard<std::mutex> lock(pending_awaits_mutex_);
-      pending_awaits_.erase(await_id);
-      return SLP_ERROR("runtime/await failed to subscribe");
-    }
-
-    auto body_result = eval_object_with_context(session, body_obj, context);
-    if (body_result.type() == slp::slp_type_e::ERROR) {
-      session->unsubscribe_from_topic(category, topic_id);
-      std::lock_guard<std::mutex> lock(pending_awaits_mutex_);
-      pending_awaits_.erase(await_id);
-      return body_result;
-    }
-
-    {
-      std::unique_lock<std::mutex> lock(pending->mutex);
-      auto timeout = std::chrono::seconds(MAX_AWAIT_TIMEOUT);
-      if (!pending->cv.wait_for(lock, timeout,
-                                [&pending] { return pending->completed; })) {
-        session->unsubscribe_from_topic(category, topic_id);
-        std::lock_guard<std::mutex> await_lock(pending_awaits_mutex_);
-        pending_awaits_.erase(await_id);
-        return SLP_ERROR("runtime/await timeout waiting for response");
-      }
-    }
-
-    session->unsubscribe_from_topic(category, topic_id);
-    slp::slp_object_c result;
-    {
-      std::lock_guard<std::mutex> lock(pending->mutex);
-      result = slp::slp_object_c::from_data(pending->result.get_data(),
-                                            pending->result.get_symbols(),
-                                            pending->result.get_root_offset());
-    }
-
-    {
-      std::lock_guard<std::mutex> lock(pending_awaits_mutex_);
-      pending_awaits_.erase(await_id);
-    }
-
-    return result;
-  });
+std::chrono::seconds processor_c::get_max_await_timeout() {
+  return MAX_AWAIT_TIMEOUT;
 }
 
 } // namespace runtime

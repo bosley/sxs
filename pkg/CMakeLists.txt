@@ -50,6 +50,7 @@ add_library(pkg::kvds ALIAS pkg_kvds)
 
 add_library(pkg_slp STATIC
     slp/slp.cpp
+    slp/buffer.cpp
 )
 
 target_include_directories(pkg_slp PUBLIC
@@ -84,6 +85,11 @@ add_library(pkg_runtime STATIC
     runtime/system/system.cpp
     runtime/events/events.cpp
     runtime/processor.cpp
+    runtime/fns/fns.cpp
+    runtime/fns/kv.cpp
+    runtime/fns/event.cpp
+    runtime/fns/expr.cpp
+    runtime/fns/util.cpp
 )
 
 target_include_directories(pkg_runtime PUBLIC

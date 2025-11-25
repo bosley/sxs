@@ -10,7 +10,7 @@ namespace slp {
 struct parser_state_s {
   const std::string &source;
   size_t pos;
-  std::vector<std::uint8_t> data_buffer;
+  slp_buffer_c data_buffer;
   std::map<std::uint64_t, std::string> symbols;
   std::uint64_t next_symbol_id;
 
@@ -113,10 +113,9 @@ parse_result_internal_s parse_string(parser_state_s &state) {
   if (!char_offsets.empty()) {
     offsets_array_pos = state.data_buffer.size();
     for (size_t offset : char_offsets) {
-      state.data_buffer.insert(state.data_buffer.end(),
+      state.data_buffer.insert(state.data_buffer.size(),
                                reinterpret_cast<const std::uint8_t *>(&offset),
-                               reinterpret_cast<const std::uint8_t *>(&offset) +
-                                   sizeof(size_t));
+                               sizeof(size_t));
     }
   }
 
@@ -174,10 +173,9 @@ parse_result_internal_s parse_list(parser_state_s &state, char open, char close,
   if (!element_offsets.empty()) {
     offsets_array_pos = state.data_buffer.size();
     for (size_t offset : element_offsets) {
-      state.data_buffer.insert(state.data_buffer.end(),
+      state.data_buffer.insert(state.data_buffer.size(),
                                reinterpret_cast<const std::uint8_t *>(&offset),
-                               reinterpret_cast<const std::uint8_t *>(&offset) +
-                                   sizeof(size_t));
+                               sizeof(size_t));
     }
   }
 
@@ -292,10 +290,9 @@ parse_result_internal_s handle_bracket_list(parser_state_s &state) {
   if (!element_offsets.empty()) {
     offsets_array_pos = state.data_buffer.size();
     for (size_t offset : element_offsets) {
-      state.data_buffer.insert(state.data_buffer.end(),
+      state.data_buffer.insert(state.data_buffer.size(),
                                reinterpret_cast<const std::uint8_t *>(&offset),
-                               reinterpret_cast<const std::uint8_t *>(&offset) +
-                                   sizeof(size_t));
+                               sizeof(size_t));
     }
   }
 
@@ -546,9 +543,7 @@ bool slp_object_c::has_data() const {
   return view_ != nullptr && !data_.empty();
 }
 
-const std::vector<std::uint8_t> &slp_object_c::get_data() const {
-  return data_;
-}
+const slp_buffer_c &slp_object_c::get_data() const { return data_; }
 
 const std::map<std::uint64_t, std::string> &slp_object_c::get_symbols() const {
   return symbols_;
@@ -557,7 +552,7 @@ const std::map<std::uint64_t, std::string> &slp_object_c::get_symbols() const {
 size_t slp_object_c::get_root_offset() const { return root_offset_; }
 
 slp_object_c
-slp_object_c::from_data(const std::vector<std::uint8_t> &data,
+slp_object_c::from_data(const slp_buffer_c &data,
                         const std::map<std::uint64_t, std::string> &symbols,
                         size_t root_offset) {
   slp_object_c obj;

@@ -47,7 +47,7 @@ create_test_session(runtime::events::event_system_c &event_system,
 }
 } // namespace
 
-TEST_CASE("event/sub with handler body executes on event",
+TEST_CASE("core/event/sub with handler body executes on event",
           "[unit][runtime][processor]") {
   auto logger = create_test_logger();
   runtime::events::event_system_c event_system(logger.get(), 2, 100);
@@ -75,16 +75,16 @@ TEST_CASE("event/sub with handler body executes on event",
   entity->grant_topic_permission(300, runtime::topic_permission::PUBSUB);
   entity->save();
 
-  runtime::processor_c processor(logger.get(), &event_system);
+  runtime::processor_c processor(logger.get(), event_system);
   runtime::session_c *session =
       create_test_session(event_system, data_ds, entity.get());
 
   SECTION("handler executes and can use $data binding") {
     runtime::execution_request_s sub_request;
     sub_request.session = session;
-    sub_request.script_text = R"((event/sub $CHANNEL_A 300 {
-      (kv/set received_data $data)
-      (runtime/log "Received event:" $data)
+    sub_request.script_text = R"((core/event/sub $CHANNEL_A 300 {
+      (core/kv/set received_data $data)
+      (core/util/log "Received event:" $data)
     }))";
     sub_request.request_id = "sub_req";
 
@@ -120,10 +120,10 @@ TEST_CASE("event/sub with handler body executes on event",
   SECTION("handler with multiple statements executes in order") {
     runtime::execution_request_s sub_request;
     sub_request.session = session;
-    sub_request.script_text = R"((event/sub $CHANNEL_A 300 {
-      (kv/set step1 "first")
-      (kv/set step2 "second")
-      (kv/set data_copy $data)
+    sub_request.script_text = R"((core/event/sub $CHANNEL_A 300 {
+      (core/kv/set step1 "first")
+      (core/kv/set step2 "second")
+      (core/kv/set data_copy $data)
     }))";
     sub_request.request_id = "multi_req";
 
