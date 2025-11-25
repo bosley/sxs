@@ -118,7 +118,8 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
     channel_context["$CHANNEL_E"] = slp::parse("E").take();
     channel_context["$CHANNEL_F"] = slp::parse("F").take();
 
-    auto channel_obj = runtime_info.eval_object(session, list.at(1), channel_context);
+    auto channel_obj =
+        runtime_info.eval_object(session, list.at(1), channel_context);
     auto topic_obj = list.at(2);
     auto handler_obj = list.at(3);
 

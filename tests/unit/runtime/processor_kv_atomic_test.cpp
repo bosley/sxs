@@ -480,4 +480,3 @@ TEST_CASE("core/kv/iterate processes keys with prefix",
   ensure_db_cleanup(data_test_path);
   ensure_db_cleanup(entity_test_path);
 }
-
