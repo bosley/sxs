@@ -106,6 +106,21 @@ target_link_libraries(pkg_runtime PUBLIC
 
 add_library(pkg::runtime ALIAS pkg_runtime)
 
+add_library(pkg_ts STATIC
+    ts/ts.cpp
+)
+
+target_include_directories(pkg_ts PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(pkg_ts PUBLIC
+    pkg::slp
+    fmt::fmt
+)
+
+add_library(pkg::ts ALIAS pkg_ts)
+
 add_library(pkg_record STATIC
     record/record.cpp
 )

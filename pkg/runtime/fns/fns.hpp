@@ -15,6 +15,7 @@ namespace runtime::fns {
 struct function_parameter_s {
   std::string name;
   slp::slp_type_e type;
+  bool is_evaluated{true};
 };
 
 struct function_information_s {

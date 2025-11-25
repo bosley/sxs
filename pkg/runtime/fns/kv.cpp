@@ -12,8 +12,8 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
   group.group_name = "core/kv";
 
   group.functions["set"].return_type = slp::slp_type_e::SYMBOL;
-  group.functions["set"].parameters = {{"key", slp::slp_type_e::SYMBOL},
-                                       {"value", slp::slp_type_e::NONE}};
+  group.functions["set"].parameters = {{"key", slp::slp_type_e::SYMBOL, false},
+                                       {"value", slp::slp_type_e::NONE, true}};
   group.functions["set"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
@@ -50,7 +50,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
       };
 
   group.functions["get"].return_type = slp::slp_type_e::DQ_LIST;
-  group.functions["get"].parameters = {{"key", slp::slp_type_e::SYMBOL}};
+  group.functions["get"].parameters = {{"key", slp::slp_type_e::SYMBOL, false}};
   group.functions["get"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
@@ -83,7 +83,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
       };
 
   group.functions["del"].return_type = slp::slp_type_e::SYMBOL;
-  group.functions["del"].parameters = {{"key", slp::slp_type_e::SYMBOL}};
+  group.functions["del"].parameters = {{"key", slp::slp_type_e::SYMBOL, false}};
   group.functions["del"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
@@ -114,7 +114,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
       };
 
   group.functions["exists"].return_type = slp::slp_type_e::SYMBOL;
-  group.functions["exists"].parameters = {{"key", slp::slp_type_e::SYMBOL}};
+  group.functions["exists"].parameters = {{"key", slp::slp_type_e::SYMBOL, false}};
   group.functions["exists"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
@@ -141,8 +141,8 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
       };
 
   group.functions["snx"].return_type = slp::slp_type_e::SYMBOL;
-  group.functions["snx"].parameters = {{"key", slp::slp_type_e::SYMBOL},
-                                       {"value", slp::slp_type_e::NONE}};
+  group.functions["snx"].parameters = {{"key", slp::slp_type_e::SYMBOL, false},
+                                       {"value", slp::slp_type_e::NONE, true}};
   group.functions["snx"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
@@ -181,9 +181,9 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
 
   group.functions["cas"].return_type = slp::slp_type_e::SYMBOL;
   group.functions["cas"].parameters = {
-      {"key", slp::slp_type_e::SYMBOL},
-      {"expected_value", slp::slp_type_e::NONE},
-      {"new_value", slp::slp_type_e::NONE}};
+      {"key", slp::slp_type_e::SYMBOL, false},
+      {"expected_value", slp::slp_type_e::NONE, true},
+      {"new_value", slp::slp_type_e::NONE, true}};
   group.functions["cas"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
@@ -231,10 +231,10 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
 
   group.functions["iterate"].return_type = slp::slp_type_e::SYMBOL;
   group.functions["iterate"].parameters = {
-      {"prefix", slp::slp_type_e::SYMBOL},
-      {"offset", slp::slp_type_e::INTEGER},
-      {"limit", slp::slp_type_e::INTEGER},
-      {"handler_body", slp::slp_type_e::BRACE_LIST}};
+      {"prefix", slp::slp_type_e::SYMBOL, true},
+      {"offset", slp::slp_type_e::INTEGER, false},
+      {"limit", slp::slp_type_e::INTEGER, false},
+      {"handler_body", slp::slp_type_e::BRACE_LIST, false}};
   group.functions["iterate"]
       .function = [&runtime_info](
                       session_c &session, const slp::slp_object_c &args,

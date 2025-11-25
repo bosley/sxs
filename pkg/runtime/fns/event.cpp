@@ -12,9 +12,9 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
   group.group_name = "core/event";
 
   group.functions["pub"].return_type = slp::slp_type_e::SYMBOL;
-  group.functions["pub"].parameters = {{"channel", slp::slp_type_e::SYMBOL},
-                                       {"topic_id", slp::slp_type_e::INTEGER},
-                                       {"data", slp::slp_type_e::NONE}};
+  group.functions["pub"].parameters = {{"channel", slp::slp_type_e::SYMBOL, true},
+                                       {"topic_id", slp::slp_type_e::INTEGER, false},
+                                       {"data", slp::slp_type_e::NONE, true}};
   group.functions["pub"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
@@ -100,9 +100,9 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
 
   group.functions["sub"].return_type = slp::slp_type_e::SYMBOL;
   group.functions["sub"].parameters = {
-      {"channel", slp::slp_type_e::SYMBOL},
-      {"topic_id", slp::slp_type_e::INTEGER},
-      {"handler_body", slp::slp_type_e::BRACE_LIST}};
+      {"channel", slp::slp_type_e::SYMBOL, true},
+      {"topic_id", slp::slp_type_e::INTEGER, false},
+      {"handler_body", slp::slp_type_e::BRACE_LIST, false}};
   group.functions["sub"]
       .function = [&runtime_info](
                       session_c &session, const slp::slp_object_c &args,
