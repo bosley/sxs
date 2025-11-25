@@ -243,12 +243,19 @@ But in a homoiconic system, what you write IS the data structure. If I write:
 
 That's not just source code that gets parsed into some internal representation, that IS the internal representation. Its a list containing the symbol `core/kv/set`, the symbol `counter`, and the integer `42`. When the processor executes it, it's literally observing that list structure.
 
-For this runtime, I built SLP (S-expression Like Parser) as the representation format. Its essentially s-expressions - nested lists with atoms. Everything is either:
+For this runtime, I built SLP (S-expression Like Parser) as the representation format. Its essentially s-expressions- nested lists with atoms. Everything is one of the following types:
 
-- A list: `(something inside here)`
-- A symbol: `core/kv/set` or `counter`
-- A number: `42` or `3.14`
-- A string: `"hello"`
+- **PAREN_LIST**: Parentheses list `(something inside here)`
+- **BRACKET_LIST**: Bracket list `[something inside here]`
+- **BRACE_LIST**: Brace list `{something inside here}`
+- **DQ_LIST**: Double-quote list (string) `"hello world"`
+- **SYMBOL**: An identifier like `core/kv/set` or `counter`
+- **INTEGER**: A signed integer literal like `42` or `-17`
+- **REAL**: A floating-point literal like `3.14159` or `1e-5`
+- **SOME**: A quoted value `'something` that wraps another object, meaning "to be evaluated later"
+- **ERROR**: An error value `@something` that wraps another object to indicate an error condition
+- **RUNE**: A single character (used internally by DQ_LIST to store individual characters)
+- **NONE**: An empty/null value representing the absence of data
 
 That's it. And because instructions follow this same structure, there's no difference between storing a command in the K/V store, passing it as an event payload, or executing it. Its all just SLP objects.
 
@@ -606,7 +613,7 @@ When you execute a command like `(core/kv/set counter 42)` within a session:
 2. The wrapper automatically adds the session's scope prefix: `"my_scope/counter"`
 3. Before writing, it checks: "does my entity have write permission for `my_scope`?"
 4. If yes: write to the underlying store
-5. If no: return false silently
+5. If no: return false silently (a slp error type is produced)
 
 The same pattern applies to events. When you do `(core/event/pub $CHANNEL_A 100 "data")`:
 
