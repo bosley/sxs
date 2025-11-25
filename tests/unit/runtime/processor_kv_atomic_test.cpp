@@ -43,7 +43,7 @@ runtime::session_c *
 create_test_session(runtime::events::event_system_c &event_system,
                     kvds::datastore_c &data_ds, runtime::entity_c *entity) {
   return new runtime::session_c("test_session", "test_entity", "test_scope",
-                                entity, &data_ds, &event_system);
+                                *entity, &data_ds, &event_system);
 }
 } // namespace
 

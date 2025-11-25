@@ -70,7 +70,7 @@ TEST_CASE("explicit key scoping verification", "[unit][runtime][session]") {
     entity->grant_permission("my_scope", runtime::permission::READ_WRITE);
     entity->save();
 
-    runtime::session_c session("sess1", "user1", "my_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "my_scope", *entity.get(),
                                &data_ds, nullptr);
     auto *store = session.get_store();
 
@@ -96,9 +96,9 @@ TEST_CASE("explicit key scoping verification", "[unit][runtime][session]") {
     entity1->save();
     entity2->save();
 
-    runtime::session_c session1("sess1", "user1", "scope_a", entity1.get(),
+    runtime::session_c session1("sess1", "user1", "scope_a", *entity1.get(),
                                 &data_ds, nullptr);
-    runtime::session_c session2("sess2", "user2", "scope_b", entity2.get(),
+    runtime::session_c session2("sess2", "user2", "scope_b", *entity2.get(),
                                 &data_ds, nullptr);
 
     auto *store1 = session1.get_store();
@@ -127,9 +127,9 @@ TEST_CASE("explicit key scoping verification", "[unit][runtime][session]") {
     entity->grant_permission("shared_scope", runtime::permission::READ_WRITE);
     entity->save();
 
-    runtime::session_c session1("sess1", "user1", "shared_scope", entity.get(),
+    runtime::session_c session1("sess1", "user1", "shared_scope", *entity.get(),
                                 &data_ds, nullptr);
-    runtime::session_c session2("sess2", "user1", "shared_scope", entity.get(),
+    runtime::session_c session2("sess2", "user1", "shared_scope", *entity.get(),
                                 &data_ds, nullptr);
 
     CHECK(session1.get_store()->set("key1", "from_session1"));
@@ -167,7 +167,7 @@ TEST_CASE("key masking on iteration", "[unit][runtime][session]") {
     entity->grant_permission("test_scope", runtime::permission::READ_WRITE);
     entity->save();
 
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, nullptr);
     auto *store = session.get_store();
 
@@ -196,7 +196,7 @@ TEST_CASE("key masking on iteration", "[unit][runtime][session]") {
     entity->grant_permission("test_scope", runtime::permission::READ_WRITE);
     entity->save();
 
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, nullptr);
     auto *store = session.get_store();
 
@@ -233,9 +233,9 @@ TEST_CASE("key masking on iteration", "[unit][runtime][session]") {
     entity1->save();
     entity2->save();
 
-    runtime::session_c session1("sess1", "user1", "scope_a", entity1.get(),
+    runtime::session_c session1("sess1", "user1", "scope_a", *entity1.get(),
                                 &data_ds, nullptr);
-    runtime::session_c session2("sess2", "user2", "scope_b", entity2.get(),
+    runtime::session_c session2("sess2", "user2", "scope_b", *entity2.get(),
                                 &data_ds, nullptr);
 
     CHECK(session1.get_store()->set("key1", "a1"));
@@ -296,7 +296,7 @@ TEST_CASE("session time tracking", "[unit][runtime][session]") {
 
   SECTION("creation time is set") {
     auto before = std::time(nullptr);
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, nullptr);
     auto after = std::time(nullptr);
 
@@ -306,7 +306,7 @@ TEST_CASE("session time tracking", "[unit][runtime][session]") {
   }
 
   SECTION("creation time doesn't change after operations") {
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, nullptr);
     auto initial_time = session.get_creation_time();
 
@@ -323,13 +323,13 @@ TEST_CASE("session time tracking", "[unit][runtime][session]") {
   }
 
   SECTION("multiple sessions have different creation times") {
-    runtime::session_c session1("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session1("sess1", "user1", "test_scope", *entity.get(),
                                 &data_ds, nullptr);
     auto time1 = session1.get_creation_time();
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    runtime::session_c session2("sess2", "user1", "test_scope", entity.get(),
+    runtime::session_c session2("sess2", "user1", "test_scope", *entity.get(),
                                 &data_ds, nullptr);
     auto time2 = session2.get_creation_time();
 
@@ -363,7 +363,7 @@ TEST_CASE("comprehensive kv operations", "[unit][runtime][session]") {
   entity->save();
 
   SECTION("exists checks scoped keys") {
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, nullptr);
     auto *store = session.get_store();
 
@@ -376,7 +376,7 @@ TEST_CASE("comprehensive kv operations", "[unit][runtime][session]") {
   }
 
   SECTION("del removes scoped keys") {
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, nullptr);
     auto *store = session.get_store();
 
@@ -389,7 +389,7 @@ TEST_CASE("comprehensive kv operations", "[unit][runtime][session]") {
   }
 
   SECTION("set_batch with scoping") {
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, nullptr);
     auto *store = session.get_store();
 
@@ -412,7 +412,7 @@ TEST_CASE("comprehensive kv operations", "[unit][runtime][session]") {
   }
 
   SECTION("special characters in keys") {
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, nullptr);
     auto *store = session.get_store();
 
@@ -433,7 +433,7 @@ TEST_CASE("comprehensive kv operations", "[unit][runtime][session]") {
   }
 
   SECTION("long key names") {
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, nullptr);
     auto *store = session.get_store();
 
@@ -471,7 +471,7 @@ TEST_CASE("permission boundary tests", "[unit][runtime][session]") {
     REQUIRE(entity_opt.has_value());
     auto entity = std::move(entity_opt.value());
 
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, nullptr);
     auto *store = session.get_store();
 
@@ -498,7 +498,7 @@ TEST_CASE("permission boundary tests", "[unit][runtime][session]") {
     data_ds.set("readonly_scope/existing_key", "existing_value");
 
     runtime::session_c session("readonly_session", "readonly_user",
-                               "readonly_scope", entity.get(), &data_ds,
+                               "readonly_scope", *entity.get(), &data_ds,
                                nullptr);
     auto *store = session.get_store();
 
@@ -527,7 +527,7 @@ TEST_CASE("permission boundary tests", "[unit][runtime][session]") {
     data_ds.set("writeonly_scope/key1", "value1");
 
     runtime::session_c session("writeonly_session", "writeonly_user",
-                               "writeonly_scope", entity.get(), &data_ds,
+                               "writeonly_scope", *entity.get(), &data_ds,
                                nullptr);
     auto *store = session.get_store();
 
@@ -549,7 +549,7 @@ TEST_CASE("permission boundary tests", "[unit][runtime][session]") {
     entity->save();
 
     runtime::session_c session("rw_session", "rw_user", "rw_scope",
-                               entity.get(), &data_ds, nullptr);
+                               *entity.get(), &data_ds, nullptr);
     auto *store = session.get_store();
 
     CHECK(store->set("key1", "value1"));
@@ -573,7 +573,7 @@ TEST_CASE("permission boundary tests", "[unit][runtime][session]") {
     REQUIRE(entity_opt.has_value());
     auto entity = std::move(entity_opt.value());
 
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, nullptr);
     auto *store = session.get_store();
 
@@ -609,7 +609,7 @@ TEST_CASE("session edge cases", "[unit][runtime][session]") {
   entity->save();
 
   SECTION("session metadata accessors") {
-    runtime::session_c session("sess123", "user456", "scope789", entity.get(),
+    runtime::session_c session("sess123", "user456", "scope789", *entity.get(),
                                &data_ds, nullptr);
 
     CHECK(session.get_id() == "sess123");
@@ -619,7 +619,7 @@ TEST_CASE("session edge cases", "[unit][runtime][session]") {
   }
 
   SECTION("session active state management") {
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, nullptr);
 
     CHECK(session.is_active());
@@ -630,7 +630,7 @@ TEST_CASE("session edge cases", "[unit][runtime][session]") {
   }
 
   SECTION("operations work regardless of active state") {
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, nullptr);
     auto *store = session.get_store();
 
@@ -647,7 +647,7 @@ TEST_CASE("session edge cases", "[unit][runtime][session]") {
   }
 
   SECTION("get_store returns consistent pointer") {
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, nullptr);
 
     auto *store1 = session.get_store();
@@ -745,7 +745,7 @@ TEST_CASE("session lifecycle management", "[unit][runtime][session]") {
     entity->grant_permission("test_scope", runtime::permission::READ_WRITE);
     entity->save();
 
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, nullptr);
 
     CHECK(session.is_active());
@@ -770,11 +770,11 @@ TEST_CASE("session lifecycle management", "[unit][runtime][session]") {
     entity1->save();
     entity2->save();
 
-    runtime::session_c session1("sess1", "user1", "scope1", entity1.get(),
+    runtime::session_c session1("sess1", "user1", "scope1", *entity1.get(),
                                 &data_ds, nullptr);
-    runtime::session_c session2("sess2", "user2", "scope2", entity2.get(),
+    runtime::session_c session2("sess2", "user2", "scope2", *entity2.get(),
                                 &data_ds, nullptr);
-    runtime::session_c session3("sess3", "user1", "scope1", entity1.get(),
+    runtime::session_c session3("sess3", "user1", "scope1", *entity1.get(),
                                 &data_ds, nullptr);
 
     CHECK(session1.get_id() == "sess1");
@@ -793,9 +793,9 @@ TEST_CASE("session lifecycle management", "[unit][runtime][session]") {
     entity->grant_permission("test_scope", runtime::permission::READ_WRITE);
     entity->save();
 
-    runtime::session_c session1("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session1("sess1", "user1", "test_scope", *entity.get(),
                                 &data_ds, nullptr);
-    runtime::session_c session2("sess2", "user1", "test_scope", entity.get(),
+    runtime::session_c session2("sess2", "user1", "test_scope", *entity.get(),
                                 &data_ds, nullptr);
 
     session1.get_store()->set("key1", "from_sess1");
@@ -831,7 +831,7 @@ TEST_CASE("session lifecycle management", "[unit][runtime][session]") {
 
     {
       runtime::session_c session("sess1", "user1", "persistent_scope",
-                                 entity.get(), &data_ds, nullptr);
+                                 *entity.get(), &data_ds, nullptr);
       session.get_store()->set("persistent_key", "persistent_value");
     }
 
@@ -841,7 +841,7 @@ TEST_CASE("session lifecycle management", "[unit][runtime][session]") {
 
     {
       runtime::session_c new_session("sess2", "user1", "persistent_scope",
-                                     entity.get(), &data_ds, nullptr);
+                                     *entity.get(), &data_ds, nullptr);
       CHECK(new_session.get_store()->get("persistent_key", value));
       CHECK(value == "persistent_value");
     }

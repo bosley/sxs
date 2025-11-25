@@ -203,9 +203,9 @@ TEST_CASE("entity rps multiple sessions share limit",
     shared_entity->grant_topic_permission(1, runtime::topic_permission::PUBSUB);
     shared_entity->save();
 
-    runtime::session_c session1("sess1", "user1", "scope1", shared_entity,
+    runtime::session_c session1("sess1", "user1", "scope1", *shared_entity,
                                 &data_ds, &event_system);
-    runtime::session_c session2("sess2", "user1", "scope2", shared_entity,
+    runtime::session_c session2("sess2", "user1", "scope2", *shared_entity,
                                 &data_ds, &event_system);
 
     int total_published = 0;
@@ -250,15 +250,15 @@ TEST_CASE("entity rps multiple sessions share limit",
     shared_entity->grant_topic_permission(1, runtime::topic_permission::PUBSUB);
     shared_entity->save();
 
-    runtime::session_c sess1("s1", "user2", "scope_a", shared_entity, &data_ds,
+    runtime::session_c sess1("s1", "user2", "scope_a", *shared_entity, &data_ds,
                              &event_system);
-    runtime::session_c sess2("s2", "user2", "scope_b", shared_entity, &data_ds,
+    runtime::session_c sess2("s2", "user2", "scope_b", *shared_entity, &data_ds,
                              &event_system);
-    runtime::session_c sess3("s3", "user2", "scope_c", shared_entity, &data_ds,
+    runtime::session_c sess3("s3", "user2", "scope_c", *shared_entity, &data_ds,
                              &event_system);
-    runtime::session_c sess4("s4", "user2", "scope_d", shared_entity, &data_ds,
+    runtime::session_c sess4("s4", "user2", "scope_d", *shared_entity, &data_ds,
                              &event_system);
-    runtime::session_c sess5("s5", "user2", "scope_e", shared_entity, &data_ds,
+    runtime::session_c sess5("s5", "user2", "scope_e", *shared_entity, &data_ds,
                              &event_system);
 
     std::vector<runtime::session_c *> sessions = {&sess1, &sess2, &sess3,
@@ -357,7 +357,7 @@ TEST_CASE("entity rps concurrent multi-threaded publishing",
       std::string sess_id = "sess_" + std::to_string(i);
       std::string scope = "scope_" + std::to_string(i);
       sessions.emplace_back(std::make_unique<runtime::session_c>(
-          sess_id, "user2", scope, shared_entity, &data_ds, &event_system));
+          sess_id, "user2", scope, *shared_entity, &data_ds, &event_system));
     }
 
     std::atomic<int> successful_publishes{0};
@@ -568,7 +568,7 @@ TEST_CASE("entity rps with permission blocking",
     entity->grant_permission("scope1", runtime::permission::READ_WRITE);
     entity->save();
 
-    runtime::session_c session("sess1", "user1", "scope1", entity.get(),
+    runtime::session_c session("sess1", "user1", "scope1", *entity.get(),
                                &data_ds, &event_system);
 
     CHECK(session.publish_event(
@@ -586,7 +586,7 @@ TEST_CASE("entity rps with permission blocking",
     entity->grant_topic_permission(1, runtime::topic_permission::PUBSUB);
     entity->save();
 
-    runtime::session_c session("sess1", "user2", "scope1", entity.get(),
+    runtime::session_c session("sess1", "user2", "scope1", *entity.get(),
                                &data_ds, &event_system);
 
     for (int i = 0; i < 10; ++i) {
@@ -636,7 +636,7 @@ TEST_CASE("entity rps stress test with rapid publishes",
     shared_entity->grant_topic_permission(1, runtime::topic_permission::PUBSUB);
     shared_entity->save();
 
-    runtime::session_c session("sess1", "user1", "scope1", shared_entity,
+    runtime::session_c session("sess1", "user1", "scope1", *shared_entity,
                                &data_ds, &event_system);
 
     int successful = 0;
@@ -700,9 +700,9 @@ TEST_CASE("entity rps different entities independent limits",
     entity2->grant_topic_permission(1, runtime::topic_permission::PUBSUB);
     entity2->save();
 
-    runtime::session_c session1("sess1", "user1", "scope1", entity1, &data_ds,
+    runtime::session_c session1("sess1", "user1", "scope1", *entity1, &data_ds,
                                 &event_system);
-    runtime::session_c session2("sess2", "user2", "scope2", entity2, &data_ds,
+    runtime::session_c session2("sess2", "user2", "scope2", *entity2, &data_ds,
                                 &event_system);
 
     int entity1_publishes = 0;

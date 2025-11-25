@@ -199,7 +199,7 @@ TEST_CASE("session publish with permissions",
     entity->grant_topic_permission(100, runtime::topic_permission::PUBLISH);
     entity->save();
 
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, &event_system);
 
     CHECK(session.publish_event(
@@ -211,7 +211,7 @@ TEST_CASE("session publish with permissions",
     entity->grant_topic_permission(101, runtime::topic_permission::PUBSUB);
     entity->save();
 
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, &event_system);
 
     CHECK(session.publish_event(
@@ -220,7 +220,7 @@ TEST_CASE("session publish with permissions",
   }
 
   SECTION("cannot publish without permission") {
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, &event_system);
 
     CHECK(session.publish_event(
@@ -233,7 +233,7 @@ TEST_CASE("session publish with permissions",
     entity->grant_topic_permission(103, runtime::topic_permission::SUBSCRIBE);
     entity->save();
 
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, &event_system);
 
     CHECK(session.publish_event(
@@ -277,7 +277,7 @@ TEST_CASE("session subscribe with permissions",
     entity->grant_topic_permission(200, runtime::topic_permission::SUBSCRIBE);
     entity->save();
 
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, &event_system);
 
     bool handler_called = false;
@@ -294,7 +294,7 @@ TEST_CASE("session subscribe with permissions",
     entity->grant_topic_permission(201, runtime::topic_permission::PUBSUB);
     entity->save();
 
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, &event_system);
 
     bool handler_called = false;
@@ -308,7 +308,7 @@ TEST_CASE("session subscribe with permissions",
   }
 
   SECTION("cannot subscribe without permission") {
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, &event_system);
 
     bool handler_called = false;
@@ -325,7 +325,7 @@ TEST_CASE("session subscribe with permissions",
     entity->grant_topic_permission(203, runtime::topic_permission::PUBLISH);
     entity->save();
 
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, &event_system);
 
     bool handler_called = false;
@@ -372,7 +372,7 @@ TEST_CASE("session event publish and consume",
     entity->grant_topic_permission(300, runtime::topic_permission::PUBSUB);
     entity->save();
 
-    runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+    runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                                &data_ds, &event_system);
 
     std::atomic<int> event_count{0};
@@ -415,9 +415,9 @@ TEST_CASE("session event publish and consume",
     entity2->grant_topic_permission(400, runtime::topic_permission::SUBSCRIBE);
     entity2->save();
 
-    runtime::session_c session1("sess1", "user1", "scope1", entity1.get(),
+    runtime::session_c session1("sess1", "user1", "scope1", *entity1.get(),
                                 &data_ds, &event_system);
-    runtime::session_c session2("sess2", "user2", "scope2", entity2.get(),
+    runtime::session_c session2("sess2", "user2", "scope2", *entity2.get(),
                                 &data_ds, &event_system);
 
     std::atomic<int> session2_event_count{0};
@@ -468,11 +468,11 @@ TEST_CASE("session event publish and consume",
     entity3->grant_topic_permission(500, runtime::topic_permission::SUBSCRIBE);
     entity3->save();
 
-    runtime::session_c session1("sess1", "user1", "scope1", entity1.get(),
+    runtime::session_c session1("sess1", "user1", "scope1", *entity1.get(),
                                 &data_ds, &event_system);
-    runtime::session_c session2("sess2", "user2", "scope2", entity2.get(),
+    runtime::session_c session2("sess2", "user2", "scope2", *entity2.get(),
                                 &data_ds, &event_system);
-    runtime::session_c session3("sess3", "user3", "scope3", entity3.get(),
+    runtime::session_c session3("sess3", "user3", "scope3", *entity3.get(),
                                 &data_ds, &event_system);
 
     std::atomic<int> count2{0};
@@ -534,7 +534,7 @@ TEST_CASE("session unsubscribe from topics",
   entity->grant_topic_permission(600, runtime::topic_permission::PUBSUB);
   entity->save();
 
-  runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+  runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                              &data_ds, &event_system);
 
   std::atomic<int> event_count{0};
@@ -594,7 +594,7 @@ TEST_CASE("session multiple topic subscriptions",
   entity->grant_topic_permission(702, runtime::topic_permission::PUBSUB);
   entity->save();
 
-  runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+  runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                              &data_ds, &event_system);
 
   std::atomic<int> count700{0};
@@ -662,7 +662,7 @@ TEST_CASE("session event payload types", "[unit][runtime][session][events]") {
   entity->grant_topic_permission(801, runtime::topic_permission::PUBSUB);
   entity->save();
 
-  runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+  runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                              &data_ds, &event_system);
 
   SECTION("string payload") {
@@ -735,7 +735,7 @@ TEST_CASE("session event category verification",
   entity->grant_topic_permission(900, runtime::topic_permission::PUBSUB);
   entity->save();
 
-  runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+  runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                              &data_ds, &event_system);
 
   runtime::events::event_category_e received_category =
@@ -797,9 +797,9 @@ TEST_CASE("bidirectional communication on same topic",
   entity2->grant_topic_permission(1000, runtime::topic_permission::PUBSUB);
   entity2->save();
 
-  runtime::session_c session1("sess1", "user1", "scope1", entity1.get(),
+  runtime::session_c session1("sess1", "user1", "scope1", *entity1.get(),
                               &data_ds, &event_system);
-  runtime::session_c session2("sess2", "user2", "scope2", entity2.get(),
+  runtime::session_c session2("sess2", "user2", "scope2", *entity2.get(),
                               &data_ds, &event_system);
 
   std::atomic<int> session1_count{0};
@@ -880,7 +880,7 @@ TEST_CASE("topic isolation prevents cross-topic leakage",
   entity->grant_topic_permission(1101, runtime::topic_permission::PUBSUB);
   entity->save();
 
-  runtime::session_c session("sess1", "user1", "test_scope", entity.get(),
+  runtime::session_c session("sess1", "user1", "test_scope", *entity.get(),
                              &data_ds, &event_system);
 
   std::atomic<int> topic1100_count{0};
@@ -962,12 +962,12 @@ TEST_CASE("mixed permissions on same topic",
   entity3->grant_permission("scope3", runtime::permission::READ_WRITE);
   entity3->save();
 
-  runtime::session_c session1("sess1", "publisher", "scope1", entity1.get(),
+  runtime::session_c session1("sess1", "publisher", "scope1", *entity1.get(),
                               &data_ds, &event_system);
-  runtime::session_c session2("sess2", "subscriber", "scope2", entity2.get(),
+  runtime::session_c session2("sess2", "subscriber", "scope2", *entity2.get(),
                               &data_ds, &event_system);
-  runtime::session_c session3("sess3", "no_permission", "scope3", entity3.get(),
-                              &data_ds, &event_system);
+  runtime::session_c session3("sess3", "no_permission", "scope3",
+                              *entity3.get(), &data_ds, &event_system);
 
   std::atomic<int> session2_count{0};
   auto handler2 = [&session2_count](const runtime::events::event_s &e) {
@@ -1028,9 +1028,9 @@ TEST_CASE("multiple sessions per entity receive events",
   entity->grant_topic_permission(1300, runtime::topic_permission::PUBSUB);
   entity->save();
 
-  runtime::session_c session_a("sess_a", "user1", "scope_a", entity.get(),
+  runtime::session_c session_a("sess_a", "user1", "scope_a", *entity.get(),
                                &data_ds, &event_system);
-  runtime::session_c session_b("sess_b", "user1", "scope_b", entity.get(),
+  runtime::session_c session_b("sess_b", "user1", "scope_b", *entity.get(),
                                &data_ds, &event_system);
 
   std::atomic<int> count_a{0};

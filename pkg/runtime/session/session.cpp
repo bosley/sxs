@@ -1,13 +1,16 @@
 #include "runtime/session/session.hpp"
 #include "runtime/entity/entity.hpp"
+#include <cassert>
 #include <spdlog/spdlog.h>
 #include <sstream>
 
 namespace runtime {
 
 scoped_kv_c::scoped_kv_c(kvds::kv_c *underlying, const std::string &scope,
-                         entity_c *entity)
-    : underlying_(underlying), scope_(scope), entity_(entity) {}
+                         entity_c &entity)
+    : underlying_(underlying), scope_(scope), entity_(entity) {
+  assert(underlying != nullptr && "underlying kv store must not be null");
+}
 
 bool scoped_kv_c::is_open() const {
   return underlying_ && underlying_->is_open();
@@ -26,25 +29,20 @@ std::string scoped_kv_c::remove_scope_prefix(const std::string &key) const {
 }
 
 bool scoped_kv_c::check_read_permission() const {
-  if (!entity_) {
-    return false;
-  }
-  return entity_->is_permitted(scope_, permission::READ_ONLY) ||
-         entity_->is_permitted(scope_, permission::READ_WRITE);
+  return entity_.is_permitted(scope_, permission::READ_ONLY) ||
+         entity_.is_permitted(scope_, permission::READ_WRITE);
 }
 
 bool scoped_kv_c::check_write_permission() const {
-  if (!entity_) {
-    return false;
-  }
-  return entity_->is_permitted(scope_, permission::WRITE_ONLY) ||
-         entity_->is_permitted(scope_, permission::READ_WRITE);
+  return entity_.is_permitted(scope_, permission::WRITE_ONLY) ||
+         entity_.is_permitted(scope_, permission::READ_WRITE);
 }
 
 bool scoped_kv_c::set(const std::string &key, const std::string &value) {
   if (!check_write_permission()) {
     return false;
   }
+  assert(underlying_ != nullptr && "underlying kv store must not be null");
   return underlying_->set(add_scope_prefix(key), value);
 }
 
@@ -52,6 +50,7 @@ bool scoped_kv_c::get(const std::string &key, std::string &value) {
   if (!check_read_permission()) {
     return false;
   }
+  assert(underlying_ != nullptr && "underlying kv store must not be null");
   return underlying_->get(add_scope_prefix(key), value);
 }
 
@@ -59,6 +58,7 @@ bool scoped_kv_c::del(const std::string &key) {
   if (!check_write_permission()) {
     return false;
   }
+  assert(underlying_ != nullptr && "underlying kv store must not be null");
   return underlying_->del(add_scope_prefix(key));
 }
 
@@ -66,6 +66,7 @@ bool scoped_kv_c::exists(const std::string &key) const {
   if (!check_read_permission()) {
     return false;
   }
+  assert(underlying_ != nullptr && "underlying kv store must not be null");
   return underlying_->exists(add_scope_prefix(key));
 }
 
@@ -80,6 +81,7 @@ bool scoped_kv_c::set_batch(
     scoped_pairs[add_scope_prefix(pair.first)] = pair.second;
   }
 
+  assert(underlying_ != nullptr && "underlying kv store must not be null");
   return underlying_->set_batch(scoped_pairs);
 }
 
@@ -93,6 +95,7 @@ bool scoped_kv_c::delete_batch(const std::vector<std::string> &keys) {
     scoped_keys.push_back(add_scope_prefix(key));
   }
 
+  assert(underlying_ != nullptr && "underlying kv store must not be null");
   return underlying_->delete_batch(scoped_keys);
 }
 
@@ -100,6 +103,7 @@ bool scoped_kv_c::set_nx(const std::string &key, const std::string &value) {
   if (!check_write_permission()) {
     return false;
   }
+  assert(underlying_ != nullptr && "underlying kv store must not be null");
   return underlying_->set_nx(add_scope_prefix(key), value);
 }
 
@@ -109,6 +113,7 @@ bool scoped_kv_c::compare_and_swap(const std::string &key,
   if (!check_write_permission()) {
     return false;
   }
+  assert(underlying_ != nullptr && "underlying kv store must not be null");
   return underlying_->compare_and_swap(add_scope_prefix(key), expected_value,
                                        new_value);
 }
@@ -123,6 +128,7 @@ void scoped_kv_c::iterate(
 
   std::string scoped_prefix = add_scope_prefix(prefix);
 
+  assert(underlying_ != nullptr && "underlying kv store must not be null");
   underlying_->iterate(
       scoped_prefix,
       [this, callback](const std::string &key, const std::string &value) {
@@ -133,12 +139,15 @@ void scoped_kv_c::iterate(
 
 session_c::session_c(const std::string &session_id,
                      const std::string &entity_id, const std::string &scope,
-                     entity_c *entity, kvds::kv_c *datastore,
+                     entity_c &entity, kvds::kv_c *datastore,
                      events::event_system_c *event_system)
     : id_(session_id), entity_id_(entity_id), scope_(scope), active_(true),
       creation_time_(std::time(nullptr)), entity_(entity),
       scoped_store_(std::make_unique<scoped_kv_c>(datastore, scope, entity)),
-      event_system_(event_system) {}
+      event_system_(event_system) {
+  assert(datastore != nullptr && "datastore must not be null");
+  // event_system can be a nullptr for sessions that don't use pub/sub
+}
 
 std::string session_c::get_id() const { return id_; }
 
@@ -157,12 +166,8 @@ kvds::kv_c *session_c::get_store() { return scoped_store_.get(); }
 publish_result_e session_c::publish_event(events::event_category_e category,
                                           std::uint16_t topic_id,
                                           const std::any &payload) {
-  if (!entity_) {
-    return publish_result_e::NO_ENTITY;
-  }
-
-  if (!entity_->is_permitted_topic(topic_id, topic_permission::PUBLISH) &&
-      !entity_->is_permitted_topic(topic_id, topic_permission::PUBSUB)) {
+  if (!entity_.is_permitted_topic(topic_id, topic_permission::PUBLISH) &&
+      !entity_.is_permitted_topic(topic_id, topic_permission::PUBSUB)) {
     return publish_result_e::PERMISSION_DENIED;
   }
 
@@ -180,7 +185,7 @@ publish_result_e session_c::publish_event(events::event_category_e category,
     return publish_result_e::NO_TOPIC_WRITER;
   }
 
-  if (!entity_->try_publish()) {
+  if (!entity_.try_publish()) {
     return publish_result_e::RATE_LIMIT_EXCEEDED;
   }
 
@@ -196,12 +201,8 @@ publish_result_e session_c::publish_event(events::event_category_e category,
 bool session_c::subscribe_to_topic(
     events::event_category_e category, std::uint16_t topic_id,
     std::function<void(const events::event_s &)> handler) {
-  if (!entity_) {
-    return false;
-  }
-
-  if (!entity_->is_permitted_topic(topic_id, topic_permission::SUBSCRIBE) &&
-      !entity_->is_permitted_topic(topic_id, topic_permission::PUBSUB)) {
+  if (!entity_.is_permitted_topic(topic_id, topic_permission::SUBSCRIBE) &&
+      !entity_.is_permitted_topic(topic_id, topic_permission::PUBSUB)) {
     return false;
   }
 
@@ -212,7 +213,7 @@ bool session_c::subscribe_to_topic(
   topic_handlers_[{category, topic_id}] = handler;
 
   auto consumer = std::shared_ptr<events::event_consumer_if>(
-      new session_event_consumer_c(this));
+      new session_event_consumer_c(*this));
   topic_consumers_[topic_id] = consumer;
   event_system_->register_consumer(topic_id, consumer);
   return true;
@@ -243,14 +244,12 @@ void session_c::consume_event(const events::event_s &event) {
 }
 
 session_c::session_event_consumer_c::session_event_consumer_c(
-    session_c *session)
+    session_c &session)
     : session_(session) {}
 
 void session_c::session_event_consumer_c::consume_event(
     const events::event_s &event) {
-  if (session_) {
-    session_->consume_event(event);
-  }
+  session_.consume_event(event);
 }
 
 session_subsystem_c::session_subsystem_c(logger_t logger,
@@ -363,8 +362,10 @@ session_subsystem_c::create_session(const std::string &entity_id,
 
   std::string session_id = generate_session_id(entity_id);
 
-  auto session = std::make_shared<session_c>(session_id, entity_id, scope,
-                                             entity, datastore_, event_system_);
+  assert(datastore_ != nullptr && "datastore must not be null");
+
+  auto session = std::make_shared<session_c>(
+      session_id, entity_id, scope, *entity, datastore_, event_system_);
 
   if (!persist_session_metadata(*session)) {
     logger_->error("[{}] Failed to persist session metadata for {}", name_,

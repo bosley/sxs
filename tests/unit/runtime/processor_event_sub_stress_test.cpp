@@ -43,8 +43,8 @@ runtime::session_c *
 create_test_session(const std::string &session_id,
                     runtime::events::event_system_c &event_system,
                     kvds::datastore_c &data_ds, runtime::entity_c *entity) {
-  return new runtime::session_c(session_id, "test_entity", "test_scope", entity,
-                                &data_ds, &event_system);
+  return new runtime::session_c(session_id, "test_entity", "test_scope",
+                                *entity, &data_ds, &event_system);
 }
 } // namespace
 
