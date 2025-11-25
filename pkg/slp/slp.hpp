@@ -47,7 +47,6 @@ enum class slp_type_e {
   PAREN_LIST = 2,
   BRACE_LIST = 4,
   DQ_LIST = 5,
-  COMMENTARY = 6,
   SYMBOL = 7,
   RUNE = 8,
   INTEGER = 9,
