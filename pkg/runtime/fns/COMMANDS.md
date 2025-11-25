@@ -116,3 +116,281 @@ Symbol Table (separate map):
 6. **No Keywords**: "let" and "==" are just identifiers - the runtime gives them meaning
 
 Moving `slp_object_c` is efficient (uses vector move semantics), but extracting children from lists copies the buffer. The architecture prioritizes safety and ownership clarity over minimal copying.
+
+## Core Command Reference
+
+All commands return `true` (boolean) on success or an ERROR type `@"message"` on failure. Parameters are positional starting at index 1 (index 0 is the command itself).
+
+### core/kv/set
+
+Set a key-value pair in the session store.
+
+**Signature:** `(core/kv/set key value)`
+
+| Parameter | Type | Evaluated | Description |
+|-----------|------|-----------|-------------|
+| key | symbol or string | no | Key to set (accepts symbol or DQ_LIST) |
+| value | any | yes | Value to store (evaluated, then converted to string) |
+
+**Returns:** `true` on success, ERROR on failure
+
+**Example:**
+
+```
+(core/kv/set mykey "hello world")
+(core/kv/set counter 42)
+(core/kv/set "user:123" "active")
+```
+
+---
+
+### core/kv/get
+
+Retrieve a value by key from the session store.
+
+**Signature:** `(core/kv/get key)`
+
+| Parameter | Type | Evaluated | Description |
+|-----------|------|-----------|-------------|
+| key | symbol or string | no | Key to retrieve (accepts symbol or DQ_LIST) |
+
+**Returns:** String value on success, ERROR if key not found or no permission
+
+**Example:**
+
+```
+(core/kv/get mykey)
+(core/kv/get "user:123")
+```
+
+---
+
+### core/kv/del
+
+Delete a key from the session store.
+
+**Signature:** `(core/kv/del key)`
+
+| Parameter | Type | Evaluated | Description |
+|-----------|------|-----------|-------------|
+| key | symbol or string | no | Key to delete (accepts symbol or DQ_LIST) |
+
+**Returns:** `true` on success, ERROR on failure
+
+**Example:**
+
+```
+(core/kv/del mykey)
+(core/kv/del "user:123")
+```
+
+---
+
+### core/kv/exists
+
+Check if a key exists in the session store.
+
+**Signature:** `(core/kv/exists key)`
+
+| Parameter | Type | Evaluated | Description |
+|-----------|------|-----------|-------------|
+| key | symbol or string | no | Key to check (accepts symbol or DQ_LIST) |
+
+**Returns:** `true` if exists, `false` if not
+
+**Example:**
+
+```
+(core/kv/exists mykey)
+(core/kv/exists "user:123")
+```
+
+---
+
+### core/kv/snx
+
+Set a key-value pair only if the key does not already exist (atomic operation).
+
+**Signature:** `(core/kv/snx key value)`
+
+| Parameter | Type | Evaluated | Description |
+|-----------|------|-----------|-------------|
+| key | symbol or string | no | Key to set (accepts symbol or DQ_LIST) |
+| value | any | yes | Value to store if key doesn't exist |
+
+**Returns:** `true` if set successfully, `false` if key already exists
+
+**Example:**
+
+```
+(core/kv/snx lock:resource1 "acquired")
+(core/kv/snx "counter" 0)
+```
+
+---
+
+### core/kv/cas
+
+Compare and swap: atomically set a new value only if the current value matches the expected value.
+
+**Signature:** `(core/kv/cas key expected_value new_value)`
+
+| Parameter | Type | Evaluated | Description |
+|-----------|------|-----------|-------------|
+| key | symbol or string | no | Key to update (accepts symbol or DQ_LIST) |
+| expected_value | any | yes | Expected current value (evaluated) |
+| new_value | any | yes | New value to set if expectation matches |
+
+**Returns:** `true` if swap succeeded, `false` if current value doesn't match expected
+
+**Example:**
+
+```
+(core/kv/cas counter "5" "6")
+(core/kv/cas "status" "pending" "active")
+```
+
+---
+
+### core/kv/iterate
+
+Iterate over keys matching a prefix, executing a handler for each key. Injects `$key` variable into handler context.
+
+**Signature:** `(core/kv/iterate prefix offset limit handler_body)`
+
+| Parameter | Type | Evaluated | Description |
+|-----------|------|-----------|-------------|
+| prefix | symbol or string | yes | Key prefix to match (evaluated, accepts symbol or DQ_LIST) |
+| offset | integer | no | Number of matching keys to skip |
+| limit | integer | no | Maximum number of keys to process |
+| handler_body | brace-list | no | Handler code block (must be `{...}`) |
+
+**Context Variables:** `$key` is injected for each iteration
+
+**Returns:** `true` when iteration completes
+
+**Example:**
+
+```
+(core/kv/iterate "user:" 0 10 {
+  (core/util/log "Found key:" $key)
+  (core/kv/del $key)
+})
+```
+
+---
+
+### core/event/pub
+
+Publish an event to a specified channel and topic.
+
+**Signature:** `(core/event/pub channel topic_id data)`
+
+| Parameter | Type | Evaluated | Description |
+|-----------|------|-----------|-------------|
+| channel | symbol | yes | Channel identifier: `$CHANNEL_A` through `$CHANNEL_F` |
+| topic_id | integer | no | Topic identifier (uint16) |
+| data | any | yes | Event payload (evaluated, converted to string) |
+
+**Returns:** `true` on success, ERROR on failure (rate limit, permission, etc.)
+
+**Example:**
+
+```
+(core/event/pub $CHANNEL_A 100 "notification message")
+(core/event/pub $CHANNEL_B 200 42)
+```
+
+---
+
+### core/event/sub
+
+Subscribe to events on a channel and topic, executing a handler for each event. Injects `$data` variable into handler context.
+
+**Signature:** `(core/event/sub channel topic_id handler_body)`
+
+| Parameter | Type | Evaluated | Description |
+|-----------|------|-----------|-------------|
+| channel | symbol | yes | Channel identifier: `$CHANNEL_A` through `$CHANNEL_F` |
+| topic_id | integer | no | Topic identifier (uint16) |
+| handler_body | brace-list | no | Handler code block (must be `{...}`) |
+
+**Context Variables:** `$data` is injected with event payload for each event
+
+**Returns:** `true` on successful subscription, ERROR on failure
+
+**Example:**
+
+```
+(core/event/sub $CHANNEL_A 100 {
+  (core/util/log "Received:" $data)
+  (core/kv/set last_event $data)
+})
+```
+
+---
+
+### core/expr/eval
+
+Evaluate SLP script text dynamically.
+
+**Signature:** `(core/expr/eval script_text)`
+
+| Parameter | Type | Evaluated | Description |
+|-----------|------|-----------|-------------|
+| script_text | any | yes | Script text to parse and evaluate |
+
+**Returns:** Result of evaluating the script, or ERROR on parse/eval failure
+
+**Example:**
+
+```
+(core/expr/eval "42")
+(core/expr/eval "(core/kv/get mykey)")
+```
+
+---
+
+### core/expr/await
+
+Execute a body and wait for a response on a specified channel and topic (blocking with timeout).
+
+**Signature:** `(core/expr/await body response_channel response_topic)`
+
+| Parameter | Type | Evaluated | Description |
+|-----------|------|-----------|-------------|
+| body | any | yes | Expression to execute before waiting |
+| response_channel | symbol | yes | Channel to await response: `$CHANNEL_A` through `$CHANNEL_F` |
+| response_topic | integer | no | Topic identifier to await response on |
+
+**Returns:** String containing the event data received, or ERROR on timeout/failure
+
+**Example:**
+
+```
+(core/expr/await
+  (core/event/pub $CHANNEL_A 1 "request")
+  $CHANNEL_B
+  100)
+```
+
+---
+
+### core/util/log
+
+Log one or more messages to the session logger.
+
+**Signature:** `(core/util/log message...)`
+
+| Parameter | Type | Evaluated | Description |
+|-----------|------|-----------|-------------|
+| message... | any (variadic) | yes | Messages to log (space-separated when multiple) |
+
+**Returns:** `true` after logging
+
+**Example:**
+
+```
+(core/util/log "Processing started")
+(core/util/log "User" "Alice" "logged in" "at" 12345)
+```

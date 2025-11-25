@@ -9,6 +9,7 @@ add_executable(runtime_tests
   processor_test.cpp
   processor_event_sub_test.cpp
   processor_event_sub_stress_test.cpp
+  processor_kv_atomic_test.cpp
   multi_processor_test.cpp
 )
 
@@ -147,6 +148,12 @@ add_test(NAME processor_kv_set_and_kv_get_operations
          COMMAND runtime_tests "processor core/kv/set and core/kv/get operations")
 add_test(NAME processor_kv_del_and_kv_exists_operations
          COMMAND runtime_tests "processor core/kv/del and core/kv/exists operations")
+add_test(NAME processor_kv_snx_sets_key_only_if_not_exists
+         COMMAND runtime_tests "core/kv/snx sets key only if not exists")
+add_test(NAME processor_kv_cas_compares_and_swaps_atomically
+         COMMAND runtime_tests "core/kv/cas compares and swaps atomically")
+add_test(NAME processor_kv_iterate_processes_keys_with_prefix
+         COMMAND runtime_tests "core/kv/iterate processes keys with prefix")
 add_test(NAME processor_event_pub_operation
          COMMAND runtime_tests "processor core/event/pub operation")
 add_test(NAME processor_event_sub_operation
@@ -231,6 +238,8 @@ if(WITH_ASAN)
                        event_system_shutdown_behavior event_system_origin_handling
                        processor_initialization processor_execute_simple_integer_script
                        processor_kv_set_and_kv_get_operations processor_kv_del_and_kv_exists_operations
+                       processor_kv_snx_sets_key_only_if_not_exists processor_kv_cas_compares_and_swaps_atomically
+                       processor_kv_iterate_processes_keys_with_prefix
                        processor_event_pub_operation processor_event_sub_operation
                        processor_runtime_log_operation processor_error_handling
                        processor_permission_denied_scenarios processor_bracket_list_execution
