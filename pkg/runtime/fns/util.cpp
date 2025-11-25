@@ -38,7 +38,7 @@ function_group_s get_util_functions(runtime_information_if &runtime_info) {
       };
 
   group.functions["insist"].return_type = slp::slp_type_e::NONE;
-  group.functions["insist"].parameters = {{"value", slp::slp_type_e::NONE, true}};
+  group.functions["insist"].parameters = {{"expr", slp::slp_type_e::PAREN_LIST, false}};
   group.functions["insist"].can_return_error = false;
   group.functions["insist"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
@@ -48,7 +48,13 @@ function_group_s get_util_functions(runtime_information_if &runtime_info) {
           throw insist_failure_exception("core/util/insist requires value");
         }
 
-        auto value = runtime_info.eval_object(session, list.at(1), context);
+        auto arg_obj = list.at(1);
+        if (arg_obj.type() != slp::slp_type_e::PAREN_LIST) {
+          throw insist_failure_exception(
+              "core/util/insist requires function call (paren list)");
+        }
+
+        auto value = runtime_info.eval_object(session, arg_obj, context);
 
         if (value.type() == slp::slp_type_e::ERROR) {
           std::string error_msg = value.as_string().to_string();

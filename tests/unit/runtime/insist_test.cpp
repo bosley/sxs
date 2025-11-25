@@ -47,7 +47,7 @@ create_test_session(runtime::events::event_system_c &event_system,
 }
 } // namespace
 
-TEST_CASE("core/util/insist passes through non-error values",
+TEST_CASE("core/util/insist passes through non-error values from functions",
           "[unit][runtime][insist]") {
   auto logger = create_test_logger();
   runtime::events::event_system_c event_system(logger.get(), 2, 100);
@@ -72,13 +72,16 @@ TEST_CASE("core/util/insist passes through non-error values",
   REQUIRE(entity_opt.has_value());
   auto entity = std::move(entity_opt.value());
 
+  entity->grant_permission("test_scope", runtime::permission::READ_WRITE);
+
   runtime::processor_c processor(logger.get(), event_system);
 
-  SECTION("passes through INTEGER") {
+  SECTION("passes through INTEGER from function result") {
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request{*session, "(core/util/insist 42)", "req1"};
+    runtime::execution_request_s request{*session, 
+        "[(core/kv/set num 42) (core/util/insist (core/kv/get num))]", "req1"};
 
     runtime::events::event_s event;
     event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
@@ -90,11 +93,12 @@ TEST_CASE("core/util/insist passes through non-error values",
     delete session;
   }
 
-  SECTION("passes through REAL") {
+  SECTION("passes through DQ_LIST from function result") {
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request{*session, "(core/util/insist 3.14)", "req2"};
+    runtime::execution_request_s request{*session, 
+        "[(core/kv/set str \"hello\") (core/util/insist (core/kv/get str))]", "req2"};
 
     runtime::events::event_s event;
     event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
@@ -106,27 +110,12 @@ TEST_CASE("core/util/insist passes through non-error values",
     delete session;
   }
 
-  SECTION("passes through DQ_LIST") {
+  SECTION("passes through SYMBOL from exists check") {
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request{*session, "(core/util/insist \"hello\")", "req3"};
-
-    runtime::events::event_s event;
-    event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
-    event.topic_identifier = 0;
-    event.payload = request;
-
-    processor.consume_event(event);
-
-    delete session;
-  }
-
-  SECTION("passes through SYMBOL") {
-    runtime::session_c *session =
-        create_test_session(event_system, data_ds, entity.get());
-
-    runtime::execution_request_s request{*session, "(core/util/insist true)", "req4"};
+    runtime::execution_request_s request{*session, 
+        "[(core/kv/set key \"val\") (core/util/insist (core/kv/exists key))]", "req3"};
 
     runtime::events::event_s event;
     event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
@@ -169,22 +158,6 @@ TEST_CASE("core/util/insist halts execution on ERROR object",
   auto entity = std::move(entity_opt.value());
 
   runtime::processor_c processor(logger.get(), event_system);
-
-  SECTION("halts on direct ERROR object") {
-    runtime::session_c *session =
-        create_test_session(event_system, data_ds, entity.get());
-
-    runtime::execution_request_s request{*session, "(core/util/insist @\"error message\")", "req1"};
-
-    runtime::events::event_s event;
-    event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
-    event.topic_identifier = 0;
-    event.payload = request;
-
-    processor.consume_event(event);
-
-    delete session;
-  }
 
   SECTION("halts on ERROR from function") {
     runtime::session_c *session =
@@ -349,3 +322,100 @@ TEST_CASE("core/util/insist with bracket list stops on first error",
   event_system.shutdown();
 }
 
+TEST_CASE("core/util/insist rejects non-function arguments at runtime",
+          "[unit][runtime][insist]") {
+  auto logger = create_test_logger();
+  runtime::events::event_system_c event_system(logger.get(), 2, 100);
+
+  auto accessor = std::make_shared<test_accessor_c>();
+  event_system.initialize(accessor);
+
+  kvds::datastore_c data_ds;
+  std::string data_test_path =
+      get_unique_test_path("/tmp/insist_test_rejection");
+  ensure_db_cleanup(data_test_path);
+  CHECK(data_ds.open(data_test_path));
+
+  kvds::datastore_c entity_ds;
+  std::string entity_test_path =
+      get_unique_test_path("/tmp/insist_test_rejection_entity");
+  ensure_db_cleanup(entity_test_path);
+  CHECK(entity_ds.open(entity_test_path));
+
+  record::record_manager_c entity_manager(entity_ds, logger);
+  auto entity_opt = entity_manager.get_or_create<runtime::entity_c>("user1");
+  REQUIRE(entity_opt.has_value());
+  auto entity = std::move(entity_opt.value());
+
+  entity->grant_permission("test_scope", runtime::permission::READ_WRITE);
+
+  runtime::processor_c processor(logger.get(), event_system);
+
+  SECTION("rejects literal integer") {
+    runtime::session_c *session =
+        create_test_session(event_system, data_ds, entity.get());
+
+    runtime::execution_request_s request{*session, "(core/util/insist 42)", "req1"};
+
+    runtime::events::event_s event;
+    event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.topic_identifier = 0;
+    event.payload = request;
+
+    processor.consume_event(event);
+
+    delete session;
+  }
+
+  SECTION("rejects literal string") {
+    runtime::session_c *session =
+        create_test_session(event_system, data_ds, entity.get());
+
+    runtime::execution_request_s request{*session, "(core/util/insist \"hello\")", "req2"};
+
+    runtime::events::event_s event;
+    event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.topic_identifier = 0;
+    event.payload = request;
+
+    processor.consume_event(event);
+
+    delete session;
+  }
+
+  SECTION("rejects symbol") {
+    runtime::session_c *session =
+        create_test_session(event_system, data_ds, entity.get());
+
+    runtime::execution_request_s request{*session, "(core/util/insist x)", "req3"};
+
+    runtime::events::event_s event;
+    event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.topic_identifier = 0;
+    event.payload = request;
+
+    processor.consume_event(event);
+
+    delete session;
+  }
+
+  SECTION("rejects literal ERROR") {
+    runtime::session_c *session =
+        create_test_session(event_system, data_ds, entity.get());
+
+    runtime::execution_request_s request{*session, "(core/util/insist @\"error\")", "req4"};
+
+    runtime::events::event_s event;
+    event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.topic_identifier = 0;
+    event.payload = request;
+
+    processor.consume_event(event);
+
+    delete session;
+  }
+
+  ensure_db_cleanup(data_test_path);
+  ensure_db_cleanup(entity_test_path);
+  event_system.shutdown();
+}

@@ -303,7 +303,7 @@ TEST_CASE("core/kv/iterate processes keys with prefix",
     session->get_store()->set("other:1", "data");
 
     runtime::execution_request_s request{*session,
-                                         R"((core/kv/iterate "user:" 0 10 {
+                                         R"((core/kv/iterate user: 0 10 {
       (core/kv/set processed $key)
     }))",
                                          "req1"};
@@ -334,7 +334,7 @@ TEST_CASE("core/kv/iterate processes keys with prefix",
     session->get_store()->set("visit_count", "0");
 
     runtime::execution_request_s request{*session,
-                                         R"((core/kv/iterate "item:" 1 2 {
+                                         R"((core/kv/iterate item: 1 2 {
       (core/kv/set last_visited $key)
       (core/kv/set visit_count (core/expr/eval (core/kv/get visit_count)))
     }))",
@@ -361,7 +361,7 @@ TEST_CASE("core/kv/iterate processes keys with prefix",
     session->get_store()->set("data:3", "z");
 
     runtime::execution_request_s request{*session,
-                                         R"((core/kv/iterate "data:" 0 10 {
+                                         R"((core/kv/iterate data: 0 10 {
       (core/kv/set visited $key)
       (core/unknown/function)
       (core/kv/set should_not_reach "true")
@@ -388,7 +388,7 @@ TEST_CASE("core/kv/iterate processes keys with prefix",
     session->get_store()->set("num:3", "30");
 
     runtime::execution_request_s request{*session,
-                                         R"((core/kv/iterate "num:" 0 10 {
+                                         R"((core/kv/iterate num: 0 10 {
       (core/kv/set last_iterated_key $key)
       (core/kv/exists $key)
     }))",
@@ -409,36 +409,13 @@ TEST_CASE("core/kv/iterate processes keys with prefix",
     CHECK((lastKey == "num:1" || lastKey == "num:2" || lastKey == "num:3"));
   }
 
-  SECTION("iterate with evaluated prefix") {
-    session->get_store()->set("prefix_value", "test:");
-    session->get_store()->set("test:a", "1");
-    session->get_store()->set("test:b", "2");
-
-    runtime::execution_request_s request{
-        *session, R"((core/kv/iterate (core/kv/get prefix_value) 0 10 {
-      (core/kv/set found $key)
-    }))",
-        "req5"};
-
-    runtime::events::event_s event;
-    event.category =
-        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
-    event.topic_identifier = 0;
-    event.payload = request;
-
-    processor.consume_event(event);
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    CHECK(session->get_store()->exists("found"));
-  }
 
   SECTION("iterate with zero limit processes no items") {
     session->get_store()->set("zero:1", "a");
     session->get_store()->set("zero:2", "b");
 
     runtime::execution_request_s request{*session,
-                                         R"((core/kv/iterate "zero:" 0 0 {
+                                         R"((core/kv/iterate zero: 0 0 {
       (core/kv/set should_not_create "true")
     }))",
                                          "req6"};

@@ -10,6 +10,7 @@ add_executable(runtime_tests
   processor_event_sub_test.cpp
   processor_event_sub_stress_test.cpp
   processor_kv_atomic_test.cpp
+  processor_kv_context_test.cpp
   multi_processor_test.cpp
   insist_test.cpp
 )
@@ -204,6 +205,33 @@ add_test(NAME insist_enables_safe_type_patterns
 add_test(NAME insist_with_bracket_list_stops_on_first_error
          COMMAND runtime_tests "core/util/insist with bracket list stops on first error")
 
+add_test(NAME kv_context_basic_iterate_with_key_del
+         COMMAND runtime_tests "basic iterate with $key del")
+add_test(NAME kv_context_iterate_with_key_exists_check
+         COMMAND runtime_tests "iterate with $key exists check")
+add_test(NAME kv_context_iterate_with_key_load
+         COMMAND runtime_tests "iterate with $key load")
+add_test(NAME kv_context_combined_del_exists_load
+         COMMAND runtime_tests "combined del + exists + load in iteration")
+add_test(NAME kv_context_insist_with_key_operations
+         COMMAND runtime_tests "insist with $key operations in iteration")
+add_test(NAME kv_context_insist_failure_with_key
+         COMMAND runtime_tests "insist failure with $key in iteration")
+add_test(NAME kv_context_event_handler_with_key
+         COMMAND runtime_tests "event handler with $key operations")
+add_test(NAME kv_context_complex_integration
+         COMMAND runtime_tests "complex integration: events + iterate + insist")
+add_test(NAME kv_context_error_key_not_available
+         COMMAND runtime_tests "error case: $key not available")
+add_test(NAME kv_context_error_insist_with_missing_key
+         COMMAND runtime_tests "error case: insist with missing $key")
+add_test(NAME kv_context_exists_returning_false
+         COMMAND runtime_tests "iterate with $key exists returning false")
+add_test(NAME kv_context_loads_all_values_separately
+         COMMAND runtime_tests "iterate loads all values into separate keys")
+add_test(NAME kv_context_vs_literal_key_behavior
+         COMMAND runtime_tests "context variable vs literal key behavior")
+
 add_test(NAME multi_processor_initialization_with_1_processor
          COMMAND runtime_tests "multi processor initialization with 1 processor")
 add_test(NAME multi_processor_initialization_with_4_processors
@@ -263,6 +291,13 @@ if(WITH_ASAN)
                        processor_runtime_eval_with_kv_operations processor_runtime_await_async_communication
                        insist_passes_through_non_error_values insist_halts_execution_on_error_object
                        insist_enables_safe_type_patterns insist_with_bracket_list_stops_on_first_error
+                       kv_context_basic_iterate_with_key_del kv_context_iterate_with_key_exists_check
+                       kv_context_iterate_with_key_load kv_context_combined_del_exists_load
+                       kv_context_insist_with_key_operations kv_context_insist_failure_with_key
+                       kv_context_event_handler_with_key kv_context_complex_integration
+                       kv_context_error_key_not_available kv_context_error_insist_with_missing_key
+                       kv_context_exists_returning_false kv_context_loads_all_values_separately
+                       kv_context_vs_literal_key_behavior
                        multi_processor_initialization_with_1_processor
                        multi_processor_initialization_with_4_processors
                        multi_processor_concurrent_execution_on_different_topics

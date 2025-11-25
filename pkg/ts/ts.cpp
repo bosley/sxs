@@ -171,7 +171,13 @@ type_checker_c::infer_type(const slp::slp_object_c &obj,
     }
 
     if (sig.is_detainter && list.size() >= 2) {
-      auto arg_type = infer_type(list.at(1), symbol_map);
+      auto arg_obj = list.at(1);
+      
+      if (arg_obj.type() != slp::slp_type_e::PAREN_LIST) {
+        return type_info_s(slp::slp_type_e::ERROR, false);
+      }
+
+      auto arg_type = infer_type(arg_obj, symbol_map);
       if (arg_type.type == slp::slp_type_e::ERROR) {
         return type_info_s(slp::slp_type_e::ERROR, false);
       }

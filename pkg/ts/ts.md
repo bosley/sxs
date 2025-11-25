@@ -173,14 +173,33 @@ graph LR
 
 ### Detaint Operation
 
-The **detaint** operation (`core/insist` in tests) converts a tainted type to pure:
+The **detaint** operation (`core/util/insist` at runtime, `core/insist` in tests) converts a tainted type to pure:
 
 ```
-Input:  #T (tainted)
+Input:  PAREN_LIST (unevaluated function call) that would produce #T (tainted)
 Output: T (pure)
 ```
 
-If the input is ERROR at runtime, execution terminates. This is the primitive that higher-level error handling compiles down to.
+**Type System Behavior:**
+- Accepts only PAREN_LIST (unevaluated function call expressions)
+- Infers the type that the PAREN_LIST would produce when evaluated
+- Verifies the inferred type is tainted
+- Returns the same type without taint
+
+**Runtime Behavior:**
+- Receives unevaluated PAREN_LIST
+- Evaluates it exactly once
+- If result is ERROR, throws exception (terminates execution)
+- If result is not ERROR, returns it unchanged (preserving type, e.g., SOME stays SOME)
+
+**Example:**
+```
+(insist (core/kv/get x))
+  Type system: (core/kv/get x) → #DQ_LIST, detaint → DQ_LIST
+  Runtime: evaluates get, checks not ERROR, returns result as-is
+```
+
+This is the primitive that higher-level error handling compiles down to. The PAREN_LIST constraint ensures single evaluation and proper type preservation.
 
 ## Setter/Getter Tracking
 
@@ -265,7 +284,7 @@ flowchart TD
     LOADER_LOGIC[1. Get key symbol<br/>2. Require $key specifically<br/>3. Return pure SOME]
     
     CHECK_DETAINT{is_detainter?}
-    DETAINT_LOGIC[1. Infer arg type<br/>2. Check IS tainted<br/>3. Return pure type]
+    DETAINT_LOGIC[1. Check arg is PAREN_LIST<br/>2. Infer that call's type<br/>3. Check IS tainted<br/>4. Return pure type]
     
     VALIDATE_PARAMS[Validate parameters<br/>Check types match<br/>Handle evaluation]
     

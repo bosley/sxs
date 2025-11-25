@@ -92,7 +92,7 @@ TEST_CASE("type system - simple set and get", "[ts]") {
   insist_sig.return_type = slp::slp_type_e::NONE;
   insist_sig.can_return_error = false;
   insist_sig.is_detainter = true;
-  insist_sig.parameters.push_back({slp::slp_type_e::NONE, true});
+  insist_sig.parameters.push_back({slp::slp_type_e::PAREN_LIST, false});
   signatures["core/insist"] = insist_sig;
 
   type_checker_c checker(signatures, dollar_vars);
@@ -115,7 +115,7 @@ TEST_CASE("type system - get before set fails", "[ts]") {
   insist_sig.return_type = slp::slp_type_e::NONE;
   insist_sig.can_return_error = false;
   insist_sig.is_detainter = true;
-  insist_sig.parameters.push_back({slp::slp_type_e::NONE, true});
+  insist_sig.parameters.push_back({slp::slp_type_e::PAREN_LIST, false});
   signatures["core/insist"] = insist_sig;
 
   type_checker_c checker(signatures, dollar_vars);
@@ -137,7 +137,7 @@ TEST_CASE("type system - tainted value cannot be stored", "[ts]") {
   insist_sig.return_type = slp::slp_type_e::NONE;
   insist_sig.can_return_error = false;
   insist_sig.is_detainter = true;
-  insist_sig.parameters.push_back({slp::slp_type_e::NONE, true});
+  insist_sig.parameters.push_back({slp::slp_type_e::PAREN_LIST, false});
   signatures["core/insist"] = insist_sig;
 
   type_checker_c checker(signatures, dollar_vars);
@@ -160,7 +160,7 @@ TEST_CASE("type system - detaint allows storing", "[ts]") {
   insist_sig.return_type = slp::slp_type_e::NONE;
   insist_sig.can_return_error = false;
   insist_sig.is_detainter = true;
-  insist_sig.parameters.push_back({slp::slp_type_e::NONE, true});
+  insist_sig.parameters.push_back({slp::slp_type_e::PAREN_LIST, false});
   signatures["core/insist"] = insist_sig;
 
   type_checker_c checker(signatures, dollar_vars);
@@ -183,7 +183,7 @@ TEST_CASE("type system - snx sets if not exists", "[ts]") {
   insist_sig.return_type = slp::slp_type_e::NONE;
   insist_sig.can_return_error = false;
   insist_sig.is_detainter = true;
-  insist_sig.parameters.push_back({slp::slp_type_e::NONE, true});
+  insist_sig.parameters.push_back({slp::slp_type_e::PAREN_LIST, false});
   signatures["core/insist"] = insist_sig;
 
   type_checker_c checker(signatures, dollar_vars);
@@ -206,7 +206,7 @@ TEST_CASE("type system - multiple variables", "[ts]") {
   insist_sig.return_type = slp::slp_type_e::NONE;
   insist_sig.can_return_error = false;
   insist_sig.is_detainter = true;
-  insist_sig.parameters.push_back({slp::slp_type_e::NONE, true});
+  insist_sig.parameters.push_back({slp::slp_type_e::PAREN_LIST, false});
   signatures["core/insist"] = insist_sig;
 
   type_checker_c checker(signatures, dollar_vars);
@@ -237,7 +237,7 @@ TEST_CASE("type system - get wrong variable fails", "[ts]") {
   insist_sig.return_type = slp::slp_type_e::NONE;
   insist_sig.can_return_error = false;
   insist_sig.is_detainter = true;
-  insist_sig.parameters.push_back({slp::slp_type_e::NONE, true});
+  insist_sig.parameters.push_back({slp::slp_type_e::PAREN_LIST, false});
   signatures["core/insist"] = insist_sig;
 
   type_checker_c checker(signatures, dollar_vars);
@@ -264,7 +264,7 @@ TEST_CASE("type system - string type tracking", "[ts]") {
   insist_sig.return_type = slp::slp_type_e::NONE;
   insist_sig.can_return_error = false;
   insist_sig.is_detainter = true;
-  insist_sig.parameters.push_back({slp::slp_type_e::NONE, true});
+  insist_sig.parameters.push_back({slp::slp_type_e::PAREN_LIST, false});
   signatures["core/insist"] = insist_sig;
 
   type_checker_c checker(signatures, dollar_vars);
@@ -287,7 +287,7 @@ TEST_CASE("type system - detaint requires tainted input", "[ts]") {
   insist_sig.return_type = slp::slp_type_e::NONE;
   insist_sig.can_return_error = false;
   insist_sig.is_detainter = true;
-  insist_sig.parameters.push_back({slp::slp_type_e::NONE, true});
+  insist_sig.parameters.push_back({slp::slp_type_e::PAREN_LIST, false});
   signatures["core/insist"] = insist_sig;
 
   type_checker_c checker(signatures, dollar_vars);
@@ -309,7 +309,7 @@ TEST_CASE("type system - get rejects dollar vars", "[ts]") {
   insist_sig.return_type = slp::slp_type_e::NONE;
   insist_sig.can_return_error = false;
   insist_sig.is_detainter = true;
-  insist_sig.parameters.push_back({slp::slp_type_e::NONE, true});
+  insist_sig.parameters.push_back({slp::slp_type_e::PAREN_LIST, false});
   signatures["core/insist"] = insist_sig;
 
   type_checker_c checker(signatures, dollar_vars);
@@ -331,7 +331,7 @@ TEST_CASE("type system - load requires dollar vars", "[ts]") {
   insist_sig.return_type = slp::slp_type_e::NONE;
   insist_sig.can_return_error = false;
   insist_sig.is_detainter = true;
-  insist_sig.parameters.push_back({slp::slp_type_e::NONE, true});
+  insist_sig.parameters.push_back({slp::slp_type_e::PAREN_LIST, false});
   signatures["core/insist"] = insist_sig;
 
   type_checker_c checker(signatures, dollar_vars);
@@ -353,7 +353,7 @@ TEST_CASE("type system - load returns pure SOME", "[ts]") {
   insist_sig.return_type = slp::slp_type_e::NONE;
   insist_sig.can_return_error = false;
   insist_sig.is_detainter = true;
-  insist_sig.parameters.push_back({slp::slp_type_e::NONE, true});
+  insist_sig.parameters.push_back({slp::slp_type_e::PAREN_LIST, false});
   signatures["core/insist"] = insist_sig;
 
   type_checker_c checker(signatures, dollar_vars);
@@ -375,7 +375,7 @@ TEST_CASE("type system - iterate with load", "[ts]") {
   insist_sig.return_type = slp::slp_type_e::NONE;
   insist_sig.can_return_error = false;
   insist_sig.is_detainter = true;
-  insist_sig.parameters.push_back({slp::slp_type_e::NONE, true});
+  insist_sig.parameters.push_back({slp::slp_type_e::PAREN_LIST, false});
   signatures["core/insist"] = insist_sig;
 
   type_checker_c checker(signatures, dollar_vars);
@@ -404,7 +404,7 @@ TEST_CASE("type system - event sub with $data", "[ts]") {
   insist_sig.return_type = slp::slp_type_e::NONE;
   insist_sig.can_return_error = false;
   insist_sig.is_detainter = true;
-  insist_sig.parameters.push_back({slp::slp_type_e::NONE, true});
+  insist_sig.parameters.push_back({slp::slp_type_e::PAREN_LIST, false});
   signatures["core/insist"] = insist_sig;
 
   type_checker_c checker(signatures, dollar_vars);
@@ -430,7 +430,7 @@ TEST_CASE("type system - channel vars in pub", "[ts]") {
   insist_sig.return_type = slp::slp_type_e::NONE;
   insist_sig.can_return_error = false;
   insist_sig.is_detainter = true;
-  insist_sig.parameters.push_back({slp::slp_type_e::NONE, true});
+  insist_sig.parameters.push_back({slp::slp_type_e::PAREN_LIST, false});
   signatures["core/insist"] = insist_sig;
 
   type_checker_c checker(signatures, dollar_vars);
@@ -452,7 +452,7 @@ TEST_CASE("type system - channel vars in await", "[ts]") {
   insist_sig.return_type = slp::slp_type_e::NONE;
   insist_sig.can_return_error = false;
   insist_sig.is_detainter = true;
-  insist_sig.parameters.push_back({slp::slp_type_e::NONE, true});
+  insist_sig.parameters.push_back({slp::slp_type_e::PAREN_LIST, false});
   signatures["core/insist"] = insist_sig;
 
   type_checker_c checker(signatures, dollar_vars);
@@ -467,4 +467,70 @@ TEST_CASE("type system - channel vars in await", "[ts]") {
 
   auto result = checker.check(parse_result.object());
   REQUIRE(result.success);
+}
+
+TEST_CASE("type system - insist rejects symbol", "[ts]") {
+  mock_runtime_info_c mock;
+  auto groups = get_all_function_groups(mock);
+  auto signatures = build_type_signatures(groups);
+  auto dollar_vars = extract_dollar_vars_from_signatures(signatures);
+
+  function_signature_s insist_sig;
+  insist_sig.return_type = slp::slp_type_e::NONE;
+  insist_sig.can_return_error = false;
+  insist_sig.is_detainter = true;
+  insist_sig.parameters.push_back({slp::slp_type_e::PAREN_LIST, false});
+  signatures["core/insist"] = insist_sig;
+
+  type_checker_c checker(signatures, dollar_vars);
+
+  auto parse_result = slp::parse("(((core/kv/set x 42) (core/insist x)))");
+  REQUIRE_FALSE(parse_result.is_error());
+
+  auto result = checker.check(parse_result.object());
+  REQUIRE_FALSE(result.success);
+}
+
+TEST_CASE("type system - insist rejects literal integer", "[ts]") {
+  mock_runtime_info_c mock;
+  auto groups = get_all_function_groups(mock);
+  auto signatures = build_type_signatures(groups);
+  auto dollar_vars = extract_dollar_vars_from_signatures(signatures);
+
+  function_signature_s insist_sig;
+  insist_sig.return_type = slp::slp_type_e::NONE;
+  insist_sig.can_return_error = false;
+  insist_sig.is_detainter = true;
+  insist_sig.parameters.push_back({slp::slp_type_e::PAREN_LIST, false});
+  signatures["core/insist"] = insist_sig;
+
+  type_checker_c checker(signatures, dollar_vars);
+
+  auto parse_result = slp::parse("((core/insist 42))");
+  REQUIRE_FALSE(parse_result.is_error());
+
+  auto result = checker.check(parse_result.object());
+  REQUIRE_FALSE(result.success);
+}
+
+TEST_CASE("type system - insist rejects string", "[ts]") {
+  mock_runtime_info_c mock;
+  auto groups = get_all_function_groups(mock);
+  auto signatures = build_type_signatures(groups);
+  auto dollar_vars = extract_dollar_vars_from_signatures(signatures);
+
+  function_signature_s insist_sig;
+  insist_sig.return_type = slp::slp_type_e::NONE;
+  insist_sig.can_return_error = false;
+  insist_sig.is_detainter = true;
+  insist_sig.parameters.push_back({slp::slp_type_e::PAREN_LIST, false});
+  signatures["core/insist"] = insist_sig;
+
+  type_checker_c checker(signatures, dollar_vars);
+
+  auto parse_result = slp::parse(R"(((core/insist "hello")))");
+  REQUIRE_FALSE(parse_result.is_error());
+
+  auto result = checker.check(parse_result.object());
+  REQUIRE_FALSE(result.success);
 }

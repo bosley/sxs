@@ -97,7 +97,18 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         if (key_obj.type() != slp::slp_type_e::SYMBOL) {
           return SLP_ERROR("key must be a symbol");
         }
-        std::string key = key_obj.as_symbol();
+        std::string key_symbol = key_obj.as_symbol();
+
+        std::string key;
+        if (!key_symbol.empty() && key_symbol[0] == '$') {
+          auto context_it = context.find(key_symbol);
+          if (context_it == context.end()) {
+            return SLP_ERROR("context variable not available");
+          }
+          key = runtime_info.object_to_string(context_it->second);
+        } else {
+          key = key_symbol;
+        }
 
         auto *store = session.get_store();
         if (!store) {
@@ -128,7 +139,18 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         if (key_obj.type() != slp::slp_type_e::SYMBOL) {
           return SLP_ERROR("key must be a symbol");
         }
-        std::string key = key_obj.as_symbol();
+        std::string key_symbol = key_obj.as_symbol();
+
+        std::string key;
+        if (!key_symbol.empty() && key_symbol[0] == '$') {
+          auto context_it = context.find(key_symbol);
+          if (context_it == context.end()) {
+            return SLP_ERROR("context variable not available");
+          }
+          key = runtime_info.object_to_string(context_it->second);
+        } else {
+          key = key_symbol;
+        }
 
         auto *store = session.get_store();
         if (!store) {
@@ -231,7 +253,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
 
   group.functions["iterate"].return_type = slp::slp_type_e::SYMBOL;
   group.functions["iterate"].parameters = {
-      {"prefix", slp::slp_type_e::SYMBOL, true},
+      {"prefix", slp::slp_type_e::SYMBOL, false},
       {"offset", slp::slp_type_e::INTEGER, false},
       {"limit", slp::slp_type_e::INTEGER, false},
       {"handler_body", slp::slp_type_e::BRACE_LIST, false}};
@@ -253,15 +275,10 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
     auto limit_obj = list.at(3);
     auto handler_obj = list.at(4);
 
-    auto prefix_result = runtime_info.eval_object(session, prefix_obj, context);
-    std::string prefix;
-    if (prefix_result.type() == slp::slp_type_e::SYMBOL) {
-      prefix = prefix_result.as_symbol();
-    } else if (prefix_result.type() == slp::slp_type_e::DQ_LIST) {
-      prefix = prefix_result.as_string().to_string();
-    } else {
-      return SLP_ERROR("prefix must be symbol or string");
+    if (prefix_obj.type() != slp::slp_type_e::SYMBOL) {
+      return SLP_ERROR("prefix must be symbol");
     }
+    std::string prefix = prefix_obj.as_symbol();
 
     if (offset_obj.type() != slp::slp_type_e::INTEGER) {
       return SLP_ERROR("offset must be integer");
