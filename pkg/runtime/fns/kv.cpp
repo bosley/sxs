@@ -77,7 +77,8 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         std::string value;
         bool success = store->get(key, value);
         if (!success) {
-          return SLP_ERROR("core/kv/get failed (key not found or no permission)");
+          return SLP_ERROR(
+              "core/kv/get failed (key not found or no permission)");
         }
 
         logger->debug("[kv] get {} = {}", key, value);

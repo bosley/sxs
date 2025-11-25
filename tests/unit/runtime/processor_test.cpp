@@ -684,9 +684,9 @@ TEST_CASE("processor bracket list execution", "[unit][runtime][processor]") {
   SECTION("bracket list executes multiple statements") {
     runtime::execution_request_s request;
     request.session = session;
-    request.script_text =
-        "[(core/kv/set key1 \"value1\") (core/kv/set key2 \"value2\") (core/kv/set key3 "
-        "\"value3\")]";
+    request.script_text = "[(core/kv/set key1 \"value1\") (core/kv/set key2 "
+                          "\"value2\") (core/kv/set key3 "
+                          "\"value3\")]";
     request.request_id = "req1";
 
     runtime::events::event_s event;

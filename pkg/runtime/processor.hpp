@@ -122,6 +122,9 @@ private:
   void send_result_to_session(session_c *session,
                               const execution_result_s &result);
 
+  /*
+    Runtime information interface implementation
+  */
   logger_t get_logger() override final;
   slp::slp_object_c eval_object(session_c &session,
                                 const slp::slp_object_c &obj,

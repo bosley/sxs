@@ -17,8 +17,9 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
         auto logger = runtime_info.get_logger();
         auto list = args.as_list();
         if (list.size() < 4) {
-          return SLP_ERROR("core/event/pub requires channel, topic-id and data (use "
-                           "$CHANNEL_A through $CHANNEL_F)");
+          return SLP_ERROR(
+              "core/event/pub requires channel, topic-id and data (use "
+              "$CHANNEL_A through $CHANNEL_F)");
         }
 
         auto channel_obj =
@@ -96,8 +97,9 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
         runtime_info.get_subscription_handlers_mutex();
     auto list = args.as_list();
     if (list.size() < 4) {
-      return SLP_ERROR("core/event/sub requires channel, topic-id and handler body "
-                       "(use $CHANNEL_A through $CHANNEL_F)");
+      return SLP_ERROR(
+          "core/event/sub requires channel, topic-id and handler body "
+          "(use $CHANNEL_A through $CHANNEL_F)");
     }
 
     auto channel_obj = runtime_info.eval_object(session, list.at(1), context);
