@@ -9,7 +9,7 @@ namespace runtime::fns {
 
 function_group_s get_event_functions(runtime_information_if &runtime_info) {
   function_group_s group;
-  group.group_name = "event";
+  group.group_name = "core/event";
 
   group.functions["pub"] =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
@@ -17,7 +17,7 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
         auto logger = runtime_info.get_logger();
         auto list = args.as_list();
         if (list.size() < 4) {
-          return SLP_ERROR("event/pub requires channel, topic-id and data (use "
+          return SLP_ERROR("core/event/pub requires channel, topic-id and data (use "
                            "$CHANNEL_A through $CHANNEL_F)");
         }
 
@@ -65,19 +65,19 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
         case publish_result_e::OK:
           break;
         case publish_result_e::RATE_LIMIT_EXCEEDED:
-          return SLP_ERROR("event/pub failed (rate limit exceeded)");
+          return SLP_ERROR("core/event/pub failed (rate limit exceeded)");
         case publish_result_e::PERMISSION_DENIED:
-          return SLP_ERROR("event/pub failed (permission denied)");
+          return SLP_ERROR("core/event/pub failed (permission denied)");
         case publish_result_e::NO_ENTITY:
-          return SLP_ERROR("event/pub failed (no entity)");
+          return SLP_ERROR("core/event/pub failed (no entity)");
         case publish_result_e::NO_EVENT_SYSTEM:
-          return SLP_ERROR("event/pub failed (no event system)");
+          return SLP_ERROR("core/event/pub failed (no event system)");
         case publish_result_e::NO_PRODUCER:
-          return SLP_ERROR("event/pub failed (no producer)");
+          return SLP_ERROR("core/event/pub failed (no producer)");
         case publish_result_e::NO_TOPIC_WRITER:
-          return SLP_ERROR("event/pub failed (no topic writer)");
+          return SLP_ERROR("core/event/pub failed (no topic writer)");
         default:
-          return SLP_ERROR("event/pub failed (unknown error)");
+          return SLP_ERROR("core/event/pub failed (unknown error)");
         }
 
         logger->debug("[event] pub channel {} topic {} data {}", channel_sym,
@@ -96,7 +96,7 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
         runtime_info.get_subscription_handlers_mutex();
     auto list = args.as_list();
     if (list.size() < 4) {
-      return SLP_ERROR("event/sub requires channel, topic-id and handler body "
+      return SLP_ERROR("core/event/sub requires channel, topic-id and handler body "
                        "(use $CHANNEL_A through $CHANNEL_F)");
     }
 
@@ -201,7 +201,7 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
                        sh.handler_data == handler.handler_data;
               }),
           subscription_handlers->end());
-      return SLP_ERROR("event/sub failed (check permissions)");
+      return SLP_ERROR("core/event/sub failed (check permissions)");
     }
 
     logger->debug("[event] sub channel {} topic {} with handler", channel_sym,

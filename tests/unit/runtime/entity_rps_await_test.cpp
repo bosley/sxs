@@ -34,7 +34,7 @@ auto create_test_logger() {
 }
 } // namespace
 
-TEST_CASE("entity rps with runtime/await cross-channel limiting",
+TEST_CASE("entity rps with core/expr/await cross-channel limiting",
           "[unit][runtime][entity][rps][await]") {
   kvds::datastore_c entity_ds;
   kvds::datastore_c data_ds;
@@ -61,7 +61,7 @@ TEST_CASE("entity rps with runtime/await cross-channel limiting",
 
   record::record_manager_c entity_manager(entity_ds, logger);
 
-  SECTION("RPS limit applies across all channels in runtime/await") {
+  SECTION("RPS limit applies across all channels in core/expr/await") {
     auto entity_opt = entity_manager.get_or_create<runtime::entity_c>("user1");
     REQUIRE(entity_opt.has_value());
     auto entity = entity_opt.value().get();
@@ -110,7 +110,7 @@ TEST_CASE("entity rps with runtime/await cross-channel limiting",
     CHECK(failed_publishes == 4);
   }
 
-  SECTION("runtime/await respects RPS limits across channels") {
+  SECTION("core/expr/await respects RPS limits across channels") {
     auto entity_opt = entity_manager.get_or_create<runtime::entity_c>("user2");
     REQUIRE(entity_opt.has_value());
     auto entity = entity_opt.value().get();
@@ -140,10 +140,10 @@ TEST_CASE("entity rps with runtime/await cross-channel limiting",
 
     request.script_text = R"(
       [
-        (event/pub $CHANNEL_A 1 "msg1")
-        (event/pub $CHANNEL_A 1 "msg2")
-        (event/pub $CHANNEL_A 1 "msg3")
-        (event/pub $CHANNEL_A 1 "msg4")
+        (core/event/pub $CHANNEL_A 1 "msg1")
+        (core/event/pub $CHANNEL_A 1 "msg2")
+        (core/event/pub $CHANNEL_A 1 "msg3")
+        (core/event/pub $CHANNEL_A 1 "msg4")
       ]
     )";
 

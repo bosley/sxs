@@ -106,7 +106,7 @@ add_test(NAME entity_rps_stress_test_with_rapid_publishes
 add_test(NAME entity_rps_different_entities_independent_limits
          COMMAND runtime_tests "entity rps different entities independent limits")
 add_test(NAME entity_rps_with_runtime_await_cross_channel_limiting
-         COMMAND runtime_tests "entity rps with runtime/await cross-channel limiting")
+         COMMAND runtime_tests "entity rps with core/expr/await cross-channel limiting")
 add_test(NAME entity_rps_limit_tracking_across_channels
          COMMAND runtime_tests "entity rps limit tracking across channels")
 
@@ -144,15 +144,15 @@ add_test(NAME processor_initialization
 add_test(NAME processor_execute_simple_integer_script
          COMMAND runtime_tests "processor execute simple integer script")
 add_test(NAME processor_kv_set_and_kv_get_operations
-         COMMAND runtime_tests "processor kv/set and kv/get operations")
+         COMMAND runtime_tests "processor core/kv/set and core/kv/get operations")
 add_test(NAME processor_kv_del_and_kv_exists_operations
-         COMMAND runtime_tests "processor kv/del and kv/exists operations")
+         COMMAND runtime_tests "processor core/kv/del and core/kv/exists operations")
 add_test(NAME processor_event_pub_operation
-         COMMAND runtime_tests "processor event/pub operation")
+         COMMAND runtime_tests "processor core/event/pub operation")
 add_test(NAME processor_event_sub_operation
-         COMMAND runtime_tests "processor event/sub operation")
+         COMMAND runtime_tests "processor core/event/sub operation")
 add_test(NAME processor_runtime_log_operation
-         COMMAND runtime_tests "processor runtime/log operation")
+         COMMAND runtime_tests "processor core/util/log operation")
 add_test(NAME processor_error_handling
          COMMAND runtime_tests "processor error handling")
 add_test(NAME processor_permission_denied_scenarios
@@ -162,7 +162,7 @@ add_test(NAME processor_bracket_list_execution
 add_test(NAME processor_complex_script_execution
          COMMAND runtime_tests "processor complex script execution")
 add_test(NAME event_sub_with_handler_body_executes_on_event
-         COMMAND runtime_tests "event/sub with handler body executes on event")
+         COMMAND runtime_tests "core/event/sub with handler body executes on event")
 add_test(NAME multiple_sessions_subscribe_to_same_topic
          COMMAND runtime_tests "multiple sessions subscribe to same topic")
 add_test(NAME session_subscribes_to_multiple_topics
@@ -179,13 +179,13 @@ add_test(NAME empty_handler_body
          COMMAND runtime_tests "empty handler body")
 
 add_test(NAME processor_runtime_eval_operation
-         COMMAND runtime_tests "processor runtime/eval operation")
+         COMMAND runtime_tests "processor core/expr/eval operation")
 add_test(NAME processor_runtime_await_operation
-         COMMAND runtime_tests "processor runtime/await operation")
+         COMMAND runtime_tests "processor core/expr/await operation")
 add_test(NAME processor_runtime_eval_with_kv_operations
-         COMMAND runtime_tests "processor runtime/eval with kv operations")
+         COMMAND runtime_tests "processor core/expr/eval with kv operations")
 add_test(NAME processor_runtime_await_async_communication
-         COMMAND runtime_tests "processor runtime/await async communication")
+         COMMAND runtime_tests "processor core/expr/await async communication")
 
 add_test(NAME multi_processor_initialization_with_1_processor
          COMMAND runtime_tests "multi processor initialization with 1 processor")

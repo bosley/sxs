@@ -4,7 +4,7 @@ These come in the form of slp lists. A SLP list is a homoiconic lisp-like string
 based on structure of the ascii data, making it the language AND the instruction. Since we have no key words its even easier to form slp lists into whatever we want here
 at the runtime level.
 
-Right now we have it setup suchthat the functions are broken into groups "kv" "runtime" and "events" These are the core concerns of the lagnuage now. Each command
+Right now we have it setup suchthat the functions are broken into groups "core/kv" "core/event" "core/expr" and "core/util" These are the core concerns of the language now. Each command
 is emitted to one of the defined "processors" that interpret the slp list.
 
 The key part to note about slp lists is that they don't have any dynmaically allocated data. Each list '()' is fully contained set of data to describe itself. 

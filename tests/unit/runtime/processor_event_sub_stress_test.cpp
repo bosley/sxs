@@ -88,19 +88,19 @@ TEST_CASE("multiple sessions subscribe to same topic",
   runtime::execution_request_s req1;
   req1.session = session1;
   req1.script_text =
-      R"((event/sub $CHANNEL_A 400 {(kv/set session1_data $data)}))";
+      R"((core/event/sub $CHANNEL_A 400 {(core/kv/set session1_data $data)}))";
   req1.request_id = "req1";
 
   runtime::execution_request_s req2;
   req2.session = session2;
   req2.script_text =
-      R"((event/sub $CHANNEL_A 400 {(kv/set session2_data $data)}))";
+      R"((core/event/sub $CHANNEL_A 400 {(core/kv/set session2_data $data)}))";
   req2.request_id = "req2";
 
   runtime::execution_request_s req3;
   req3.session = session3;
   req3.script_text =
-      R"((event/sub $CHANNEL_A 400 {(kv/set session3_data $data)}))";
+      R"((core/event/sub $CHANNEL_A 400 {(core/kv/set session3_data $data)}))";
   req3.request_id = "req3";
 
   runtime::events::event_s sub_event1;
@@ -188,9 +188,9 @@ TEST_CASE("session subscribes to multiple topics",
   runtime::execution_request_s req;
   req.session = session;
   req.script_text = R"([
-    (event/sub $CHANNEL_A 401 {(kv/set topic401 $data)})
-    (event/sub $CHANNEL_A 402 {(kv/set topic402 $data)})
-    (event/sub $CHANNEL_A 403 {(kv/set topic403 $data)})
+    (core/event/sub $CHANNEL_A 401 {(core/kv/set topic401 $data)})
+    (core/event/sub $CHANNEL_A 402 {(core/kv/set topic402 $data)})
+    (core/event/sub $CHANNEL_A 403 {(core/kv/set topic403 $data)})
   ])";
   req.request_id = "multi_sub";
 
@@ -278,8 +278,8 @@ TEST_CASE("rapid fire event delivery to handler",
 
   runtime::execution_request_s req;
   req.session = session;
-  req.script_text = R"((event/sub $CHANNEL_A 500 {
-    (kv/set last_event $data)
+  req.script_text = R"((core/event/sub $CHANNEL_A 500 {
+    (core/kv/set last_event $data)
   }))";
   req.request_id = "rapid_sub";
 
@@ -352,9 +352,9 @@ TEST_CASE("handler with parse error in body",
 
   runtime::execution_request_s req;
   req.session = session;
-  req.script_text = R"((event/sub $CHANNEL_A 600 {
+  req.script_text = R"((core/event/sub $CHANNEL_A 600 {
     (unknown/function arg1 arg2)
-    (kv/set should_not_reach "here")
+    (core/kv/set should_not_reach "here")
   }))";
   req.request_id = "error_sub";
 
@@ -426,11 +426,11 @@ TEST_CASE("handler with nested function calls",
 
   runtime::execution_request_s req;
   req.session = session;
-  req.script_text = R"((event/sub $CHANNEL_A 700 {
-    (kv/set event_copy $data)
-    (kv/set retrieved (kv/get base_value))
-    (kv/set exists_check (kv/exists base_value))
-    (runtime/log "Nested call with" $data)
+  req.script_text = R"((core/event/sub $CHANNEL_A 700 {
+    (core/kv/set event_copy $data)
+    (core/kv/set retrieved (core/kv/get base_value))
+    (core/kv/set exists_check (core/kv/exists base_value))
+    (core/util/log "Nested call with" $data)
   }))";
   req.request_id = "nested_sub";
 
@@ -508,12 +508,12 @@ TEST_CASE("handler publishes event creating chain",
   runtime::execution_request_s req;
   req.session = session;
   req.script_text = R"([
-    (event/sub $CHANNEL_A 800 {
-      (kv/set step1 $data)
-      (event/pub $CHANNEL_A 801 "chained")
+    (core/event/sub $CHANNEL_A 800 {
+      (core/kv/set step1 $data)
+      (core/event/pub $CHANNEL_A 801 "chained")
     })
-    (event/sub $CHANNEL_A 801 {
-      (kv/set step2 $data)
+    (core/event/sub $CHANNEL_A 801 {
+      (core/kv/set step2 $data)
     })
   ])";
   req.request_id = "chain_sub";
@@ -586,7 +586,7 @@ TEST_CASE("empty handler body", "[unit][runtime][processor][stress]") {
 
   runtime::execution_request_s req;
   req.session = session;
-  req.script_text = R"((event/sub $CHANNEL_A 900 {}))";
+  req.script_text = R"((core/event/sub $CHANNEL_A 900 {}))";
   req.request_id = "empty_sub";
 
   runtime::events::event_s sub_event;

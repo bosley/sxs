@@ -1,4 +1,4 @@
-#include "runtime/fns/runtime_fns.hpp"
+#include "runtime/fns/expr.hpp"
 #include "runtime/fns/helpers.hpp"
 #include "runtime/processor.hpp"
 #include "runtime/session/session.hpp"
@@ -7,40 +7,16 @@
 
 namespace runtime::fns {
 
-function_group_s get_runtime_functions(runtime_information_if &runtime_info) {
+function_group_s get_expr_functions(runtime_information_if &runtime_info) {
   function_group_s group;
-  group.group_name = "runtime";
-
-  group.functions["log"] =
-      [&runtime_info](session_c &session, const slp::slp_object_c &args,
-                      const std::map<std::string, slp::slp_object_c> &context) {
-        auto logger = runtime_info.get_logger();
-        auto list = args.as_list();
-        if (list.size() < 2) {
-          return SLP_ERROR("runtime/log requires message");
-        }
-
-        std::stringstream ss;
-        for (size_t i = 1; i < list.size(); i++) {
-          if (i > 1) {
-            ss << " ";
-          }
-          auto msg_result =
-              runtime_info.eval_object(session, list.at(i), context);
-          ss << runtime_info.object_to_string(msg_result);
-        }
-
-        std::string message = ss.str();
-        logger->info("[session:{}] {}", session.get_id(), message);
-        return SLP_BOOL(true);
-      };
+  group.group_name = "core/expr";
 
   group.functions["eval"] =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto list = args.as_list();
         if (list.size() < 2) {
-          return SLP_ERROR("runtime/eval requires script text");
+          return SLP_ERROR("core/expr/eval requires script text");
         }
 
         auto script_obj =
@@ -49,7 +25,7 @@ function_group_s get_runtime_functions(runtime_information_if &runtime_info) {
 
         auto parse_result = slp::parse(script_text);
         if (parse_result.is_error()) {
-          return SLP_ERROR("runtime/eval parse error");
+          return SLP_ERROR("core/expr/eval parse error");
         }
 
         return runtime_info.eval_object(session, parse_result.object(),
@@ -67,7 +43,7 @@ function_group_s get_runtime_functions(runtime_information_if &runtime_info) {
     auto list = args.as_list();
     if (list.size() < 4) {
       return SLP_ERROR(
-          "runtime/await requires body, response-channel and response-topic");
+          "core/expr/await requires body, response-channel and response-topic");
     }
 
     auto body_obj = list.at(1);
@@ -138,7 +114,7 @@ function_group_s get_runtime_functions(runtime_information_if &runtime_info) {
     if (!sub_success) {
       std::lock_guard<std::mutex> lock(*pending_awaits_mutex);
       pending_awaits->erase(await_id);
-      return SLP_ERROR("runtime/await failed to subscribe");
+      return SLP_ERROR("core/expr/await failed to subscribe");
     }
 
     auto body_result = runtime_info.eval_object(session, body_obj, context);
@@ -156,7 +132,7 @@ function_group_s get_runtime_functions(runtime_information_if &runtime_info) {
         session.unsubscribe_from_topic(category, topic_id);
         std::lock_guard<std::mutex> await_lock(*pending_awaits_mutex);
         pending_awaits->erase(await_id);
-        return SLP_ERROR("runtime/await timeout waiting for response");
+        return SLP_ERROR("core/expr/await timeout waiting for response");
       }
     }
 
@@ -181,3 +157,4 @@ function_group_s get_runtime_functions(runtime_information_if &runtime_info) {
 }
 
 } // namespace runtime::fns
+

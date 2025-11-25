@@ -1,7 +1,8 @@
 #include "runtime/fns/fns.hpp"
 #include "runtime/fns/event.hpp"
+#include "runtime/fns/expr.hpp"
 #include "runtime/fns/kv.hpp"
-#include "runtime/fns/runtime_fns.hpp"
+#include "runtime/fns/util.hpp"
 
 namespace runtime::fns {
 
@@ -11,7 +12,8 @@ get_all_function_groups(runtime_information_if &runtime_info) {
 
   groups.push_back(get_kv_functions(runtime_info));
   groups.push_back(get_event_functions(runtime_info));
-  groups.push_back(get_runtime_functions(runtime_info));
+  groups.push_back(get_expr_functions(runtime_info));
+  groups.push_back(get_util_functions(runtime_info));
 
   return groups;
 }

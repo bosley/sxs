@@ -17,7 +17,7 @@
     ```slp
 
 
-        (kv/set aaa 3)
+        (core/kv/set aaa 3)
         (kv/snx aab 4) ; if it fails an "error type" is returned
         (kv/cas aab 4 22)
 

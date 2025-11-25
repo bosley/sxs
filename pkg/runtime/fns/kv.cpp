@@ -9,7 +9,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
   auto logger = runtime_info.get_logger();
 
   function_group_s group;
-  group.group_name = "kv";
+  group.group_name = "core/kv";
 
   group.functions["set"] =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
@@ -17,7 +17,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         auto logger = runtime_info.get_logger();
         auto list = args.as_list();
         if (list.size() < 3) {
-          return SLP_ERROR("kv/set requires key and value");
+          return SLP_ERROR("core/kv/set requires key and value");
         }
 
         auto key_obj = list.at(1);
@@ -43,7 +43,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
 
         bool success = store->set(key, value);
         if (!success) {
-          return SLP_ERROR("kv/set failed (check permissions)");
+          return SLP_ERROR("core/kv/set failed (check permissions)");
         }
 
         logger->debug("[kv] set {} = {}", key, value);
@@ -56,7 +56,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         auto logger = runtime_info.get_logger();
         auto list = args.as_list();
         if (list.size() < 2) {
-          return SLP_ERROR("kv/get requires key");
+          return SLP_ERROR("core/kv/get requires key");
         }
 
         auto key_obj = list.at(1);
@@ -77,7 +77,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         std::string value;
         bool success = store->get(key, value);
         if (!success) {
-          return SLP_ERROR("kv/get failed (key not found or no permission)");
+          return SLP_ERROR("core/kv/get failed (key not found or no permission)");
         }
 
         logger->debug("[kv] get {} = {}", key, value);
@@ -90,7 +90,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         auto logger = runtime_info.get_logger();
         auto list = args.as_list();
         if (list.size() < 2) {
-          return SLP_ERROR("kv/del requires key");
+          return SLP_ERROR("core/kv/del requires key");
         }
 
         auto key_obj = list.at(1);
@@ -110,7 +110,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
 
         bool success = store->del(key);
         if (!success) {
-          return SLP_ERROR("kv/del failed (check permissions)");
+          return SLP_ERROR("core/kv/del failed (check permissions)");
         }
 
         logger->debug("[kv] del {}", key);
@@ -123,7 +123,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         auto logger = runtime_info.get_logger();
         auto list = args.as_list();
         if (list.size() < 2) {
-          return SLP_ERROR("kv/exists requires key");
+          return SLP_ERROR("core/kv/exists requires key");
         }
 
         auto key_obj = list.at(1);
