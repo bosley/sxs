@@ -33,6 +33,11 @@ We have the core concepts:
     - 7 Channels "A-F" and all topics (uint16 size) can be freely used. I like to think of these similar
         to "registers" that subscribers are notified about on change. 
 
+4) Core commands
+    - minimal actions to perform primitive tasks
+    - akin to machine instructions, though more complex in form
+    - intended to be expanded and used as the backend for a higher level, more sane language set
+
 # Core concepts
 
 ## KV Store
@@ -481,4 +486,77 @@ The flow:
 5. Task 1's await unblocks with the response data
 
 All the threading, queueing, and synchronization is handled by the event system. The tasks just pub and sub. 
+
+## Core Commands
+
+So we have the K/V store, objects (SLP), and events. What do we actually do with these? We need instructions. Commands. Something that tells the processor what actions to take.
+
+The core commands are the primitive operations that make this runtime actually useful. They're organized into four namespaces based on what they operate on:
+
+**core/kv** - K/V Store Operations (6 commands)
+- `set` - write a key/value pair
+- `get` - read a value by key
+- `del` - delete a key
+- `exists` - check if a key exists
+- `snx` - set if not exists (atomic)
+- `cas` - compare and swap (atomic)
+- `iterate` - walk keys matching a prefix, execute a handler for each
+
+These are your basic database operations. The atomic ones (`snx` and `cas`) are crucial for coordination between concurrent tasks. The iterate command is how you leverage the prefix behavior I talked about earlier for working with namespaced data.
+
+**core/event** - Event System Operations (2 commands)
+- `pub` - publish an event to a channel and topic
+- `sub` - subscribe to a channel and topic with a handler
+
+These hook directly into the event system. You can pub/sub on any of the six general purpose channels (A through F). The handler you pass to `sub` gets executed whenever an event arrives on that channel/topic.
+
+**core/expr** - Expression Control (2 commands)
+- `eval` - dynamically evaluate SLP text as code
+- `await` - execute something and block waiting for a response
+
+The `eval` command is where homoiconicity really shines. You can store SLP code in the K/V store, retrieve it, and execute it directly without any parsing step because the stored format is already executable. The `await` command gives you request/response patterns on top of pub/sub as evaluation happens concurrently.
+
+**core/util** - Utility Operations (1 command)
+- `log` - output messages to the session logger
+
+Pretty straightforward. It takes variadic arguments so you can log multiple values in one call.
+
+### Command Structure
+
+Every command follows the same pattern. It's an SLP list where the first element is the command identifier (like `core/kv/set`) and the remaining elements are parameters:
+
+```
+(core/kv/set mykey "hello")
+(core/event/pub $CHANNEL_A 100 "message")
+(core/expr/eval "(core/util/log \"dynamic code\")")
+```
+
+All commands return either `true` on success or an ERROR type (formatted as `@"message"`) on failure. This makes it easy to check results and handle errors consistently.
+
+### Variable Semantics
+
+There's an important distinction in how symbols work. In general, symbols are explicit storage locations. If you want to work with a value, you have to explicitly get it from the K/V store:
+
+```
+(core/kv/set counter 42)
+(core/kv/get counter)
+```
+
+There's no implicit loading. The symbol `counter` doesn't magically resolve to its value. You have to ask for it.
+
+The exception is symbols prefixed with `$`. These are context variables provided by the runtime:
+
+- `$CHANNEL_A` through `$CHANNEL_F` evaluate to the channel identifiers for event operations
+- `$key` is injected into `core/kv/iterate` handler bodies with the current iteration key
+- `$data` is injected into `core/event/sub` handler bodies with the event payload
+
+These context variables are how the runtime passes information into your handlers without you having to explicitly load it from storage.
+
+### Why These Commands?
+
+You might notice this is a pretty minimal set. Only 12 commands total. That's intentional. These are meant to be the primitive operations, the machine instructions of this runtime. They're low level and a bit awkward to use directly for complex tasks.
+
+The idea is that you'd build higher level abstractions on top of these. Maybe a proper language with nicer syntax, control flow constructs, functions, all that good stuff. But underneath, it would compile down to these core primitives.
+
+Think of it like how high level languages compile to assembly. Nobody wants to write assembly by hand for their entire application, but having a clean, minimal instruction set as the foundation makes it possible to build whatever abstractions you want on top.
 
