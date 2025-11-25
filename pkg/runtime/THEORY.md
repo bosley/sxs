@@ -3,9 +3,9 @@
 I for some reason have an addiction to making things like this. The first one was "Nabla + Solace"
 in 2020 where I made a bytecode and assembler + high level language. 
 
-Anway, here we go again 
+Anyway, here we go again 
 
-In this case I was making a distributed kv store that has a networkd real-time event system (insulalabs.io btw.)
+In this case I was making a distributed kv store that has a networked real-time event system (insulalabs.io btw.)
 
 It kind of tickled me thinking about the insi project as if it was multiple microcontrollers
 all doing the actions needed to stay in sync and offer the eventing network.
@@ -21,13 +21,16 @@ We have the core concepts:
     - can iterate keys based on a "prefix"
 
 2) Objects
-    - homoiconicity
+    - homoiconic representation where code and data have the same structure
+    - uses SLP (S-expression Like Parser) format for both instructions and data
+    - instructions are just lists, symbols, numbers, and strings
+    - scripts can be stored in K/V and executed directly without parsing
 
-2) Events
+3) Events
     - has "channels" that each contain "topics" that can be published and subscribed to
     - one channel is dedicated to dispatching commands to be executed
         the "topic" selected on this channel is how the processor can be selected to execute the command
-    - 7 Channels "A-F" and all topics (uint32 size) can be freely used. I like to think of these similar
+    - 7 Channels "A-F" and all topics (uint16 size) can be freely used. I like to think of these similar
         to "registers" that subscribers are notified about on change. 
 
 # Core concepts
@@ -66,8 +69,8 @@ Iterating over the prefix `user:1` would result in:
 Working with these made me think about access rights and how we could leverage this behavior for building a multi-tenant system. I ended on locking user access to a specified and hidden "user prefix" (a uuid.)
 For each user command of set/get i would add or remove this prefix behind the scenes. It added some access overhead but it also offered complete user isolation in the shared space.
 
-My implementation in insi handles "memory" and "disk" operations like this. Naturally this made me think about the heap and stack (despite not really being the same at all.) The though occurred to me "what if the stack
-was really just a spot on disk." Why? I don't know. As I considered what it could be useful for i thought about reenterant functions and otherwise returning to a task that was paused. 
+My implementation in insula handles "memory" and "disk" operations like this. Naturally this made me think about the heap and stack (despite not really being the same at all.) The thought occurred to me "what if the stack
+was really just a spot on disk." Why? I don't know. As I considered what it could be useful for I thought about reentrant functions and otherwise returning to a task that was paused. 
 
 So lets take a look at what isolated "stack" sections might look like if the data that backed variable
 storage was really in the k/v database:
@@ -255,6 +258,82 @@ The bytes stored in the K/V store are the same format as the instructions being 
 
 This is why homoiconicity fits perfectly with the earlier point about instructions vs data. 
  Whether something is an instruction or data depends entirely on whether you're executing it or operating on it. And because they're the same structure, you can seamlessly move between the two modes.
+
+## Object Structure and Immutability
+
+The SLP object representation in this runtime has it such-that all objects are static, immutable blocks of data.
+
+### Contiguous Buffer Model
+
+Every SLP object lives in a single contiguous buffer managed by `slp_buffer_c`. There's no dynamic allocation happening when you work with the object structure. When you parse something like:
+
+```
+(core/kv/set counter 42)
+```
+
+The entire structure the outer list, the symbols, and the interger all get packed into one continuous chunk of memory. This includes:
+
+- The actual units of storage (list headers, symbols, integers, strings)
+- Offset arrays that tell where each element in a list lives
+- A symbol table that maps symbol IDs to their string representations
+
+Everything is laid out in this buffer, and once created, it doesn't change. The buffer is immutable.
+
+### No Dynamic Allocation
+
+This is a key design decision. Each list `()` is a fully contained set of data to describe itself. When you have nested lists like:
+
+```
+(outer (inner 1 2) 3)
+```
+
+Both the outer list and the inner list live in the same buffer. The outer list has an offset array pointing to where each of its children starts in the buffer. The inner list has its own offset array pointing to its children. Its all just offsets into the same contiguous memory.
+
+### Buffer Ownership Model
+
+The `slp_object_c` type that wraps these buffers has an ownership model:
+
+- The root object owns the buffer (an `slp_buffer_c` instance and the symbol table)
+- The object has a lightweight `view_` pointer that points to a specific unit within that buffer
+- When you call `at(index)` on a list to get a child, it creates a new `slp_object_c` with its own copy of the full buffer and symbol table
+- This child object now owns its copy of the buffer and points to a different location within it
+
+This means extracting children from lists involves copying the buffer. The architecture prioritizes safety and ownership clarity over minimal copying. Each object you're holding knows it has exclusive ownership of its data. No shared pointers, no reference counting, no lifetime management complexity.
+
+Moving an `slp_object_c` is efficient though, it just moves the buffer ownership which is cheap.
+
+### Immutability
+
+Once you create an SLP object, you can't modify it. You can't change a symbol, you can't add elements to a list, you can't mutate an integer. The buffer is read-only data.
+
+If you want to create a new structure, you parse new text, which creates a new buffer. If you want to transform data, you build a new object. The original stays unchanged.
+
+### Why This Design?
+
+The contiguous, immutable buffer model gives us several advantages:
+
+1. **Cache locality**: Everything is packed together, so when you traverse a structure, you're accessing adjacent memory
+2. **Serialization is trivial**: The buffer already contains everything needed to reconstruct the object. You could write it directly to disk or send it over the network.
+3. **No allocation during traversal**: Reading an SLP structure never allocates. You're just reading from the buffer.
+4. **Thread-safe by default**: Immutability means no locks needed when multiple threads read the same object
+5. **Simple lifetime management**: Each object owns its buffer. When the object goes out of scope, the buffer is freed. No shared ownership complexity.
+
+The tradeoff is that copying happens when you extract children from lists. But in this runtime, we're typically traversing small command structures, not huge data trees. The simplicity and safety of the ownership model is worth the occasional copy.
+
+### Practical Implications
+
+When you execute a command like:
+
+```
+(core/kv/iterate "user:" 0 10 {
+  (core/util/log "Found key:" $key)
+  (core/kv/del $key)
+})
+```
+
+The entire outer list is one immutable buffer. The handler body `{...}` is a child list in that same buffer. When the processor extracts the handler body to execute it for each iteration, it copies that portion of the buffer into a new `slp_object_c`. That handler object is now independent - it has its own buffer containing the handler code.
+
+This independence is exactly what you want. Each iteration can potentially execute concurrently without worrying about the original command structure being modified or freed.
 
 ## Events
 

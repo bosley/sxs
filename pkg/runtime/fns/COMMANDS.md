@@ -108,14 +108,14 @@ Symbol Table (separate map):
 
 **Key Points:**
 
-1. **No Dynamic Allocation**: Everything lives in one contiguous `vector<uint8_t>` buffer
+1. **No Dynamic Allocation**: Everything lives in one contiguous buffer managed by `slp_buffer_c`
 2. **Buffer Ownership Model**: The `view_` pointer in `slp_object_c` is lightweight (just points into the buffer), but when accessing list elements via `at()`, each child object gets its own copy of the full buffer and symbol table for safety and simplicity
 3. **Offset Arrays**: Lists don't store children directly - they store an array of offsets pointing to where each child lives in the buffer
 4. **Symbol Deduplication**: Symbols are referenced by ID, actual strings live in a separate map
 5. **Self-Describing**: Each unit's header tells you what type it is (PAREN_LIST, SYMBOL, INTEGER, etc.)
 6. **No Keywords**: "let" and "==" are just identifiers - the runtime gives them meaning
 
-Moving `slp_object_c` is efficient (uses vector move semantics), but extracting children from lists copies the buffer. The architecture prioritizes safety and ownership clarity over minimal copying.
+Moving `slp_object_c` is efficient (transfers buffer ownership), but extracting children from lists copies the buffer. The architecture prioritizes safety and ownership clarity over minimal copying.
 
 ## Core Command Reference
 
