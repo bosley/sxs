@@ -134,9 +134,7 @@ TEST_CASE("entity rps with core/expr/await cross-channel limiting",
               std::string("response"));
         });
 
-    runtime::execution_request_s request;
-    request.session = &session;
-    request.request_id = "test_1";
+    runtime::execution_request_s request{session, "", "test_1"};
 
     request.script_text = R"(
       [

@@ -43,7 +43,7 @@ bool runtime_c::initialize() {
     logger_->info("Initializing subsystem: {}", subsystem->get_name());
 
     auto accessor = std::shared_ptr<runtime_accessor_if>(
-        new specific_accessor_c(subsystem.get()));
+        new specific_accessor_c(*subsystem));
     subsystem->initialize(accessor);
 
     if (!subsystem->is_running()) {
@@ -115,20 +115,20 @@ bool runtime_c::is_running() const { return running_; }
 logger_t runtime_c::get_logger() const { return logger_; }
 
 runtime_c::specific_accessor_c::specific_accessor_c(
-    runtime_subsystem_if *subsystem)
-    : runtime_(nullptr), subsystem_(subsystem) {}
+    runtime_subsystem_if &subsystem)
+    : subsystem_(subsystem) {}
 
 void runtime_c::specific_accessor_c::raise_warning(const char *message) {
   auto spdlog_logger = spdlog::get("runtime");
   if (spdlog_logger) {
-    spdlog_logger->warn("[{}] {}", subsystem_->get_name(), message);
+    spdlog_logger->warn("[{}] {}", subsystem_.get_name(), message);
   }
 }
 
 void runtime_c::specific_accessor_c::raise_error(const char *message) {
   auto spdlog_logger = spdlog::get("runtime");
   if (spdlog_logger) {
-    spdlog_logger->error("[{}] {}", subsystem_->get_name(), message);
+    spdlog_logger->error("[{}] {}", subsystem_.get_name(), message);
   }
 }
 

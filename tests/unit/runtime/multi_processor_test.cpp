@@ -166,11 +166,11 @@ TEST_CASE("multi processor concurrent execution on different topics",
 
   for (size_t i = 0; i < num_processors; i++) {
     std::thread([&, i]() {
-      runtime::execution_request_s request;
-      request.session = sessions[i].get();
-      request.script_text = "[" + std::to_string(i * 100) + " " +
-                            std::to_string(i * 100 + 50) + "]";
-      request.request_id = "req_" + std::to_string(i);
+      runtime::execution_request_s request{*sessions[i],
+                                           "[" + std::to_string(i * 100) + " " +
+                                               std::to_string(i * 100 + 50) +
+                                               "]",
+                                           "req_" + std::to_string(i)};
 
       runtime::events::event_s event;
       event.category =
@@ -301,11 +301,10 @@ TEST_CASE("multi processor with kv operations on different scopes",
 
   for (size_t i = 0; i < num_processors; i++) {
     std::thread([&, i]() {
-      runtime::execution_request_s request;
-      request.session = sessions[i].get();
-      request.script_text =
-          "[(core/kv/set key \"value_" + std::to_string(i) + "\")]";
-      request.request_id = "kv_req_" + std::to_string(i);
+      runtime::execution_request_s request{*sessions[i],
+                                           "[(core/kv/set key \"value_" +
+                                               std::to_string(i) + "\")]",
+                                           "kv_req_" + std::to_string(i)};
 
       runtime::events::event_s event;
       event.category =
@@ -404,11 +403,9 @@ TEST_CASE("multi processor stress test with rapid concurrent requests",
   for (size_t i = 0; i < num_processors; i++) {
     for (size_t j = 0; j < requests_per_processor; j++) {
       std::thread([&, i, j]() {
-        runtime::execution_request_s request;
-        request.session = sessions[i].get();
-        request.script_text = "[" + std::to_string(i * 1000 + j) + "]";
-        request.request_id =
-            "stress_req_" + std::to_string(i) + "_" + std::to_string(j);
+        runtime::execution_request_s request{
+            *sessions[i], "[" + std::to_string(i * 1000 + j) + "]",
+            "stress_req_" + std::to_string(i) + "_" + std::to_string(j)};
 
         runtime::events::event_s event;
         event.category =

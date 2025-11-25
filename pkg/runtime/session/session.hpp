@@ -16,13 +16,14 @@ namespace runtime {
 class entity_c;
 
 enum class publish_result_e {
-  OK,
-  RATE_LIMIT_EXCEEDED,
-  PERMISSION_DENIED,
-  NO_ENTITY,
-  NO_EVENT_SYSTEM,
-  NO_PRODUCER,
-  NO_TOPIC_WRITER
+  OK = 0,
+  RATE_LIMIT_EXCEEDED = 1,
+  PERMISSION_DENIED = 2,
+  NO_ENTITY = 3,
+  NO_EVENT_SYSTEM = 4,
+  NO_PRODUCER = 5,
+  NO_TOPIC_WRITER = 6,
+  SENTINEL = 7,
 };
 
 class scoped_kv_c : public kvds::kv_c {

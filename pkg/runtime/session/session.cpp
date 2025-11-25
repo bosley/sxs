@@ -166,6 +166,10 @@ kvds::kv_c *session_c::get_store() { return scoped_store_.get(); }
 publish_result_e session_c::publish_event(events::event_category_e category,
                                           std::uint16_t topic_id,
                                           const std::any &payload) {
+  assert(static_cast<int>(category) >= 0 &&
+         static_cast<int>(category) <
+             static_cast<int>(events::event_category_e::SENTINEL) &&
+         "event category must be between within event_category_e enum");
   if (!entity_.is_permitted_topic(topic_id, topic_permission::PUBLISH) &&
       !entity_.is_permitted_topic(topic_id, topic_permission::PUBSUB)) {
     return publish_result_e::PERMISSION_DENIED;

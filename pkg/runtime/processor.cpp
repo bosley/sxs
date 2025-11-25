@@ -47,15 +47,10 @@ void processor_c::consume_event(const events::event_s &event) {
   try {
     const auto &request = std::any_cast<execution_request_s>(event.payload);
 
-    if (!request.session) {
-      logger_->error("[processor_c] Received event with null session pointer");
-      return;
-    }
-
     logger_->info("[processor_c] Executing script for session {} request {}",
-                  request.session->get_id(), request.request_id);
+                  request.session.get_id(), request.request_id);
 
-    auto result = execute_script(*request.session, request.script_text,
+    auto result = execute_script(request.session, request.script_text,
                                  request.request_id);
 
     send_result_to_session(request.session, result);
@@ -191,10 +186,10 @@ slp::slp_object_c processor_c::call_function(session_c &session,
   }
 }
 
-void processor_c::send_result_to_session(session_c *session,
+void processor_c::send_result_to_session(session_c &session,
                                          const execution_result_s &result) {
   logger_->debug("[processor_c] Sending result to session {}",
-                 session->get_id());
+                 session.get_id());
 }
 
 void processor_c::register_function(const std::string &name,

@@ -71,15 +71,14 @@ private:
     specific_accessor_c &operator=(const specific_accessor_c &) = delete;
     specific_accessor_c &operator=(specific_accessor_c &&) = delete;
 
-    specific_accessor_c(runtime_subsystem_if *subsystem);
+    specific_accessor_c(runtime_subsystem_if &subsystem);
     ~specific_accessor_c() = default;
 
     void raise_warning(const char *message) override final;
     void raise_error(const char *message) override final;
 
   private:
-    runtime_c *runtime_;
-    runtime_subsystem_if *subsystem_;
+    runtime_subsystem_if &subsystem_;
   };
 
   options_s options_;
