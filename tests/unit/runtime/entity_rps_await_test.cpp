@@ -73,7 +73,7 @@ TEST_CASE("entity rps with core/expr/await cross-channel limiting",
     entity->grant_topic_permission(3, runtime::topic_permission::PUBSUB);
     entity->save();
 
-    runtime::session_c session("sess1", "user1", "scope1", entity, &data_ds,
+    runtime::session_c session("sess1", "user1", "scope1", *entity, &data_ds,
                                &event_system);
 
     int successful_publishes = 0;
@@ -121,11 +121,11 @@ TEST_CASE("entity rps with core/expr/await cross-channel limiting",
     entity->grant_topic_permission(100, runtime::topic_permission::PUBSUB);
     entity->save();
 
-    runtime::session_c session("sess1", "user2", "scope1", entity, &data_ds,
+    runtime::session_c session("sess1", "user2", "scope1", *entity, &data_ds,
                                &event_system);
 
-    runtime::session_c responder_session("responder", "user2", "scope1", entity,
-                                         &data_ds, &event_system);
+    runtime::session_c responder_session("responder", "user2", "scope1",
+                                         *entity, &data_ds, &event_system);
     responder_session.subscribe_to_topic(
         runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A, 1,
         [&responder_session](const runtime::events::event_s &event) {
@@ -134,9 +134,7 @@ TEST_CASE("entity rps with core/expr/await cross-channel limiting",
               std::string("response"));
         });
 
-    runtime::execution_request_s request;
-    request.session = &session;
-    request.request_id = "test_1";
+    runtime::execution_request_s request{session, "", "test_1"};
 
     request.script_text = R"(
       [
@@ -196,7 +194,7 @@ TEST_CASE("entity rps limit tracking across channels",
     }
     entity->save();
 
-    runtime::session_c session("sess1", "user1", "scope1", entity, &data_ds,
+    runtime::session_c session("sess1", "user1", "scope1", *entity, &data_ds,
                                &event_system);
 
     int total_published = 0;

@@ -4,7 +4,7 @@
 
 namespace runtime {
 
-system_c::system_c(logger_t logger, std::string root_path)
+system_c::system_c(logger_t logger, const std::string &root_path)
     : logger_(logger), root_path_(root_path), running_(false) {}
 
 system_c::~system_c() {
@@ -52,8 +52,8 @@ void system_c::initialize(runtime_accessor_t accessor) {
   logger_->info("[{}] Initializing with root path: {}", name_, root_path_);
 
   if (root_path_.empty()) {
-    accessor_->raise_warning("Root path is empty, using current directory");
-    root_path_ = ".";
+    accessor_->raise_error("Root path is empty");
+    return;
   }
 
   if (!ensure_directory_exists(root_path_)) {

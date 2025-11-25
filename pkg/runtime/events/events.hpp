@@ -28,6 +28,7 @@ enum class event_category_e {
   RUNTIME_BACKCHANNEL_D = 5,
   RUNTIME_BACKCHANNEL_E = 6,
   RUNTIME_BACKCHANNEL_F = 7,
+  SENTINEL = 8,
 };
 
 struct event_s {
@@ -73,7 +74,7 @@ public:
 private:
   class specific_topic_writer_c : public topic_writer_if {
   public:
-    specific_topic_writer_c(event_system_c *event_system,
+    specific_topic_writer_c(event_system_c &event_system,
                             event_category_e category,
                             std::uint16_t topic_identifier);
     ~specific_topic_writer_c();
@@ -81,14 +82,14 @@ private:
     void write_event(const event_s &event) override final;
 
   private:
-    event_system_c *event_system_;
+    event_system_c &event_system_;
     event_category_e category_;
     std::uint16_t topic_identifier_;
   };
 
   class specific_event_producer_c : public event_producer_if {
   public:
-    specific_event_producer_c(event_system_c *event_system,
+    specific_event_producer_c(event_system_c &event_system,
                               event_category_e category);
     ~specific_event_producer_c();
 
@@ -96,7 +97,7 @@ private:
     get_topic_writer_for_topic(std::uint16_t topic_identifier) override final;
 
   private:
-    event_system_c *event_system_;
+    event_system_c &event_system_;
     event_category_e category_;
   };
 

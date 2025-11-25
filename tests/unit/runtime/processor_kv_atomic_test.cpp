@@ -43,7 +43,7 @@ runtime::session_c *
 create_test_session(runtime::events::event_system_c &event_system,
                     kvds::datastore_c &data_ds, runtime::entity_c *entity) {
   return new runtime::session_c("test_session", "test_entity", "test_scope",
-                                entity, &data_ds, &event_system);
+                                *entity, &data_ds, &event_system);
 }
 } // namespace
 
@@ -79,10 +79,8 @@ TEST_CASE("core/kv/snx sets key only if not exists",
       create_test_session(event_system, data_ds, entity.get());
 
   SECTION("snx succeeds on new key") {
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(core/kv/snx newkey \"newvalue\")";
-    request.request_id = "req1";
+    runtime::execution_request_s request{
+        *session, "(core/kv/snx newkey \"newvalue\")", "req1"};
 
     runtime::events::event_s event;
     event.category =
@@ -102,10 +100,8 @@ TEST_CASE("core/kv/snx sets key only if not exists",
   SECTION("snx fails on existing key") {
     session->get_store()->set("existingkey", "original");
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(core/kv/snx existingkey \"newvalue\")";
-    request.request_id = "req2";
+    runtime::execution_request_s request{
+        *session, "(core/kv/snx existingkey \"newvalue\")", "req2"};
 
     runtime::events::event_s event;
     event.category =
@@ -125,10 +121,8 @@ TEST_CASE("core/kv/snx sets key only if not exists",
   SECTION("snx with evaluated value from kv/get") {
     session->get_store()->set("source", "123");
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(core/kv/snx calckey (core/kv/get source))";
-    request.request_id = "req3";
+    runtime::execution_request_s request{
+        *session, "(core/kv/snx calckey (core/kv/get source))", "req3"};
 
     runtime::events::event_s event;
     event.category =
@@ -185,10 +179,8 @@ TEST_CASE("core/kv/cas compares and swaps atomically",
   SECTION("cas succeeds with correct expected value") {
     session->get_store()->set("counter", "10");
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(core/kv/cas counter \"10\" \"11\")";
-    request.request_id = "req1";
+    runtime::execution_request_s request{
+        *session, "(core/kv/cas counter \"10\" \"11\")", "req1"};
 
     runtime::events::event_s event;
     event.category =
@@ -208,10 +200,8 @@ TEST_CASE("core/kv/cas compares and swaps atomically",
   SECTION("cas fails with incorrect expected value") {
     session->get_store()->set("counter", "10");
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(core/kv/cas counter \"5\" \"11\")";
-    request.request_id = "req2";
+    runtime::execution_request_s request{
+        *session, "(core/kv/cas counter \"5\" \"11\")", "req2"};
 
     runtime::events::event_s event;
     event.category =
@@ -229,10 +219,8 @@ TEST_CASE("core/kv/cas compares and swaps atomically",
   }
 
   SECTION("cas fails on non-existent key") {
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(core/kv/cas nokey \"anything\" \"newvalue\")";
-    request.request_id = "req3";
+    runtime::execution_request_s request{
+        *session, "(core/kv/cas nokey \"anything\" \"newvalue\")", "req3"};
 
     runtime::events::event_s event;
     event.category =
@@ -251,11 +239,10 @@ TEST_CASE("core/kv/cas compares and swaps atomically",
     session->get_store()->set("value", "100");
     session->get_store()->set("newvalue", "150");
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text =
-        "(core/kv/cas value (core/kv/get value) (core/kv/get newvalue))";
-    request.request_id = "req4";
+    runtime::execution_request_s request{
+        *session,
+        "(core/kv/cas value (core/kv/get value) (core/kv/get newvalue))",
+        "req4"};
 
     runtime::events::event_s event;
     event.category =
@@ -315,12 +302,11 @@ TEST_CASE("core/kv/iterate processes keys with prefix",
     session->get_store()->set("user:3", "charlie");
     session->get_store()->set("other:1", "data");
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = R"((core/kv/iterate "user:" 0 10 {
+    runtime::execution_request_s request{*session,
+                                         R"((core/kv/iterate "user:" 0 10 {
       (core/kv/set processed $key)
-    }))";
-    request.request_id = "req1";
+    }))",
+                                         "req1"};
 
     runtime::events::event_s event;
     event.category =
@@ -347,13 +333,12 @@ TEST_CASE("core/kv/iterate processes keys with prefix",
     session->get_store()->set("item:05", "e");
     session->get_store()->set("visit_count", "0");
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = R"((core/kv/iterate "item:" 1 2 {
+    runtime::execution_request_s request{*session,
+                                         R"((core/kv/iterate "item:" 1 2 {
       (core/kv/set last_visited $key)
       (core/kv/set visit_count (core/expr/eval (core/kv/get visit_count)))
-    }))";
-    request.request_id = "req2";
+    }))",
+                                         "req2"};
 
     runtime::events::event_s event;
     event.category =
@@ -375,14 +360,13 @@ TEST_CASE("core/kv/iterate processes keys with prefix",
     session->get_store()->set("data:2", "y");
     session->get_store()->set("data:3", "z");
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = R"((core/kv/iterate "data:" 0 10 {
+    runtime::execution_request_s request{*session,
+                                         R"((core/kv/iterate "data:" 0 10 {
       (core/kv/set visited $key)
       (core/unknown/function)
       (core/kv/set should_not_reach "true")
-    }))";
-    request.request_id = "req3";
+    }))",
+                                         "req3"};
 
     runtime::events::event_s event;
     event.category =
@@ -403,13 +387,12 @@ TEST_CASE("core/kv/iterate processes keys with prefix",
     session->get_store()->set("num:2", "20");
     session->get_store()->set("num:3", "30");
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = R"((core/kv/iterate "num:" 0 10 {
+    runtime::execution_request_s request{*session,
+                                         R"((core/kv/iterate "num:" 0 10 {
       (core/kv/set last_iterated_key $key)
       (core/kv/exists $key)
-    }))";
-    request.request_id = "req4";
+    }))",
+                                         "req4"};
 
     runtime::events::event_s event;
     event.category =
@@ -431,12 +414,11 @@ TEST_CASE("core/kv/iterate processes keys with prefix",
     session->get_store()->set("test:a", "1");
     session->get_store()->set("test:b", "2");
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = R"((core/kv/iterate (core/kv/get prefix_value) 0 10 {
+    runtime::execution_request_s request{
+        *session, R"((core/kv/iterate (core/kv/get prefix_value) 0 10 {
       (core/kv/set found $key)
-    }))";
-    request.request_id = "req5";
+    }))",
+        "req5"};
 
     runtime::events::event_s event;
     event.category =
@@ -455,12 +437,11 @@ TEST_CASE("core/kv/iterate processes keys with prefix",
     session->get_store()->set("zero:1", "a");
     session->get_store()->set("zero:2", "b");
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = R"((core/kv/iterate "zero:" 0 0 {
+    runtime::execution_request_s request{*session,
+                                         R"((core/kv/iterate "zero:" 0 0 {
       (core/kv/set should_not_create "true")
-    }))";
-    request.request_id = "req6";
+    }))",
+                                         "req6"};
 
     runtime::events::event_s event;
     event.category =

@@ -16,19 +16,20 @@ namespace runtime {
 class entity_c;
 
 enum class publish_result_e {
-  OK,
-  RATE_LIMIT_EXCEEDED,
-  PERMISSION_DENIED,
-  NO_ENTITY,
-  NO_EVENT_SYSTEM,
-  NO_PRODUCER,
-  NO_TOPIC_WRITER
+  OK = 0,
+  RATE_LIMIT_EXCEEDED = 1,
+  PERMISSION_DENIED = 2,
+  NO_ENTITY = 3,
+  NO_EVENT_SYSTEM = 4,
+  NO_PRODUCER = 5,
+  NO_TOPIC_WRITER = 6,
+  SENTINEL = 7,
 };
 
 class scoped_kv_c : public kvds::kv_c {
 public:
   scoped_kv_c(kvds::kv_c *underlying, const std::string &scope,
-              entity_c *entity);
+              entity_c &entity);
   ~scoped_kv_c() = default;
 
   bool is_open() const override;
@@ -50,7 +51,7 @@ public:
 private:
   kvds::kv_c *underlying_;
   std::string scope_;
-  entity_c *entity_;
+  entity_c &entity_;
 
   std::string add_scope_prefix(const std::string &key) const;
   std::string remove_scope_prefix(const std::string &key) const;
@@ -66,7 +67,7 @@ public:
   session_c &operator=(session_c &&) = delete;
 
   session_c(const std::string &session_id, const std::string &entity_id,
-            const std::string &scope, entity_c *entity, kvds::kv_c *datastore,
+            const std::string &scope, entity_c &entity, kvds::kv_c *datastore,
             events::event_system_c *event_system);
   ~session_c() = default;
 
@@ -91,12 +92,12 @@ public:
 private:
   class session_event_consumer_c : public events::event_consumer_if {
   public:
-    session_event_consumer_c(session_c *session);
+    session_event_consumer_c(session_c &session);
     ~session_event_consumer_c() = default;
     void consume_event(const events::event_s &event) override;
 
   private:
-    session_c *session_;
+    session_c &session_;
   };
 
   void consume_event(const events::event_s &event);
@@ -106,7 +107,7 @@ private:
   std::string scope_;
   bool active_;
   std::time_t creation_time_;
-  entity_c *entity_;
+  entity_c &entity_;
   std::unique_ptr<scoped_kv_c> scoped_store_;
   events::event_system_c *event_system_;
   std::map<std::pair<events::event_category_e, std::uint16_t>,

@@ -43,7 +43,7 @@ runtime::session_c *
 create_test_session(runtime::events::event_system_c &event_system,
                     kvds::datastore_c &data_ds, runtime::entity_c *entity) {
   return new runtime::session_c("test_session", "test_entity", "test_scope",
-                                entity, &data_ds, &event_system);
+                                *entity, &data_ds, &event_system);
 }
 } // namespace
 
@@ -92,10 +92,7 @@ TEST_CASE("processor execute simple integer script",
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "42";
-    request.request_id = "req1";
+    runtime::execution_request_s request{*session, "42", "req1"};
 
     runtime::events::event_s event;
     event.category =
@@ -112,10 +109,7 @@ TEST_CASE("processor execute simple integer script",
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "3.14";
-    request.request_id = "req2";
+    runtime::execution_request_s request{*session, "3.14", "req2"};
 
     runtime::events::event_s event;
     event.category =
@@ -132,10 +126,7 @@ TEST_CASE("processor execute simple integer script",
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "\"hello world\"";
-    request.request_id = "req3";
+    runtime::execution_request_s request{*session, "\"hello world\"", "req3"};
 
     runtime::events::event_s event;
     event.category =
@@ -184,10 +175,8 @@ TEST_CASE("processor core/kv/set and core/kv/get operations",
       create_test_session(event_system, data_ds, entity.get());
 
   SECTION("core/kv/set stores value") {
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(core/kv/set mykey \"myvalue\")";
-    request.request_id = "req1";
+    runtime::execution_request_s request{
+        *session, "(core/kv/set mykey \"myvalue\")", "req1"};
 
     runtime::events::event_s event;
     event.category =
@@ -205,10 +194,8 @@ TEST_CASE("processor core/kv/set and core/kv/get operations",
   SECTION("core/kv/get retrieves value") {
     session->get_store()->set("testkey", "testvalue");
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(core/kv/get testkey)";
-    request.request_id = "req2";
+    runtime::execution_request_s request{*session, "(core/kv/get testkey)",
+                                         "req2"};
 
     runtime::events::event_s event;
     event.category =
@@ -220,10 +207,8 @@ TEST_CASE("processor core/kv/set and core/kv/get operations",
   }
 
   SECTION("core/kv/set with integer value") {
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(core/kv/set counter 42)";
-    request.request_id = "req3";
+    runtime::execution_request_s request{*session, "(core/kv/set counter 42)",
+                                         "req3"};
 
     runtime::events::event_s event;
     event.category =
@@ -279,10 +264,8 @@ TEST_CASE("processor core/kv/del and core/kv/exists operations",
     session->get_store()->set("deletekey", "deleteme");
     CHECK(session->get_store()->exists("deletekey"));
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(core/kv/del deletekey)";
-    request.request_id = "req1";
+    runtime::execution_request_s request{*session, "(core/kv/del deletekey)",
+                                         "req1"};
 
     runtime::events::event_s event;
     event.category =
@@ -298,10 +281,8 @@ TEST_CASE("processor core/kv/del and core/kv/exists operations",
   SECTION("core/kv/exists checks existence") {
     session->get_store()->set("existkey", "value");
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(core/kv/exists existkey)";
-    request.request_id = "req2";
+    runtime::execution_request_s request{*session, "(core/kv/exists existkey)",
+                                         "req2"};
 
     runtime::events::event_s event;
     event.category =
@@ -349,10 +330,8 @@ TEST_CASE("processor core/event/pub operation", "[unit][runtime][processor]") {
       create_test_session(event_system, data_ds, entity.get());
 
   SECTION("core/event/pub publishes event") {
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(core/event/pub $CHANNEL_A 100 \"test message\")";
-    request.request_id = "req1";
+    runtime::execution_request_s request{
+        *session, "(core/event/pub $CHANNEL_A 100 \"test message\")", "req1"};
 
     runtime::events::event_s event;
     event.category =
@@ -364,10 +343,8 @@ TEST_CASE("processor core/event/pub operation", "[unit][runtime][processor]") {
   }
 
   SECTION("core/event/pub with integer data") {
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(core/event/pub $CHANNEL_A 100 42)";
-    request.request_id = "req2";
+    runtime::execution_request_s request{
+        *session, "(core/event/pub $CHANNEL_A 100 42)", "req2"};
 
     runtime::events::event_s event;
     event.category =
@@ -415,10 +392,8 @@ TEST_CASE("processor core/event/sub operation", "[unit][runtime][processor]") {
       create_test_session(event_system, data_ds, entity.get());
 
   SECTION("core/event/sub subscribes to topic") {
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(core/event/sub $CHANNEL_A 200)";
-    request.request_id = "req1";
+    runtime::execution_request_s request{
+        *session, "(core/event/sub $CHANNEL_A 200)", "req1"};
 
     runtime::events::event_s event;
     event.category =
@@ -463,10 +438,8 @@ TEST_CASE("processor core/util/log operation", "[unit][runtime][processor]") {
       create_test_session(event_system, data_ds, entity.get());
 
   SECTION("core/util/log with single string") {
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(core/util/log \"Hello from SLP\")";
-    request.request_id = "req1";
+    runtime::execution_request_s request{
+        *session, "(core/util/log \"Hello from SLP\")", "req1"};
 
     runtime::events::event_s event;
     event.category =
@@ -478,10 +451,8 @@ TEST_CASE("processor core/util/log operation", "[unit][runtime][processor]") {
   }
 
   SECTION("core/util/log with multiple arguments") {
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(core/util/log \"Count:\" 42 \"Done\")";
-    request.request_id = "req2";
+    runtime::execution_request_s request{
+        *session, "(core/util/log \"Count:\" 42 \"Done\")", "req2"};
 
     runtime::events::event_s event;
     event.category =
@@ -524,29 +495,11 @@ TEST_CASE("processor error handling", "[unit][runtime][processor]") {
 
   runtime::processor_c processor(logger.get(), event_system);
 
-  SECTION("null session pointer is handled") {
-    runtime::execution_request_s request;
-    request.session = nullptr;
-    request.script_text = "42";
-    request.request_id = "req1";
-
-    runtime::events::event_s event;
-    event.category =
-        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
-    event.topic_identifier = 0;
-    event.payload = request;
-
-    processor.consume_event(event);
-  }
-
   SECTION("parse error is handled") {
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(unclosed paren";
-    request.request_id = "req2";
+    runtime::execution_request_s request{*session, "(unclosed paren", "req2"};
 
     runtime::events::event_s event;
     event.category =
@@ -563,10 +516,8 @@ TEST_CASE("processor error handling", "[unit][runtime][processor]") {
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(unknown/function arg1 arg2)";
-    request.request_id = "req3";
+    runtime::execution_request_s request{
+        *session, "(unknown/function arg1 arg2)", "req3"};
 
     runtime::events::event_s event;
     event.category =
@@ -614,10 +565,8 @@ TEST_CASE("processor permission denied scenarios",
       create_test_session(event_system, data_ds, entity.get());
 
   SECTION("core/kv/set without permission fails") {
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(core/kv/set key \"value\")";
-    request.request_id = "req1";
+    runtime::execution_request_s request{*session,
+                                         "(core/kv/set key \"value\")", "req1"};
 
     runtime::events::event_s event;
     event.category =
@@ -631,10 +580,8 @@ TEST_CASE("processor permission denied scenarios",
   }
 
   SECTION("core/event/pub without permission fails") {
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(core/event/pub $CHANNEL_A 100 \"message\")";
-    request.request_id = "req2";
+    runtime::execution_request_s request{
+        *session, "(core/event/pub $CHANNEL_A 100 \"message\")", "req2"};
 
     runtime::events::event_s event;
     event.category =
@@ -682,12 +629,12 @@ TEST_CASE("processor bracket list execution", "[unit][runtime][processor]") {
       create_test_session(event_system, data_ds, entity.get());
 
   SECTION("bracket list executes multiple statements") {
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "[(core/kv/set key1 \"value1\") (core/kv/set key2 "
-                          "\"value2\") (core/kv/set key3 "
-                          "\"value3\")]";
-    request.request_id = "req1";
+    runtime::execution_request_s request{
+        *session,
+        "[(core/kv/set key1 \"value1\") (core/kv/set key2 "
+        "\"value2\") (core/kv/set key3 "
+        "\"value3\")]",
+        "req1"};
 
     runtime::events::event_s event;
     event.category =
@@ -740,16 +687,14 @@ TEST_CASE("processor complex script execution", "[unit][runtime][processor]") {
       create_test_session(event_system, data_ds, entity.get());
 
   SECTION("complex script with multiple operations") {
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = R"([
+    runtime::execution_request_s request{*session, R"([
       (core/kv/set user_name "Alice")
       (core/kv/set user_age 30)
       (core/util/log "User created:" (core/kv/get user_name))
       (core/event/sub $CHANNEL_A 100)
       (core/event/pub $CHANNEL_A 100 "User Alice logged in")
-    ])";
-    request.request_id = "req1";
+    ])",
+                                         "req1"};
 
     runtime::events::event_s event;
     event.category =
@@ -807,10 +752,8 @@ TEST_CASE("processor core/expr/eval operation", "[unit][runtime][processor]") {
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(core/expr/eval \"42\")";
-    request.request_id = "req1";
+    runtime::execution_request_s request{*session, "(core/expr/eval \"42\")",
+                                         "req1"};
 
     runtime::events::event_s event;
     event.category =
@@ -827,13 +770,11 @@ TEST_CASE("processor core/expr/eval operation", "[unit][runtime][processor]") {
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = R"([
+    runtime::execution_request_s request{*session, R"([
       (core/kv/set x "100")
       (core/expr/eval (core/kv/get x))
-    ])";
-    request.request_id = "req2";
+    ])",
+                                         "req2"};
 
     runtime::events::event_s event;
     event.category =
@@ -850,10 +791,8 @@ TEST_CASE("processor core/expr/eval operation", "[unit][runtime][processor]") {
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(core/expr/eval \"(core/util/log hello-world)\")";
-    request.request_id = "req3";
+    runtime::execution_request_s request{
+        *session, "(core/expr/eval \"(core/util/log hello-world)\")", "req3"};
 
     runtime::events::event_s event;
     event.category =
@@ -870,10 +809,8 @@ TEST_CASE("processor core/expr/eval operation", "[unit][runtime][processor]") {
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "(core/expr/eval \"(broken syntax\")";
-    request.request_id = "req4";
+    runtime::execution_request_s request{
+        *session, "(core/expr/eval \"(broken syntax\")", "req4"};
 
     runtime::events::event_s event;
     event.category =
@@ -925,14 +862,12 @@ TEST_CASE("processor core/expr/eval with kv operations",
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = R"===([
+    runtime::execution_request_s request{*session, R"===([
       (core/kv/set script "(core/kv/set computed 999)")
       (core/expr/eval (core/kv/get script))
       (core/kv/get computed)
-    ])===";
-    request.request_id = "req1";
+    ])===",
+                                         "req1"};
 
     runtime::events::event_s event;
     event.category =
@@ -993,14 +928,12 @@ TEST_CASE("processor core/expr/await operation", "[unit][runtime][processor]") {
 
     std::atomic<bool> session1_done{false};
     std::thread session1_thread([&]() {
-      runtime::execution_request_s request;
-      request.session = session1;
-      request.script_text = R"(
+      runtime::execution_request_s request{*session1, R"(
         (core/expr/await 
           (core/event/pub $CHANNEL_A 100 "request-data")
           $CHANNEL_A 101)
-      )";
-      request.request_id = "req1";
+      )",
+                                           "req1"};
 
       runtime::events::event_s event;
       event.category =
@@ -1014,14 +947,12 @@ TEST_CASE("processor core/expr/await operation", "[unit][runtime][processor]") {
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    runtime::execution_request_s request2;
-    request2.session = session2;
-    request2.script_text = R"(
+    runtime::execution_request_s request2{*session2, R"(
       (core/event/sub $CHANNEL_A 100 {
         (core/event/pub $CHANNEL_A 101 "response-data")
       })
-    )";
-    request2.request_id = "req2";
+    )",
+                                          "req2"};
 
     runtime::events::event_s event2;
     event2.category =
@@ -1085,14 +1016,12 @@ TEST_CASE("processor core/expr/await async communication",
     runtime::session_c *session2 =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request2;
-    request2.session = session2;
-    request2.script_text = R"(
+    runtime::execution_request_s request2{*session2, R"(
       (core/event/sub $CHANNEL_B 200 {
         (core/event/pub $CHANNEL_B 201 "computed-value-42")
       })
-    )";
-    request2.request_id = "req2";
+    )",
+                                          "req2"};
 
     runtime::events::event_s event2;
     event2.category =
@@ -1105,16 +1034,14 @@ TEST_CASE("processor core/expr/await async communication",
 
     std::atomic<bool> session1_done{false};
     std::thread session1_thread([&]() {
-      runtime::execution_request_s request;
-      request.session = session1;
-      request.script_text = R"([
+      runtime::execution_request_s request{*session1, R"([
         (core/kv/set result 
           (core/expr/await 
             (core/event/pub $CHANNEL_B 200 "get-value")
             $CHANNEL_B 201))
         (core/util/log "Stored result:" (core/kv/get result))
-      ])";
-      request.request_id = "req1";
+      ])",
+                                           "req1"};
 
       runtime::events::event_s event;
       event.category =
@@ -1156,9 +1083,7 @@ TEST_CASE("processor core/expr/await async communication",
           std::string("second-response"));
     });
 
-    runtime::execution_request_s request;
-    request.session = session1;
-    request.script_text = R"([
+    runtime::execution_request_s request{*session1, R"([
       (core/kv/set r1 
         (core/expr/await 
           (core/event/pub $CHANNEL_B 200 "req1")
@@ -1167,8 +1092,8 @@ TEST_CASE("processor core/expr/await async communication",
         (core/expr/await 
           (core/event/pub $CHANNEL_C 300 "req2")
           $CHANNEL_C 301))
-    ])";
-    request.request_id = "req1";
+    ])",
+                                         "req1"};
 
     runtime::events::event_s event;
     event.category =
@@ -1225,10 +1150,7 @@ TEST_CASE("processor ignores wrong category events",
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "42";
-    request.request_id = "req1";
+    runtime::execution_request_s request{*session, "42", "req1"};
 
     runtime::events::event_s event;
     event.category = runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
@@ -1246,10 +1168,7 @@ TEST_CASE("processor ignores wrong category events",
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "100";
-    request.request_id = "req2";
+    runtime::execution_request_s request{*session, "100", "req2"};
 
     runtime::events::event_s event;
     event.category = runtime::events::event_category_e::RUNTIME_BACKCHANNEL_B;
@@ -1267,10 +1186,7 @@ TEST_CASE("processor ignores wrong category events",
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request;
-    request.session = session;
-    request.script_text = "42";
-    request.request_id = "req3";
+    runtime::execution_request_s request{*session, "42", "req3"};
 
     runtime::events::event_s event;
     event.category =

@@ -43,7 +43,7 @@ runtime::session_c *
 create_test_session(runtime::events::event_system_c &event_system,
                     kvds::datastore_c &data_ds, runtime::entity_c *entity) {
   return new runtime::session_c("test_session", "test_entity", "test_scope",
-                                entity, &data_ds, &event_system);
+                                *entity, &data_ds, &event_system);
 }
 } // namespace
 
@@ -80,13 +80,12 @@ TEST_CASE("core/event/sub with handler body executes on event",
       create_test_session(event_system, data_ds, entity.get());
 
   SECTION("handler executes and can use $data binding") {
-    runtime::execution_request_s sub_request;
-    sub_request.session = session;
-    sub_request.script_text = R"((core/event/sub $CHANNEL_A 300 {
+    runtime::execution_request_s sub_request{*session,
+                                             R"((core/event/sub $CHANNEL_A 300 {
       (core/kv/set received_data $data)
       (core/util/log "Received event:" $data)
-    }))";
-    sub_request.request_id = "sub_req";
+    }))",
+                                             "sub_req"};
 
     runtime::events::event_s sub_event;
     sub_event.category =
@@ -118,14 +117,13 @@ TEST_CASE("core/event/sub with handler body executes on event",
   }
 
   SECTION("handler with multiple statements executes in order") {
-    runtime::execution_request_s sub_request;
-    sub_request.session = session;
-    sub_request.script_text = R"((core/event/sub $CHANNEL_A 300 {
+    runtime::execution_request_s sub_request{*session,
+                                             R"((core/event/sub $CHANNEL_A 300 {
       (core/kv/set step1 "first")
       (core/kv/set step2 "second")
       (core/kv/set data_copy $data)
-    }))";
-    sub_request.request_id = "multi_req";
+    }))",
+                                             "multi_req"};
 
     runtime::events::event_s sub_event;
     sub_event.category =
