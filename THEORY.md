@@ -38,6 +38,12 @@ We have the core concepts:
     - akin to machine instructions, though more complex in form
     - intended to be expanded and used as the backend for a higher level, more sane language set
 
+5) Session + Entity
+    - persistent permission holder (entity) linked to ephemeral runtime context (session)
+    - entities define what scopes and topics can be accessed
+    - sessions enforce permissions and provide isolated KV + event access
+    - ties together the prefix isolation and event system with actual access control
+
 # Core concepts
 
 ## KV Store
@@ -559,4 +565,157 @@ You might notice this is a pretty minimal set. Only 12 commands total. That's in
 The idea is that you'd build higher level abstractions on top of these. Maybe a proper language with nicer syntax, control flow constructs, functions, all that good stuff. But underneath, it would compile down to these core primitives.
 
 Think of it like how high level languages compile to assembly. Nobody wants to write assembly by hand for their entire application, but having a clean, minimal instruction set as the foundation makes it possible to build whatever abstractions you want on top.
+
+## Session + Entity
+
+So we have the K/V store with prefix isolation, the event system with channels and topics, and the commands to operate on them. But there's a missing piece here. How do we actually control who can access what? How do we prevent one task from messing with another task's data or flooding the event system?
+
+This is where sessions and entities come in. They're the permission and access control layer that ties everything together.
+
+### The Permission Problem
+
+Earlier I talked about using prefixes for isolation in the K/V store. You could have `task:001:counter` and `task:002:counter` living side by side, and as long as each task only operates on its own prefix, everything works. But what enforces that? What stops task 001 from reading or writing `task:002:counter` if it wants to?
+
+Similarly with events. We have channels and topics, and you can pub/sub to any of them. But what if you want to restrict which topics a particular task can publish to? What if you want rate limiting so one task can't flood the event queue?
+
+You need some kind of access control. Some way to say "this execution context has permission to access these scopes in the K/V store and these topics in the event system, but not others."
+
+### Two-Layer Design
+
+The solution is to split permissions into two layers: persistent and ephemeral.
+
+**Entities** are the persistent permission holders. They're long-lived objects stored in the K/V store that define what's allowed. An entity has:
+
+1. **Scope permissions** - which K/V prefixes can be accessed and how (read, write, or both)
+2. **Topic permissions** - which event topics can be published to or subscribed to
+3. **Rate limits** - how many events per second can be published
+
+An entity is like an identity card. It says "this is who you are and what you're allowed to do."
+
+**Sessions** are the ephemeral runtime contexts. They're temporary, in-memory objects that link an entity to a specific scope and provide the actual access. When commands execute, they execute within a session. The session enforces the entity's permissions on every operation.
+
+A session is like showing your ID at the door. The entity defines your permissions, but the session is what actually checks them when you try to do something.
+
+### How Permission Enforcement Works
+
+The magic is in the checking. Permissions aren't validated when you create a session. They're checked at operation time, every single time.
+
+When you execute a command like `(core/kv/set counter 42)` within a session:
+
+1. The session has a scoped K/V store wrapper
+2. The wrapper automatically adds the session's scope prefix: `"my_scope/counter"`
+3. Before writing, it checks: "does my entity have write permission for `my_scope`?"
+4. If yes: write to the underlying store
+5. If no: return false silently
+
+The same pattern applies to events. When you do `(core/event/pub $CHANNEL_A 100 "data")`:
+
+1. Check: does the entity have PUBLISH permission for topic 100?
+2. Check: has the entity exceeded its rate limit?
+3. If both pass: publish the event
+4. If either fails: return an error code (PERMISSION_DENIED or RATE_LIMIT_EXCEEDED)
+
+This "check on every operation" approach means permissions can change dynamically. If you revoke an entity's permission, any active session for that entity immediately starts failing operations. No cache invalidation, no session refresh needed. The next operation just checks the entity and sees the permission is gone.
+
+### Isolation Through Scoping
+
+Let's look at how this creates isolation. Imagine two users, Alice and Bob, each running commands:
+
+**Entity State:**
+
+| Entity | Scope Permissions | Topic Permissions |
+|--------|-------------------|-------------------|
+| alice | `alice_data:READ_WRITE` | `topic_100:PUBSUB` |
+| bob | `bob_data:READ_WRITE` | `topic_100:PUBSUB` |
+
+Alice creates a session scoped to `alice_data`. Bob creates a session scoped to `bob_data`. They both run the same command:
+
+```
+(core/kv/set counter 5)
+```
+
+**K/V Store State After Execution:**
+
+| key | value |
+|-----|-------|
+| alice_data/counter | 5 |
+| bob_data/counter | 5 |
+
+Each session automatically prefixes keys with its scope. The sessions see different namespaces in the same underlying store. Alice can't read Bob's counter because her session is locked to the `alice_data` prefix. Even if she explicitly tried `(core/kv/get bob_data/counter)`, the session would prefix it again making it `alice_data/bob_data/counter`, which doesn't exist.
+
+This is automatic multi-tenant isolation. The prefix enforcement + permission checking means different entities can coexist in the same K/V store without seeing or affecting each other's data.
+
+### Role-Based Event Access
+
+Topic permissions work differently than scope permissions. They're not prefix-based, they're ID-based. An entity either has permission for a specific topic ID or it doesn't.
+
+This lets you implement role separation. Consider a command/response pattern:
+
+**Entity State:**
+
+| Entity | Topic 1 Permission | Topic 2 Permission |
+|--------|-------------------|-------------------|
+| commander | PUBLISH | SUBSCRIBE |
+| worker | SUBSCRIBE | PUBLISH |
+
+The commander publishes commands on topic 1 and subscribes to results on topic 2. The worker does the opposite. Each entity only has the permissions it needs for its role.
+
+If the worker tries to publish on topic 1, the session checks the entity permissions, sees "SUBSCRIBE only", and returns PERMISSION_DENIED. The structure of the permission system enforces the roles.
+
+### Rate Limiting as Abuse Prevention
+
+Entities have a `max_rps` (requests per second) setting that applies to all event publishing. When an entity tries to publish an event, the session checks a sliding window of recent publish timestamps. If too many publishes happened in the last second, the operation fails with RATE_LIMIT_EXCEEDED.
+
+The key detail is this is entity-level, not session-level. If you create multiple sessions for the same entity, they all share the same rate limit counter. You can't bypass the limit by just spawning more sessions.
+
+This prevents a single entity from monopolizing the event queue. Even if an entity has permission to publish to a topic, you can throttle how fast it does it. The event system stays responsive for everyone.
+
+### Category-Specific Subscriptions
+
+There's one more subtlety. When you subscribe to events, you specify both a channel (category) and a topic ID. The subscription is for that specific pair.
+
+If you subscribe to `(CHANNEL_A, topic_100)`, you only receive events published to that channel/topic combination. Events published to `(CHANNEL_B, topic_100)` won't trigger your handler, even though it's the same topic ID.
+
+But the permission model is different. Topic permissions are category-agnostic. If an entity has PUBLISH permission for topic 100, it can publish to that topic on any channel. The permission is "topic 100", not "topic 100 on channel A".
+
+This means subscriptions are more specific than permissions. The permission grants access to a topic across all channels, but the subscription handler only fires for one channel. This lets you use the same topic ID on different channels for different purposes while keeping handlers isolated.
+
+### Why This Design?
+
+The separation between entities and sessions creates a clean split between "who you are" and "what you're doing right now."
+
+Entities are heavyweight. They get persisted to the K/V store. You create them rarely, usually during user registration or service initialization. They're your identity, your long-term permissions.
+
+Sessions are lightweight. They're just in-memory objects that reference an entity and a scope. You create them frequently, potentially one per request or task. They're your current working context.
+
+This split has some interesting properties:
+
+**Permission changes propagate immediately.** Since sessions check the entity on every operation, you can revoke an entity's permission and all active sessions for that entity immediately start failing operations. No cache invalidation, no session refresh, no distributed coordination. The permission is just gone, and the next check sees it.
+
+**Multi-tenancy falls out naturally.** Each tenant is an entity with permissions for their own scope prefix. Sessions enforce the scoping automatically. Different tenants can run the exact same commands and they operate on completely isolated data. The isolation is structural, not something you have to remember to check.
+
+**Roles are just permission patterns.** Want publishers? Give them PUBLISH permissions. Want subscribers? Give them SUBSCRIBE permissions. Want workers that can do both? Give them PUBSUB. The permission system is the role system. There's no separate concept.
+
+**Rate limiting prevents monopolization.** Even if an entity has permission to flood events, you can throttle it. And since rate limits are entity-level (not session-level), you can't bypass them by creating more sessions. The entity is rate-limited, period.
+
+The neat thing is how these pieces compose. Prefix isolation + permission checking = multi-tenant data access. Topic permissions + rate limiting = controlled event participation. Session scoping + entity persistence = immediate permission updates across all active contexts.
+
+### Integration with Commands
+
+When you execute SLP commands in this runtime, they run within a session context. The session is what provides access to the K/V store and event system.
+
+Consider these commands:
+
+```
+(core/kv/set counter 42)
+(core/event/pub $CHANNEL_A 100 "data")
+```
+
+The first goes through the session's scoped K/V wrapper. It prefixes the key, checks permissions, and writes if allowed. The second goes through the session's event publishing method. It checks topic permissions, checks rate limits, and publishes if allowed.
+
+The commands themselves don't have any access control logic. They just operate on the APIs the session provides. The session is the enforcement point. This keeps the command implementations simple and centralized the security logic in one place.
+
+This ties everything together. The K/V store and event system provide the primitives (storage, pub/sub). The entities define the permissions (who can do what). The sessions enforce the permissions and provide scoped access (making the rules real). The commands operate within that enforced, scoped environment (actually doing work).
+
+You've got storage, eventing, access control, and command execution all working together through this layered design. Each piece has a clear responsibility, and they compose to create the full system behavior.
 
