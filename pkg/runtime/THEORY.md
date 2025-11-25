@@ -20,6 +20,9 @@ We have the core concepts:
     - has atomic operations on it `snx` `cas` 
     - can iterate keys based on a "prefix"
 
+2) Objects
+    - homoiconicity
+
 2) Events
     - has "channels" that each contain "topics" that can be published and subscribed to
     - one channel is dedicated to dispatching commands to be executed
@@ -27,8 +30,9 @@ We have the core concepts:
     - 7 Channels "A-F" and all topics (uint32 size) can be freely used. I like to think of these similar
         to "registers" that subscribers are notified about on change. 
 
+# Core concepts
 
-# KV Store
+## KV Store
 
 Let's assume we have the following K/V Store:
 
@@ -68,7 +72,7 @@ was really just a spot on disk." Why? I don't know. As I considered what it coul
 So lets take a look at what isolated "stack" sections might look like if the data that backed variable
 storage was really in the k/v database:
 
-## Stack-like Isolation Using Prefixes
+### Stack-like Isolation Using Prefixes
 
 Each execution context (function call, task, or "stack frame") could have its own prefix in the K/V store. Consider three concurrent tasks executing:
 
@@ -89,7 +93,7 @@ Each execution context (function call, task, or "stack frame") could have its ow
 
 Each task operates in isolation using prefix-based "variable storage":
 
-### Task 001 View (prefix: `task:001:`)
+#### Task 001 View (prefix: `task:001:`)
 
 When iterating with prefix `task:001:`:
 
@@ -110,7 +114,7 @@ When iterating with prefix `task:001:`:
 })
 ```
 
-### Task 002 View (prefix: `task:002:`)
+#### Task 002 View (prefix: `task:002:`)
 
 When iterating with prefix `task:002:`:
 
@@ -127,7 +131,7 @@ When iterating with prefix `task:002:`:
 (core/kv/cas temp "waiting" "running")
 ```
 
-### Reentrant Function Example
+#### Reentrant Function Example
 
 Consider a function that can be paused and resumed. Its state lives entirely in the K/V store:
 
@@ -161,7 +165,7 @@ Consider a function that can be paused and resumed. Its state lives entirely in 
 
 The function can be completely reconstructed from the K/V store and continue execution exactly where it left off. Multiple instances of the same function can execute concurrently, each with their own prefix (like `fn:abc123:`, `fn:def456:`, etc.).
 
-### Stack Frame Hierarchy
+#### Stack Frame Hierarchy
 
 You could even model a call stack with nested prefixes:
 
@@ -189,14 +193,77 @@ You could even model a call stack with nested prefixes:
 })
 ```
 
-# Events
+# Objects
+
+When considering this all in the context of a single controller unit and how we could leverage this for processing, the first natural question is "what are we processing." Well, if its a kv store we can store any given bytes so the structure is up to us. Data means nothing unless you give it value, and if we are going to create any semblance of instructions to make a controller we are going to need the notion of data and instruction.
+
+## Instruction vs Data
+
+What is an instruction? What is data? The distinction seems obvious until you really think about it, then it gets kind of philosophical.
+
+At the lowest level, everything is just bytes. A chunk of memory holding `11101010101010110` doesn't inherently "mean" anything. It's just a pattern. But the moment I tell you "when you see that pattern, go do something," suddenly those bits become an instruction. Every time you encounter them, you execute some action. The pattern hasn't changed, but your relationship to it has.
+
+An instruction is really just "a set of symbols or a pattern that when acted upon yields a predictable result." Its like a todo list - you see the item, you do the thing. The specific pattern doesn't matter. I could use `11101010101010110` or `MAKE_COFFEE` or `0x2A`. What matters is that we've agreed on a mapping between the pattern and the action.
+
+Data, on the other hand, is information that gets operated on. But here's where it gets weird - the exact same bytes can be data in one context and an instruction in another. Look at this:
+
+```
+01001000 01100101 01101100 01101100 01101111
+```
+
+Is that data or an instruction? Well, if you're a text renderer, those bytes are data. They're ASCII characters spelling "Hello". But if you're a CPU and I tell you those bytes are machine code, suddenly they're instructions to execute. Same bytes, completely different interpretation.
+
+### Homoiconicity
+
+In the object representation I made for this runtime, I chose to use a `homoiconic` representation of instructions meaning that the instructions used to drive the controller are represented the same way, in memory, as the controller represents data.
+
+Homoiconicity is one of those words that sounds way more complicated than it actually is. It just means "code and data have the same structure." The term comes from Lisp-family languages where the program you write looks exactly like the data structures the language uses internally.
+
+In most languages, code is this special thing that gets compiled or interpreted into some other form. You write `if (x > 5) { doThing(); }` and the language transforms that into something completely different internally. Maybe an AST, maybe bytecode, maybe machine code. The structure of what you wrote bears little resemblance to how its actually represented in memory.
+
+But in a homoiconic system, what you write IS the data structure. If I write:
+
+```
+(core/kv/set counter 42)
+```
+
+That's not just source code that gets parsed into some internal representation, that IS the internal representation. Its a list containing the symbol `core/kv/set`, the symbol `counter`, and the integer `42`. When the processor executes it, it's literally observing that list structure.
+
+For this runtime, I built SLP (S-expression Like Parser) as the representation format. Its essentially s-expressions - nested lists with atoms. Everything is either:
+
+- A list: `(something inside here)`
+- A symbol: `core/kv/set` or `counter`
+- A number: `42` or `3.14`
+- A string: `"hello"`
+
+That's it. And because instructions follow this same structure, there's no difference between storing a command in the K/V store, passing it as an event payload, or executing it. Its all just SLP objects.
+
+Here's a concrete example. Say I want to store a script in the K/V store to execute later:
+
+```
+(core/kv/set script "(core/util/log \"Running deferred task\") (core/kv/set status \"complete\")")
+```
+
+Later, I can retrieve and execute it:
+
+```
+(core/kv/get script)
+(core/expr/eval $result)
+```
+
+The bytes stored in the K/V store are the same format as the instructions being executed. When I call `eval`, I'm not parsing a string into some executable form because the SLP structure IS the executable form. I'm just pointing the processor at a different piece of data and saying "treat this as instructions."
+
+This is why homoiconicity fits perfectly with the earlier point about instructions vs data. 
+ Whether something is an instruction or data depends entirely on whether you're executing it or operating on it. And because they're the same structure, you can seamlessly move between the two modes.
+
+## Events
 
 Now, lets think about events. What is eventing? In the context of this runtime its a way for different parts of the system to communicate without directly calling each other. Its pub/sub. One part publishes an event, other parts that subscribed to that event get notified and can react to it.
 
 The thing that makes this interesting is that we have multiple "channels" (like radio stations) and each channel has "topics" (like different shows on that station). You pick a channel and a topic ID, and then youre able to
 broadcast a message to anyone listening in.
 
-## Event Architecture
+### Event Architecture
 
 The event system is built around a thread pool with a shared queue. The core flow is:
 
@@ -207,7 +274,7 @@ The event system is built around a thread pool with a shared queue. The core flo
 
 Pretty straightforward producer/consumer pattern with a thread pool to handle concurrent event processing.
 
-### Channels (Categories)
+#### Channels (Categories)
 
 We've got 7 channels total:
 
@@ -225,7 +292,7 @@ The "execution request" channel is special - its how commands get routed to the 
 
 The A-F channels are what you access from runtime commands as `$CHANNEL_A` through `$CHANNEL_F`. Think of them as general-purpose communication buses.
 
-### Event Structure
+#### Event Structure
 
 Each event has three parts:
 
@@ -241,7 +308,7 @@ So if you do:
 
 You're publishing to channel A, topic 100, with payload "hello world". Any subscribers listening on channel A topic 100 will receive that message.
 
-### Thread Pool Design
+#### Thread Pool Design
 
 The event system spins up a configurable number of worker threads (default 4) that all share a single event queue. When an event comes in:
 
@@ -253,7 +320,7 @@ The event system spins up a configurable number of worker threads (default 4) th
 
 The queue has a max size (default 1000) to prevent unbounded memory growth. If the queue fills up, publishers block until space is available. This provides natural backpressure - if consumers can't keep up, producers slow down.
 
-### Consumer Registration
+#### Consumer Registration
 
 Multiple consumers can register for the same topic. When an event comes in on that topic, ALL registered consumers get called. This is how you can have multiple handlers reacting to the same event.
 
@@ -271,7 +338,7 @@ From the runtime commands perspective:
 
 Both handlers would fire when someone publishes to channel A topic 100. The order they execute in is undefined (depends on which worker thread processes the event).
 
-### Why This Design?
+#### Why This Design?
 
 The threaded queue design lets events be processed asynchronously without blocking the publisher. When you do `core/event/pub`, it just queues the event and returns immediately (unless the queue is full). The actual processing happens later on a worker thread.
 
@@ -279,7 +346,7 @@ This is particularly useful for the command execution channel. When a command co
 
 For the general channels (A-F), this means you can use them for coordinating work between different "tasks" or "processors" without them needing to know about each other. One task publishes, another subscribes, and the event system handles all the threading and delivery.
 
-### Blocking with Await
+#### Blocking with Await
 
 There's one special case - the `core/expr/await` command. This lets you publish something and then block waiting for a response on a different channel/topic:
 
@@ -299,7 +366,7 @@ This publishes to channel A topic 1, then blocks waiting for a response on chann
 
 This gives you a request/response pattern on top of the pub/sub system. Useful for having one processor ask another processor to do something and wait for the result.
 
-## Event Flow Example
+### Event Flow Example
 
 Let's say we have two concurrent tasks coordinating via events:
 
@@ -335,3 +402,4 @@ The flow:
 5. Task 1's await unblocks with the response data
 
 All the threading, queueing, and synchronization is handled by the event system. The tasks just pub and sub. 
+
