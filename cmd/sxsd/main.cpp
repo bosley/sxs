@@ -184,12 +184,38 @@ int main(int argc, char **argv) {
 
   logger->info("Runtime initialized successfully");
 
-  logger->info("Executing script from: {}", script_file);
-  if (!runtime.execute_script("sxs", "default", script_content)) {
-    logger->error("Failed to execute script");
+  logger->info("Creating script executor for entity 'sxs'...");
+  auto executor = runtime.create_script_executor("sxs", "default");
+  if (!executor) {
+    logger->error("Failed to create script executor");
     runtime.shutdown();
     return 1;
   }
+
+  if (!executor->require_topic_range(0, 255)) {
+    logger->error("Failed to grant topic range on default entity");
+    runtime.shutdown();
+    return 1;
+  }
+
+  logger->info("Executing script from: {}", script_file);
+  if (!executor->execute(script_content)) {
+    logger->error("Failed to execute script");
+    if (executor->has_error()) {
+      logger->error("Error: {}", executor->get_last_error());
+    }
+    runtime.shutdown();
+    return 1;
+  }
+
+  if (executor->has_error()) {
+    logger->error("Script completed with error: {}",
+                  executor->get_last_error());
+    runtime.shutdown();
+    return 1;
+  }
+
+  logger->info("Script executed successfully");
 
   runtime.shutdown();
   logger->info("Runtime shutdown complete");

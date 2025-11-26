@@ -140,6 +140,9 @@ public:
   void set_entity_store(kvds::kv_c *store);
   void set_event_system(events::event_system_c *event_system);
 
+  bool grant_entity_topic_range(const std::string &entity_id,
+                                std::uint16_t start, std::uint16_t end);
+
 private:
   logger_t logger_;
   size_t max_sessions_per_entity_;
