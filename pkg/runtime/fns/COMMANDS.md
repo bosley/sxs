@@ -128,7 +128,7 @@ Most commands return `true` (boolean symbol) on success or an ERROR type `@"mess
 **Exception:** Symbols prefixed with `$` are context variables:
 
 **Event Function Context Variables** (available only in event-related functions):
-- `$CHANNEL_A` through `$CHANNEL_F` - evaluate to symbols `A` through `F`, used in core/event/pub, core/event/sub, and core/expr/await
+- `$CHANNEL_A` through `$CHANNEL_F` - evaluate to symbols `A` through `F`, used in core/event/pub and core/event/sub
 
 **Handler-Injected Context Variables** (available only in specific handlers):
 - `$key` - injected in `core/kv/iterate` handler bodies, contains the current iteration key as DQ_LIST (string). Can be used with `core/kv/load`, `core/kv/del`, and `core/kv/exists`.
@@ -251,7 +251,7 @@ Set a key-value pair only if the key does not already exist (atomic operation).
 | key | symbol | no | Key to set (literal symbol name) |
 | value | any | yes | Value to store if key doesn't exist |
 
-**Returns:** SYMBOL `true` if set successfully, SYMBOL `false` if key already exists (never returns ERROR)
+**Returns:** SYMBOL `true` if set successfully, SYMBOL `false` if key already exists, ERROR on invalid parameters or missing store
 
 **Note:** Like `core/kv/set`, the key parameter is a literal symbol name and is not evaluated. Context variables like `$key` cannot be used directly with this function.
 
@@ -276,7 +276,7 @@ Compare and swap: atomically set a new value only if the current value matches t
 | expected_value | any | yes | Expected current value (evaluated) |
 | new_value | any | yes | New value to set if expectation matches |
 
-**Returns:** SYMBOL `true` if swap succeeded, SYMBOL `false` if current value doesn't match expected (never returns ERROR)
+**Returns:** SYMBOL `true` if swap succeeded, SYMBOL `false` if current value doesn't match expected, ERROR on invalid parameters or missing store
 
 **Note:** The key parameter is a literal symbol name and is not evaluated. Context variables like `$key` cannot be used directly with this function.
 
@@ -386,7 +386,27 @@ Subscribe to events on a channel and topic with type filtering. Only events matc
 
 **Context Variables:** `$data` (type matches expected_type) is injected with event payload for each matching event
 
+**Implementation Note:** The function has `handler_context_vars = {}` (empty) in its type declaration but still injects `$data` at runtime. This is an inconsistency between the type system declaration and runtime behavior.
+
 **Type Filtering:** The runtime checks the published event data type against `expected_type`. Only events with matching types invoke the handler. This enables type-safe event handling and allows multiple handlers on the same topic with different type expectations.
+
+**Type Filtering Behavior:**
+
+The runtime enforces strict type matching between published events and subscription handlers:
+
+1. When an event is published, its data payload is serialized to a string
+2. When received by subscribers, the payload is parsed back into an SLP object
+3. The parsed object's type is compared against the handler's `expected_type`
+4. Only handlers with exactly matching types are invoked
+5. If parsing fails or types don't match, the handler is skipped (no implicit conversions)
+
+This allows multiple handlers on the same channel/topic to receive different types of events safely:
+- A `:str` handler only receives string-typed events
+- An `:int` handler only receives integer-typed events  
+- Published integers will NOT be auto-converted to strings for `:str` handlers
+- Unparseable data will NOT trigger any handlers
+
+Type safety is enforced at both compile-time (via the type checker) and runtime (via strict type matching).
 
 **Returns:** SYMBOL `true` on successful subscription, ERROR on failure
 
@@ -440,7 +460,7 @@ Log one or more messages to the session logger.
 |-----------|------|-----------|-------------|
 | message... | any (variadic) | yes | Messages to log (space-separated when multiple) |
 
-**Returns:** SYMBOL `true` after logging (never returns ERROR in practice, though type system allows it)
+**Returns:** SYMBOL `true` after logging, ERROR if no message provided
 
 **Example:**
 

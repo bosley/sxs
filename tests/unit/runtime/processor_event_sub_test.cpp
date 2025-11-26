@@ -105,7 +105,7 @@ TEST_CASE("core/event/sub with handler body executes on event",
     data_event.category =
         runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
     data_event.topic_identifier = 300;
-    data_event.payload = std::string("test message");
+    data_event.payload = std::string("\"test message\"");
 
     writer->write_event(data_event);
 
@@ -143,7 +143,7 @@ TEST_CASE("core/event/sub with handler body executes on event",
     data_event.category =
         runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
     data_event.topic_identifier = 300;
-    data_event.payload = std::string("event data");
+    data_event.payload = std::string("\"event data\"");
 
     writer->write_event(data_event);
 

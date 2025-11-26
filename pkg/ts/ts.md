@@ -553,7 +553,7 @@ Functions with **handler context variables** have their BRACE_LIST handler bodie
 - `core/event/sub` - injects `$data` with type determined by the `expected_type` parameter
 
 **Type checking process:**
-1. For `core/event/sub`, the type checker extracts the `expected_type` parameter (e.g., `:str`, `:int`) and temporarily adds `$data` with that type to `global_dollar_vars_` for handler body checking
+1. For `core/event/sub`, the type checker has hardcoded special-case logic (ts.cpp:216-252) that extracts the `expected_type` parameter (e.g., `:str`, `:int`) and temporarily adds `$data` with that type to `global_dollar_vars_` for handler body checking. This violates the generic handler_context_vars mechanism but is necessary for parameterized context variable types.
 2. For other functions with `handler_context_vars`, the $ variables are resolved from the static `handler_context_vars` map
 3. Find the BRACE_LIST parameter (unevaluated)
 4. Recursively call `infer_type` on each expression inside the BRACE_LIST

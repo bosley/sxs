@@ -12,6 +12,14 @@
 #include <spdlog/spdlog.h>
 #include <thread>
 
+/*
+    NOTE: The even system NEEDS TO SEND VALID SLP
+    Sending std::string("this is a string") IS INVALID
+    The automated testing system likes to flag this as an error. IT IS NOT.
+    std::string("foo") -> SYMBOL SLP
+    std::string("\"foo\"") -> DQ_LIST (string) - Stop fucking flagging this 
+*/
+
 namespace {
 void ensure_db_cleanup(const std::string &path) {
   std::filesystem::remove_all(path);
@@ -126,7 +134,7 @@ TEST_CASE("multiple sessions subscribe to same topic",
   data_event.category =
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
   data_event.topic_identifier = 400;
-  data_event.payload = std::string("broadcast message");
+  data_event.payload = std::string("\"broadcast message\"");
 
   writer->write_event(data_event);
 
@@ -209,15 +217,15 @@ TEST_CASE("session subscribes to multiple topics",
   runtime::events::event_s event401;
   event401.category = runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
   event401.topic_identifier = 401;
-  event401.payload = std::string("message for 401");
+  event401.payload = std::string("\"message for 401\"");
 
   runtime::events::event_s event402 = event401;
   event402.topic_identifier = 402;
-  event402.payload = std::string("message for 402");
+  event402.payload = std::string("\"message for 402\"");
 
   runtime::events::event_s event403 = event401;
   event403.topic_identifier = 403;
-  event403.payload = std::string("message for 403");
+  event403.payload = std::string("\"message for 403\"");
 
   writer401->write_event(event401);
   writer402->write_event(event402);
@@ -295,7 +303,7 @@ TEST_CASE("rapid fire event delivery to handler",
     data_event.category =
         runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
     data_event.topic_identifier = 500;
-    data_event.payload = std::string("event_") + std::to_string(i);
+    data_event.payload = std::string("\"event_") + std::to_string(i) + "\"";
     writer->write_event(data_event);
   }
 
@@ -367,7 +375,7 @@ TEST_CASE("handler with parse error in body",
   data_event.category =
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
   data_event.topic_identifier = 600;
-  data_event.payload = std::string("test");
+  data_event.payload = std::string("\"test\"");
 
   writer->write_event(data_event);
 
@@ -441,7 +449,7 @@ TEST_CASE("handler with nested function calls",
   data_event.category =
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
   data_event.topic_identifier = 700;
-  data_event.payload = std::string("nested test");
+  data_event.payload = std::string("\"nested test\"");
 
   writer->write_event(data_event);
 
@@ -523,7 +531,7 @@ TEST_CASE("handler publishes event creating chain",
   data_event.category =
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
   data_event.topic_identifier = 800;
-  data_event.payload = std::string("initial");
+  data_event.payload = std::string("\"initial\"");
 
   writer->write_event(data_event);
 
@@ -592,7 +600,7 @@ TEST_CASE("empty handler body", "[unit][runtime][processor][stress]") {
   data_event.category =
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
   data_event.topic_identifier = 900;
-  data_event.payload = std::string("test");
+  data_event.payload = std::string("\"test\"");
 
   writer->write_event(data_event);
 

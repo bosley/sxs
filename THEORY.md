@@ -443,26 +443,6 @@ This is particularly useful for the command execution channel. When a command co
 
 For the general channels (A-F), this means you can use them for coordinating work between different "tasks" or "processors" without them needing to know about each other. One task publishes, another subscribes, and the event system handles all the threading and delivery.
 
-#### Blocking with Await
-
-There's one special case - the `core/expr/await` command. This lets you publish something and then block waiting for a response on a different channel/topic:
-
-```
-(core/expr/await
-  (core/event/pub $CHANNEL_A 1 "request")
-  $CHANNEL_B
-  100)
-```
-
-This publishes to channel A topic 1, then blocks waiting for a response on channel B topic 100. Under the hood it:
-
-1. Registers a temporary one-shot consumer for channel B topic 100
-2. Executes the body (the pub)
-3. Blocks with a timeout waiting for the consumer to fire
-4. Returns the event data when it arrives (or times out)
-
-This gives you a request/response pattern on top of the pub/sub system. Useful for having one processor ask another processor to do something and wait for the result.
-
 ### Event Flow Example
 
 Let's say we have two concurrent tasks coordinating via events:
@@ -483,20 +463,19 @@ Let's say we have two concurrent tasks coordinating via events:
 })
 ```
 
-**Task 1 (Waiting for completion):**
+**Task 1 (Listening for completion):**
 ```
-(core/expr/await
-  (core/event/pub $CHANNEL_A 50 "process_data")
-  $CHANNEL_B
-  51)
+(core/event/sub $CHANNEL_B 51 {
+  (core/util/log "Task completed:" $data)
+})
 ```
 
 The flow:
-1. Task 1 publishes to channel A topic 50 and blocks waiting on channel B topic 51
+1. Task 1 publishes to channel A topic 50
 2. Event system queues the event
 3. Worker thread pulls it and calls Task 2's subscriber
 4. Task 2 does its work and publishes to channel B topic 51
-5. Task 1's await unblocks with the response data
+5. Event system queues the response and calls Task 1's subscriber
 
 All the threading, queueing, and synchronization is handled by the event system. The tasks just pub and sub. 
 
@@ -523,11 +502,8 @@ These are your basic database operations. The atomic ones (`snx` and `cas`) are 
 
 These hook directly into the event system. You can pub/sub on any of the six general purpose channels (A through F). The handler you pass to `sub` gets executed whenever an event arrives on that channel/topic.
 
-**core/expr** - Expression Control (2 commands)
+**core/expr** - Expression Control (1 command)
 - `eval` - dynamically evaluate SLP text as code
-- `await` - execute something and block waiting for a response
-
-The `eval` command is where homoiconicity really shines. You can store SLP code in the K/V store, retrieve it, and execute it directly without any parsing step because the stored format is already executable. The `await` command gives you request/response patterns on top of pub/sub as evaluation happens concurrently.
 
 **core/util** - Utility Operations (1 command)
 - `log` - output messages to the session logger
@@ -567,7 +543,7 @@ These context variables are how the runtime passes information into your handler
 
 ### Why These Commands?
 
-You might notice this is a pretty minimal set. Only 12 commands total. That's intentional. These are meant to be the primitive operations, the machine instructions of this runtime. They're low level and a bit awkward to use directly for complex tasks.
+You might notice this is a pretty minimal set. Only 11 commands total. That's intentional. These are meant to be the primitive operations, the machine instructions of this runtime. They're low level and a bit awkward to use directly for complex tasks.
 
 The idea is that you'd build higher level abstractions on top of these. Maybe a proper language with nicer syntax, control flow constructs, functions, all that good stuff. But underneath, it would compile down to these core primitives.
 

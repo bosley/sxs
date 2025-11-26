@@ -213,22 +213,12 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
               }
               
               auto parsed = slp::parse(event_data);
-              slp::slp_object_c data_obj;
-              
               if (parsed.is_error()) {
-                if (h.expected_data_type == slp::slp_type_e::DQ_LIST) {
-                  data_obj = SLP_STRING(event_data);
-                } else {
-                  continue;
-                }
-              } else {
-                data_obj = parsed.take();
-                if (data_obj.type() != h.expected_data_type && 
-                    h.expected_data_type == slp::slp_type_e::DQ_LIST) {
-                  data_obj = SLP_STRING(event_data);
-                }
+                continue;
               }
-              
+
+              slp::slp_object_c data_obj = parsed.take();
+
               if (data_obj.type() != h.expected_data_type) {
                 continue;
               }
