@@ -29,6 +29,22 @@ processor_c::slp_object_to_string(const slp::slp_object_c &obj) const {
     return escaped;
   } else if (type == slp::slp_type_e::ERROR) {
     return obj.as_string().to_string();
+  } else if (type == slp::slp_type_e::SOME) {
+    if (!obj.has_data()) {
+      return "'nil";
+    }
+    const auto &data = obj.get_data();
+    const auto &symbols = obj.get_symbols();
+    const slp::slp_unit_of_store_t *some_unit =
+        reinterpret_cast<const slp::slp_unit_of_store_t *>(&data[obj.get_root_offset()]);
+    slp::data_u *inner_ptr = some_unit->data.data_ptr;
+    if (!inner_ptr) {
+      return "'nil";
+    }
+    size_t inner_offset =
+        reinterpret_cast<const std::uint8_t *>(inner_ptr) - &data[0];
+    auto inner_obj = slp::slp_object_c::from_data(data, symbols, inner_offset);
+    return "'" + slp_object_to_string(inner_obj);
   } else if (type == slp::slp_type_e::PAREN_LIST) {
     auto list = obj.as_list();
     std::string result = "(";

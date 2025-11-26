@@ -90,9 +90,14 @@ parse_result_internal_s parse_string(parser_state_s &state) {
   std::vector<size_t> char_offsets;
 
   while (!state.at_end() && state.current() != '"') {
+    char c = state.current();
+    if (c == '\\' && state.peek() != '\0') {
+      state.advance();
+      c = state.current();
+    }
     size_t rune_offset = allocate_unit(state, slp_type_e::RUNE);
     state.get_unit(rune_offset)->data.uint32 =
-        static_cast<std::uint32_t>(state.current());
+        static_cast<std::uint32_t>(c);
     char_offsets.push_back(rune_offset);
     state.advance();
   }
@@ -321,6 +326,14 @@ parse_result_internal_s parse_object(parser_state_s &state) {
       return inner_result;
     }
 
+    if (!inner_result.unit_offset.has_value()) {
+      slp_parse_error_s err;
+      err.error_code = slp_parse_error_e::ERROR_OPERATOR_REQUIRES_OBJECT;
+      err.message = "Quote operator requires an object";
+      err.byte_position = state.pos;
+      return parse_result_internal_s{std::nullopt, err};
+    }
+
     size_t some_offset = allocate_unit(state, slp_type_e::SOME);
     state.get_unit(some_offset)->data.data_ptr = reinterpret_cast<data_u *>(
         state.get_unit(inner_result.unit_offset.value()));
@@ -333,6 +346,14 @@ parse_result_internal_s parse_object(parser_state_s &state) {
     auto inner_result = parse_object(state);
     if (inner_result.error.has_value()) {
       return inner_result;
+    }
+
+    if (!inner_result.unit_offset.has_value()) {
+      slp_parse_error_s err;
+      err.error_code = slp_parse_error_e::ERROR_OPERATOR_REQUIRES_OBJECT;
+      err.message = "Error operator requires an object";
+      err.byte_position = state.pos;
+      return parse_result_internal_s{std::nullopt, err};
     }
 
     size_t error_offset = allocate_unit(state, slp_type_e::ERROR);
