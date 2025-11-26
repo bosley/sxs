@@ -1,7 +1,6 @@
 #include "runtime/processor.hpp"
 #include "runtime/fns/fns.hpp"
 #include <any>
-#include <chrono>
 #include <spdlog/spdlog.h>
 
 namespace runtime {
