@@ -74,6 +74,7 @@ bool runtime_c::script_executor_c::execute(const std::string &script_text) {
 
     logger->info("Script execution event published, waiting for completion...");
 
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     while (true) {
       bool queue_empty = runtime_.event_system_->is_queue_empty();
       bool all_idle = true;
@@ -85,10 +86,19 @@ bool runtime_c::script_executor_c::execute(const std::string &script_text) {
       }
 
       if (queue_empty && all_idle) {
-        logger->info("Script execution complete");
-        break;
+        queue_empty = runtime_.event_system_->is_queue_empty();
+        all_idle = true;
+        for (const auto &processor : runtime_.processors_) {
+          if (processor->is_busy()) {
+            all_idle = false;
+            break;
+          }
+        }
+        if (queue_empty && all_idle) {
+          logger->info("Script execution complete");
+          break;
+        }
       }
-
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 

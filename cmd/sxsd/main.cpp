@@ -22,6 +22,7 @@ void print_usage() {
              "the event system queue\n");
   fmt::print("  --max-sessions-per-entity, -s NUM\tSet the maximum number of "
              "sessions per entity\n");
+  fmt::print("  --num-processors, -p NUM\tSet the number of processors\n");
   fmt::print("\nEnvironment Variables:\n");
   fmt::print("  SXSRUNTIME_ROOT_PATH\t\tDefault runtime root path\n");
   fmt::print(
@@ -127,6 +128,12 @@ int main(int argc, char **argv) {
         return 1;
       }
       options.max_sessions_per_entity = std::stoi(args[++i]);
+    } else if (arg == "--num-processors" || arg == "-p") {
+      if (i + 1 >= args.size()) {
+        fmt::print(stderr, "Error: {} requires a number argument\n", arg);
+        return 1;
+      }
+      options.num_processors = std::stoi(args[++i]);
     } else {
       fmt::print(stderr, "Error: Unknown option '{}'\n", arg);
       print_usage();

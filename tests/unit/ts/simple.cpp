@@ -23,6 +23,11 @@ public:
     return nullptr;
   }
   std::mutex *get_subscription_handlers_mutex() override { return nullptr; }
+  publish_result_e publish_to_processor(session_c &, std::uint16_t,
+                                        const std::string &,
+                                        const std::string &) override {
+    return publish_result_e::OK;
+  }
 };
 
 std::map<std::string, function_signature_s>

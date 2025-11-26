@@ -45,6 +45,11 @@ public:
 
   virtual std::string object_to_string(const slp::slp_object_c &obj) = 0;
 
+  virtual publish_result_e
+  publish_to_processor(session_c &session, std::uint16_t processor_id,
+                       const std::string &script_text,
+                       const std::string &request_id) = 0;
+
   struct subscription_handler_s {
     session_c *session;
     events::event_category_e category;
@@ -128,6 +133,10 @@ private:
   std::vector<runtime_information_if::subscription_handler_s> *
   get_subscription_handlers() override final;
   std::mutex *get_subscription_handlers_mutex() override final;
+  publish_result_e
+  publish_to_processor(session_c &session, std::uint16_t processor_id,
+                       const std::string &script_text,
+                       const std::string &request_id) override final;
 };
 
 } // namespace runtime

@@ -450,6 +450,43 @@ Evaluate SLP script text dynamically.
 
 ---
 
+### core/expr/proc
+
+Send a script body to a specific processor for execution. This bypasses normal session publishing restrictions for RUNTIME_EXECUTION_REQUEST by using an internal runtime mechanism.
+
+**Signature:** `(core/expr/proc processor_id body)`
+
+| Parameter | Type | Evaluated | Description |
+|-----------|------|-----------|-------------|
+| processor_id | integer | no | Processor identifier (0 through num_processors-1) |
+| body | brace-list | no | Script body to execute (must be `{...}`) |
+
+**Returns:** SYMBOL `true` on success, ERROR if processor not configured
+
+**Note:** Processor count is configurable via runtime options (`num_processors`). The default configuration creates 4 processors (IDs 0-3). Attempting to send to a non-existent processor will return an error.
+
+**Design Note:** This function allows direct targeting of specific processors, which is useful for load distribution and parallel execution. Each processor maintains its own execution queue and runs in its own thread context within the event system.
+
+**Example:**
+
+```
+(core/expr/proc 0 {
+  (core/util/log "Executing on processor 0")
+  (core/kv/set result "from-proc-0")
+})
+
+(core/expr/proc 1 {
+  (core/util/log "Executing on processor 1")
+  (core/kv/set result "from-proc-1")
+})
+
+(core/expr/proc 99 {
+  (core/util/log "This will fail")
+})
+```
+
+---
+
 ### core/util/log
 
 Log one or more messages to the session logger.

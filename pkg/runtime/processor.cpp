@@ -29,6 +29,36 @@ processor_c::slp_object_to_string(const slp::slp_object_c &obj) const {
     return escaped;
   } else if (type == slp::slp_type_e::ERROR) {
     return obj.as_string().to_string();
+  } else if (type == slp::slp_type_e::PAREN_LIST) {
+    auto list = obj.as_list();
+    std::string result = "(";
+    for (size_t i = 0; i < list.size(); i++) {
+      if (i > 0)
+        result += " ";
+      result += slp_object_to_string(list.at(i));
+    }
+    result += ")";
+    return result;
+  } else if (type == slp::slp_type_e::BRACE_LIST) {
+    auto list = obj.as_list();
+    std::string result = "{";
+    for (size_t i = 0; i < list.size(); i++) {
+      if (i > 0)
+        result += " ";
+      result += slp_object_to_string(list.at(i));
+    }
+    result += "}";
+    return result;
+  } else if (type == slp::slp_type_e::BRACKET_LIST) {
+    auto list = obj.as_list();
+    std::string result = "[";
+    for (size_t i = 0; i < list.size(); i++) {
+      if (i > 0)
+        result += " ";
+      result += slp_object_to_string(list.at(i));
+    }
+    result += "]";
+    return result;
   }
   return "nil";
 }
@@ -267,6 +297,30 @@ processor_c::get_subscription_handlers() {
 
 std::mutex *processor_c::get_subscription_handlers_mutex() {
   return &subscription_handlers_mutex_;
+}
+
+publish_result_e processor_c::publish_to_processor(
+    session_c &session, std::uint16_t processor_id,
+    const std::string &script_text, const std::string &request_id) {
+  execution_request_s request{session, script_text, request_id};
+
+  events::event_s event;
+  event.category = events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+  event.topic_identifier = processor_id;
+  event.payload = request;
+
+  auto producer = event_system_.get_event_producer_for_category(event.category);
+  if (!producer) {
+    return publish_result_e::NO_PRODUCER;
+  }
+
+  auto writer = producer->get_topic_writer_for_topic(event.topic_identifier);
+  if (!writer) {
+    return publish_result_e::NO_TOPIC_WRITER;
+  }
+
+  writer->write_event(event);
+  return publish_result_e::OK;
 }
 
 } // namespace runtime
