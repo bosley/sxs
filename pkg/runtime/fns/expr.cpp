@@ -22,14 +22,29 @@ function_group_s get_expr_functions(runtime_information_if &runtime_info) {
 
         auto script_obj =
             runtime_info.eval_object(session, list.at(1), context);
-        std::string script_text = object_to_storage_string(script_obj);
+        
+        /*
+            Despite SLP being homoiconic, we take a step to compress SLP objects (a form of hydration)
+            when parsing them. We can execute them directly, but 'eval' can take
+            a raw unprocessed text (a string) and evaluate that as well
 
-        auto parse_result = slp::parse(script_text);
-        if (parse_result.is_error()) {
-          return SLP_ERROR("core/expr/eval parse error");
+            So here, we check if we have a raw yet-to-be parsed string. If so
+            then we parse it before running
+
+            Otherwise we just eval the script object directlry
+        */
+        if (script_obj.type() == slp::slp_type_e::DQ_LIST) {
+          auto script_text = script_obj.as_string().to_string();
+          auto parse_result = slp::parse(script_text);
+          if (parse_result.is_error()) {
+            return SLP_ERROR("core/expr/eval parse error");
+          }
+          return runtime_info.eval_object(session, parse_result.object(),
+                                        context);
         }
 
-        return runtime_info.eval_object(session, parse_result.object(),
+        // Already ready to be evaluated
+        return runtime_info.eval_object(session, script_obj,
                                         context);
       };
 

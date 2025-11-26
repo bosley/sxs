@@ -1,83 +1,10 @@
 #include "runtime/processor.hpp"
+#include "runtime/encoder.hpp"
 #include "runtime/fns/fns.hpp"
 #include <any>
 #include <spdlog/spdlog.h>
 
 namespace runtime {
-
-std::string
-processor_c::slp_object_to_string(const slp::slp_object_c &obj) const {
-  auto type = obj.type();
-  if (type == slp::slp_type_e::INTEGER) {
-    return std::to_string(obj.as_int());
-  } else if (type == slp::slp_type_e::REAL) {
-    return std::to_string(obj.as_real());
-  } else if (type == slp::slp_type_e::SYMBOL) {
-    return obj.as_symbol();
-  } else if (type == slp::slp_type_e::DQ_LIST) {
-    std::string content = obj.as_string().to_string();
-    std::string escaped;
-    escaped.reserve(content.size() + 2);
-    escaped += '"';
-    for (char c : content) {
-      if (c == '"' || c == '\\') {
-        escaped += '\\';
-      }
-      escaped += c;
-    }
-    escaped += '"';
-    return escaped;
-  } else if (type == slp::slp_type_e::ERROR) {
-    return obj.as_string().to_string();
-  } else if (type == slp::slp_type_e::SOME) {
-    if (!obj.has_data()) {
-      return "'nil";
-    }
-    const auto &data = obj.get_data();
-    const auto &symbols = obj.get_symbols();
-    const slp::slp_unit_of_store_t *some_unit =
-        reinterpret_cast<const slp::slp_unit_of_store_t *>(&data[obj.get_root_offset()]);
-    slp::data_u *inner_ptr = some_unit->data.data_ptr;
-    if (!inner_ptr) {
-      return "'nil";
-    }
-    size_t inner_offset =
-        reinterpret_cast<const std::uint8_t *>(inner_ptr) - &data[0];
-    auto inner_obj = slp::slp_object_c::from_data(data, symbols, inner_offset);
-    return "'" + slp_object_to_string(inner_obj);
-  } else if (type == slp::slp_type_e::PAREN_LIST) {
-    auto list = obj.as_list();
-    std::string result = "(";
-    for (size_t i = 0; i < list.size(); i++) {
-      if (i > 0)
-        result += " ";
-      result += slp_object_to_string(list.at(i));
-    }
-    result += ")";
-    return result;
-  } else if (type == slp::slp_type_e::BRACE_LIST) {
-    auto list = obj.as_list();
-    std::string result = "{";
-    for (size_t i = 0; i < list.size(); i++) {
-      if (i > 0)
-        result += " ";
-      result += slp_object_to_string(list.at(i));
-    }
-    result += "}";
-    return result;
-  } else if (type == slp::slp_type_e::BRACKET_LIST) {
-    auto list = obj.as_list();
-    std::string result = "[";
-    for (size_t i = 0; i < list.size(); i++) {
-      if (i > 0)
-        result += " ";
-      result += slp_object_to_string(list.at(i));
-    }
-    result += "]";
-    return result;
-  }
-  return "nil";
-}
 
 processor_c::processor_c(logger_t logger, events::event_system_c &event_system)
     : logger_(logger), event_system_(event_system), busy_(false) {
@@ -146,7 +73,7 @@ execution_result_s processor_c::execute_script(session_c &session,
       logger_->error("[processor_c] Script execution returned error: {}",
                      result.error_message);
     } else {
-      result.result_data = slp_object_to_string(eval_result);
+      result.result_data = runtime::slp_object_to_string(eval_result);
       result.success = true;
       logger_->debug("[processor_c] Script executed successfully");
     }
@@ -301,7 +228,7 @@ slp::slp_object_c processor_c::eval_object(session_c &session,
 }
 
 std::string processor_c::object_to_string(const slp::slp_object_c &obj) {
-  return slp_object_to_string(obj);
+  return runtime::slp_object_to_string(obj);
 }
 
 std::vector<runtime_information_if::subscription_handler_s> *

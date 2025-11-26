@@ -58,19 +58,3 @@ type_symbol_to_enum(const std::string &sym) {
     return slp::slp_type_e::RUNE;
   return std::nullopt;
 }
-
-inline std::string object_to_storage_string(const slp::slp_object_c &obj) {
-  auto type = obj.type();
-  if (type == slp::slp_type_e::INTEGER) {
-    return std::to_string(obj.as_int());
-  } else if (type == slp::slp_type_e::REAL) {
-    return std::to_string(obj.as_real());
-  } else if (type == slp::slp_type_e::SYMBOL) {
-    return obj.as_symbol();
-  } else if (type == slp::slp_type_e::DQ_LIST) {
-    return obj.as_string().to_string();
-  } else if (type == slp::slp_type_e::ERROR) {
-    return obj.as_string().to_string();
-  }
-  return "nil";
-}

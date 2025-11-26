@@ -5,6 +5,22 @@
 
 namespace runtime::fns {
 
+static std::string object_to_storage_string(const slp::slp_object_c &obj) {
+  auto type = obj.type();
+  if (type == slp::slp_type_e::INTEGER) {
+    return std::to_string(obj.as_int());
+  } else if (type == slp::slp_type_e::REAL) {
+    return std::to_string(obj.as_real());
+  } else if (type == slp::slp_type_e::SYMBOL) {
+    return obj.as_symbol();
+  } else if (type == slp::slp_type_e::DQ_LIST) {
+    return obj.as_string().to_string();
+  } else if (type == slp::slp_type_e::ERROR) {
+    return obj.as_string().to_string();
+  }
+  return "nil";
+}
+
 function_group_s get_kv_functions(runtime_information_if &runtime_info) {
   auto logger = runtime_info.get_logger();
 

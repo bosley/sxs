@@ -117,8 +117,6 @@ private:
                                   const slp::slp_object_c &args,
                                   const eval_context_s &context);
 
-  std::string slp_object_to_string(const slp::slp_object_c &obj) const;
-
   void send_result_to_session(session_c &session,
                               const execution_result_s &result);
 

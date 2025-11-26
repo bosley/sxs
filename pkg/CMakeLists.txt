@@ -81,6 +81,7 @@ add_library(pkg::sconf ALIAS pkg_sconf)
 add_library(pkg_runtime STATIC
     runtime/runtime.cpp
     runtime/executor.cpp
+    runtime/encoder.cpp
     runtime/entity/entity.cpp
     runtime/session/session.cpp
     runtime/system/system.cpp
