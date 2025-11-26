@@ -50,8 +50,10 @@ Tainted types:
 #list-s
 #some
 #none
-#error
+#error            
 ```
+
+    note: #error : we need this but what the fuck. (error, error) either you wanted an error or something unexpected happened while we got it for you. 
 
 The operating philosophy here is that "types dont appear out of nowhere. A pure type
 is one whose act of formation was checked. So for instance;
@@ -115,3 +117,10 @@ so `#(macro NAME ARGS..)` wuld be possible but most importantly
 
 Then we culd maintain parity with structure of definition and intent, also opening up
 lots of pre-processor type commands which may ellucidate new pathways by-way of widening the conceptual scope as I implement it,.
+
+
+
+We should diagram "the weird realm" somewhere to see this top-down
+
+
+

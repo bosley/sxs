@@ -126,14 +126,14 @@ bool runtime_c::shutdown() {
 
   logger_->info("Shutting down runtime subsystems...");
 
+  logger_->info("Shutting down subsystem: {}", event_system_->get_name());
+  event_system_->shutdown();
+
   logger_->info("Shutting down subsystem: {}", session_subsystem_->get_name());
   session_subsystem_->shutdown();
 
   logger_->info("Shutting down subsystem: {}", system_->get_name());
   system_->shutdown();
-
-  logger_->info("Shutting down subsystem: {}", event_system_->get_name());
-  event_system_->shutdown();
 
   running_ = false;
   return true;
