@@ -36,8 +36,9 @@ struct function_signature_s {
 
 class type_checker_c {
 public:
-  type_checker_c(const std::map<std::string, function_signature_s> &signatures,
-                 const std::map<std::string, slp::slp_type_e> &global_dollar_vars);
+  type_checker_c(
+      const std::map<std::string, function_signature_s> &signatures,
+      const std::map<std::string, slp::slp_type_e> &global_dollar_vars);
 
   struct check_result_s {
     bool success{false};

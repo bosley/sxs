@@ -11,7 +11,8 @@ function_group_s get_util_functions(runtime_information_if &runtime_info) {
   group.group_name = "core/util";
 
   group.functions["log"].return_type = slp::slp_type_e::SYMBOL;
-  group.functions["log"].parameters = {{"message", slp::slp_type_e::NONE, true}};
+  group.functions["log"].parameters = {
+      {"message", slp::slp_type_e::NONE, true}};
   group.functions["log"].is_variadic = true;
   group.functions["log"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
@@ -38,7 +39,8 @@ function_group_s get_util_functions(runtime_information_if &runtime_info) {
       };
 
   group.functions["insist"].return_type = slp::slp_type_e::NONE;
-  group.functions["insist"].parameters = {{"expr", slp::slp_type_e::PAREN_LIST, false}};
+  group.functions["insist"].parameters = {
+      {"expr", slp::slp_type_e::PAREN_LIST, false}};
   group.functions["insist"].can_return_error = false;
   group.functions["insist"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
@@ -58,7 +60,8 @@ function_group_s get_util_functions(runtime_information_if &runtime_info) {
 
         if (value.type() == slp::slp_type_e::ERROR) {
           std::string error_msg = value.as_string().to_string();
-          throw insist_failure_exception("core/util/insist failed: " + error_msg);
+          throw insist_failure_exception("core/util/insist failed: " +
+                                         error_msg);
         }
 
         return value;

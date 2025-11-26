@@ -174,7 +174,8 @@ bool runtime_c::execute_script(const std::string &entity_id,
   auto producer =
       event_system_->get_event_producer_for_category(event.category);
   if (!producer) {
-    logger_->error("Failed to get event producer for RUNTIME_EXECUTION_REQUEST");
+    logger_->error(
+        "Failed to get event producer for RUNTIME_EXECUTION_REQUEST");
     return false;
   }
 

@@ -47,7 +47,8 @@ create_test_session(runtime::events::event_system_c &event_system,
 }
 } // namespace
 
-TEST_CASE("basic iterate with $key del", "[unit][runtime][processor][context]") {
+TEST_CASE("basic iterate with $key del",
+          "[unit][runtime][processor][context]") {
   auto logger = create_test_logger();
   runtime::events::event_system_c event_system(logger.get(), 2, 100);
 
@@ -78,7 +79,8 @@ TEST_CASE("basic iterate with $key del", "[unit][runtime][processor][context]") 
       create_test_session(event_system, data_ds, entity.get());
 
   for (int i = 1; i <= 10; i++) {
-    session->get_store()->set("temp:" + std::to_string(i), "value" + std::to_string(i));
+    session->get_store()->set("temp:" + std::to_string(i),
+                              "value" + std::to_string(i));
     CHECK(session->get_store()->exists("temp:" + std::to_string(i)));
   }
 
@@ -86,7 +88,8 @@ TEST_CASE("basic iterate with $key del", "[unit][runtime][processor][context]") 
     (core/kv/iterate temp: 0 100 {
       (core/kv/del $key)
     })
-  )", "req1"};
+  )",
+                                       "req1"};
 
   runtime::events::event_s event;
   event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
@@ -106,7 +109,8 @@ TEST_CASE("basic iterate with $key del", "[unit][runtime][processor][context]") 
   ensure_db_cleanup(entity_test_path);
 }
 
-TEST_CASE("iterate with $key exists check", "[unit][runtime][processor][context]") {
+TEST_CASE("iterate with $key exists check",
+          "[unit][runtime][processor][context]") {
   auto logger = create_test_logger();
   runtime::events::event_system_c event_system(logger.get(), 2, 100);
 
@@ -145,7 +149,8 @@ TEST_CASE("iterate with $key exists check", "[unit][runtime][processor][context]
       (core/util/log "Checking existence of" $key)
       (core/kv/exists $key)
     })
-  )", "req1"};
+  )",
+                                       "req1"};
 
   runtime::events::event_s event;
   event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
@@ -204,7 +209,8 @@ TEST_CASE("iterate with $key load", "[unit][runtime][processor][context]") {
       (core/kv/load $key)
       (core/kv/set load_success "true")
     })
-  )", "req1"};
+  )",
+                                       "req1"};
 
   runtime::events::event_s event;
   event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
@@ -224,7 +230,8 @@ TEST_CASE("iterate with $key load", "[unit][runtime][processor][context]") {
   ensure_db_cleanup(entity_test_path);
 }
 
-TEST_CASE("combined del + exists + load in iteration", "[unit][runtime][processor][context]") {
+TEST_CASE("combined del + exists + load in iteration",
+          "[unit][runtime][processor][context]") {
   auto logger = create_test_logger();
   runtime::events::event_system_c event_system(logger.get(), 2, 100);
 
@@ -255,7 +262,8 @@ TEST_CASE("combined del + exists + load in iteration", "[unit][runtime][processo
       create_test_session(event_system, data_ds, entity.get());
 
   for (int i = 1; i <= 5; i++) {
-    session->get_store()->set("item:" + std::to_string(i), "data_" + std::to_string(i));
+    session->get_store()->set("item:" + std::to_string(i),
+                              "data_" + std::to_string(i));
   }
 
   runtime::execution_request_s request{*session, R"(
@@ -264,7 +272,8 @@ TEST_CASE("combined del + exists + load in iteration", "[unit][runtime][processo
       (core/kv/load $key)
       (core/kv/del $key)
     })
-  )", "req1"};
+  )",
+                                       "req1"};
 
   runtime::events::event_s event;
   event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
@@ -284,7 +293,8 @@ TEST_CASE("combined del + exists + load in iteration", "[unit][runtime][processo
   ensure_db_cleanup(entity_test_path);
 }
 
-TEST_CASE("insist with $key operations in iteration", "[unit][runtime][processor][context]") {
+TEST_CASE("insist with $key operations in iteration",
+          "[unit][runtime][processor][context]") {
   auto logger = create_test_logger();
   runtime::events::event_system_c event_system(logger.get(), 2, 100);
 
@@ -324,7 +334,8 @@ TEST_CASE("insist with $key operations in iteration", "[unit][runtime][processor
       (core/util/insist (core/kv/load $key))
       (core/kv/set success "true")
     })
-  )", "req1"};
+  )",
+                                       "req1"};
 
   runtime::events::event_s event;
   event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
@@ -344,7 +355,8 @@ TEST_CASE("insist with $key operations in iteration", "[unit][runtime][processor
   ensure_db_cleanup(entity_test_path);
 }
 
-TEST_CASE("insist failure with $key in iteration", "[unit][runtime][processor][context]") {
+TEST_CASE("insist failure with $key in iteration",
+          "[unit][runtime][processor][context]") {
   auto logger = create_test_logger();
   runtime::events::event_system_c event_system(logger.get(), 2, 100);
 
@@ -383,7 +395,8 @@ TEST_CASE("insist failure with $key in iteration", "[unit][runtime][processor][c
       (core/util/insist (core/kv/load $key))
       (core/kv/set should_not_reach "true")
     })
-  )", "req1"};
+  )",
+                                       "req1"};
 
   runtime::events::event_s event;
   event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
@@ -401,7 +414,8 @@ TEST_CASE("insist failure with $key in iteration", "[unit][runtime][processor][c
   ensure_db_cleanup(entity_test_path);
 }
 
-TEST_CASE("event handler with $key operations", "[unit][runtime][processor][context]") {
+TEST_CASE("event handler with $key operations",
+          "[unit][runtime][processor][context]") {
   auto logger = create_test_logger();
   runtime::events::event_system_c event_system(logger.get(), 2, 100);
 
@@ -445,10 +459,12 @@ TEST_CASE("event handler with $key operations", "[unit][runtime][processor][cont
       (core/kv/set user:9 "iris")
       (core/kv/set user:10 "jack")
     })
-  })", "setup"};
+  })",
+                                             "setup"};
 
   runtime::events::event_s setup_event;
-  setup_event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+  setup_event.category =
+      runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
   setup_event.topic_identifier = 0;
   setup_event.payload = setup_request;
 
@@ -457,10 +473,12 @@ TEST_CASE("event handler with $key operations", "[unit][runtime][processor][cont
 
   runtime::execution_request_s trigger_request{*session, R"(
     (core/event/pub $CHANNEL_A 100 "trigger")
-  )", "trigger"};
+  )",
+                                               "trigger"};
 
   runtime::events::event_s trigger_event;
-  trigger_event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+  trigger_event.category =
+      runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
   trigger_event.topic_identifier = 0;
   trigger_event.payload = trigger_request;
 
@@ -475,10 +493,12 @@ TEST_CASE("event handler with $key operations", "[unit][runtime][processor][cont
     (core/kv/iterate user: 0 100 {
       (core/kv/del $key)
     })
-  )", "delete"};
+  )",
+                                              "delete"};
 
   runtime::events::event_s delete_event;
-  delete_event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+  delete_event.category =
+      runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
   delete_event.topic_identifier = 0;
   delete_event.payload = delete_request;
 
@@ -495,7 +515,8 @@ TEST_CASE("event handler with $key operations", "[unit][runtime][processor][cont
   ensure_db_cleanup(entity_test_path);
 }
 
-TEST_CASE("complex integration: events + iterate + insist", "[unit][runtime][processor][context]") {
+TEST_CASE("complex integration: events + iterate + insist",
+          "[unit][runtime][processor][context]") {
   auto logger = create_test_logger();
   runtime::events::event_system_c event_system(logger.get(), 2, 100);
 
@@ -543,10 +564,12 @@ TEST_CASE("complex integration: events + iterate + insist", "[unit][runtime][pro
       })
       (core/kv/set cleanup_done "true")
     })
-  })", "setup"};
+  })",
+                                             "setup"};
 
   runtime::events::event_s setup_event;
-  setup_event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+  setup_event.category =
+      runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
   setup_event.topic_identifier = 0;
   setup_event.payload = setup_request;
 
@@ -555,10 +578,12 @@ TEST_CASE("complex integration: events + iterate + insist", "[unit][runtime][pro
 
   runtime::execution_request_s create_request{*session, R"(
     (core/event/pub $CHANNEL_B 200 "create_products")
-  )", "create"};
+  )",
+                                              "create"};
 
   runtime::events::event_s create_event;
-  create_event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+  create_event.category =
+      runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
   create_event.topic_identifier = 0;
   create_event.payload = create_request;
 
@@ -571,10 +596,12 @@ TEST_CASE("complex integration: events + iterate + insist", "[unit][runtime][pro
 
   runtime::execution_request_s cleanup_request{*session, R"(
     (core/event/pub $CHANNEL_B 201 "cleanup_products")
-  )", "cleanup"};
+  )",
+                                               "cleanup"};
 
   runtime::events::event_s cleanup_event;
-  cleanup_event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+  cleanup_event.category =
+      runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
   cleanup_event.topic_identifier = 0;
   cleanup_event.payload = cleanup_request;
 
@@ -595,7 +622,8 @@ TEST_CASE("complex integration: events + iterate + insist", "[unit][runtime][pro
   ensure_db_cleanup(entity_test_path);
 }
 
-TEST_CASE("error case: $key not available", "[unit][runtime][processor][context]") {
+TEST_CASE("error case: $key not available",
+          "[unit][runtime][processor][context]") {
   auto logger = create_test_logger();
   runtime::events::event_system_c event_system(logger.get(), 2, 100);
 
@@ -629,7 +657,8 @@ TEST_CASE("error case: $key not available", "[unit][runtime][processor][context]
 
   runtime::execution_request_s request{*session, R"(
     (core/kv/del $key)
-  )", "req1"};
+  )",
+                                       "req1"};
 
   runtime::events::event_s event;
   event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
@@ -647,7 +676,8 @@ TEST_CASE("error case: $key not available", "[unit][runtime][processor][context]
   ensure_db_cleanup(entity_test_path);
 }
 
-TEST_CASE("iterate with $key exists returning false", "[unit][runtime][processor][context]") {
+TEST_CASE("iterate with $key exists returning false",
+          "[unit][runtime][processor][context]") {
   auto logger = create_test_logger();
   runtime::events::event_system_c event_system(logger.get(), 2, 100);
 
@@ -661,8 +691,8 @@ TEST_CASE("iterate with $key exists returning false", "[unit][runtime][processor
   CHECK(data_ds.open(data_test_path));
 
   kvds::datastore_c entity_ds;
-  std::string entity_test_path =
-      get_unique_test_path("/tmp/processor_test_kv_context_exists_false_entity");
+  std::string entity_test_path = get_unique_test_path(
+      "/tmp/processor_test_kv_context_exists_false_entity");
   ensure_db_cleanup(entity_test_path);
   CHECK(entity_ds.open(entity_test_path));
 
@@ -685,7 +715,8 @@ TEST_CASE("iterate with $key exists returning false", "[unit][runtime][processor
       (core/kv/del $key)
       (core/kv/set exists_result (core/kv/exists $key))
     })
-  )", "req1"};
+  )",
+                                       "req1"};
 
   runtime::events::event_s event;
   event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
@@ -705,7 +736,8 @@ TEST_CASE("iterate with $key exists returning false", "[unit][runtime][processor
   ensure_db_cleanup(entity_test_path);
 }
 
-TEST_CASE("iterate loads all values into separate keys", "[unit][runtime][processor][context]") {
+TEST_CASE("iterate loads all values into separate keys",
+          "[unit][runtime][processor][context]") {
   auto logger = create_test_logger();
   runtime::events::event_system_c event_system(logger.get(), 2, 100);
 
@@ -746,7 +778,8 @@ TEST_CASE("iterate loads all values into separate keys", "[unit][runtime][proces
       (core/kv/load $key)
       (core/util/log "Loaded" $key)
     })
-  )", "req1"};
+  )",
+                                       "req1"};
 
   runtime::events::event_s event;
   event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
@@ -768,7 +801,8 @@ TEST_CASE("iterate loads all values into separate keys", "[unit][runtime][proces
   ensure_db_cleanup(entity_test_path);
 }
 
-TEST_CASE("context variable vs literal key behavior", "[unit][runtime][processor][context]") {
+TEST_CASE("context variable vs literal key behavior",
+          "[unit][runtime][processor][context]") {
   auto logger = create_test_logger();
   runtime::events::event_system_c event_system(logger.get(), 2, 100);
 
@@ -807,7 +841,8 @@ TEST_CASE("context variable vs literal key behavior", "[unit][runtime][processor
       (core/kv/set iter_ran "true")
     })
     (core/kv/set from_literal (core/kv/get $key))
-  })", "req1"};
+  })",
+                                       "req1"};
 
   runtime::events::event_s event;
   event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
@@ -831,7 +866,8 @@ TEST_CASE("context variable vs literal key behavior", "[unit][runtime][processor
   ensure_db_cleanup(entity_test_path);
 }
 
-TEST_CASE("error case: insist with missing $key", "[unit][runtime][processor][context]") {
+TEST_CASE("error case: insist with missing $key",
+          "[unit][runtime][processor][context]") {
   auto logger = create_test_logger();
   runtime::events::event_system_c event_system(logger.get(), 2, 100);
 
@@ -870,7 +906,8 @@ TEST_CASE("error case: insist with missing $key", "[unit][runtime][processor][co
       (core/util/insist (core/kv/load $key))
       (core/kv/set should_not_reach "true")
     })
-  )", "req1"};
+  )",
+                                       "req1"};
 
   runtime::events::event_s event;
   event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
@@ -887,4 +924,3 @@ TEST_CASE("error case: insist with missing $key", "[unit][runtime][processor][co
   ensure_db_cleanup(data_test_path);
   ensure_db_cleanup(entity_test_path);
 }
-

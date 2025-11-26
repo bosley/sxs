@@ -10,13 +10,18 @@ using namespace runtime::fns;
 
 class mock_runtime_info_c : public runtime_information_if {
 public:
-  slp::slp_object_c eval_object(session_c &, const slp::slp_object_c &,
-                                const std::map<std::string, slp::slp_object_c> &) override {
+  slp::slp_object_c
+  eval_object(session_c &, const slp::slp_object_c &,
+              const std::map<std::string, slp::slp_object_c> &) override {
     return slp::parse("nil").take();
   }
-  std::string object_to_string(const slp::slp_object_c &) override { return ""; }
+  std::string object_to_string(const slp::slp_object_c &) override {
+    return "";
+  }
   logger_t get_logger() override { return nullptr; }
-  std::vector<subscription_handler_s> *get_subscription_handlers() override { return nullptr; }
+  std::vector<subscription_handler_s> *get_subscription_handlers() override {
+    return nullptr;
+  }
   std::mutex *get_subscription_handlers_mutex() override { return nullptr; }
 };
 
@@ -58,24 +63,23 @@ build_type_signatures(const std::vector<function_group_s> &groups) {
   return signatures;
 }
 
-std::map<std::string, slp::slp_type_e> 
-extract_dollar_vars_from_signatures(
+std::map<std::string, slp::slp_type_e> extract_dollar_vars_from_signatures(
     const std::map<std::string, function_signature_s> &signatures) {
   std::map<std::string, slp::slp_type_e> dollar_vars;
-  
+
   for (const auto &[fn_name, sig] : signatures) {
     for (const auto &[var_name, var_type] : sig.handler_context_vars) {
       dollar_vars[var_name] = var_type;
     }
   }
-  
+
   dollar_vars["$CHANNEL_A"] = slp::slp_type_e::SYMBOL;
   dollar_vars["$CHANNEL_B"] = slp::slp_type_e::SYMBOL;
   dollar_vars["$CHANNEL_C"] = slp::slp_type_e::SYMBOL;
   dollar_vars["$CHANNEL_D"] = slp::slp_type_e::SYMBOL;
   dollar_vars["$CHANNEL_E"] = slp::slp_type_e::SYMBOL;
   dollar_vars["$CHANNEL_F"] = slp::slp_type_e::SYMBOL;
-  
+
   return dollar_vars;
 }
 
@@ -139,8 +143,8 @@ TEST_CASE("type system - tainted value cannot be stored", "[ts]") {
 
   type_checker_c checker(signatures, dollar_vars);
 
-  auto parse_result = slp::parse(
-      "((core/kv/set x 42) (core/kv/set y (core/kv/get x)))");
+  auto parse_result =
+      slp::parse("((core/kv/set x 42) (core/kv/set y (core/kv/get x)))");
   REQUIRE_FALSE(parse_result.is_error());
 
   auto result = checker.check(parse_result.object());
@@ -185,8 +189,8 @@ TEST_CASE("type system - snx sets if not exists", "[ts]") {
 
   type_checker_c checker(signatures, dollar_vars);
 
-  auto parse_result =
-      slp::parse("((core/kv/snx counter 0) (core/insist (core/kv/get counter)))");
+  auto parse_result = slp::parse(
+      "((core/kv/snx counter 0) (core/insist (core/kv/get counter)))");
   REQUIRE_FALSE(parse_result.is_error());
 
   auto result = checker.check(parse_result.object());
@@ -266,8 +270,8 @@ TEST_CASE("type system - string type tracking", "[ts]") {
 
   type_checker_c checker(signatures, dollar_vars);
 
-  auto parse_result =
-      slp::parse(R"(((core/kv/set msg "hello") (core/insist (core/kv/get msg))))");
+  auto parse_result = slp::parse(
+      R"(((core/kv/set msg "hello") (core/insist (core/kv/get msg))))");
   REQUIRE_FALSE(parse_result.is_error());
 
   auto result = checker.check(parse_result.object());

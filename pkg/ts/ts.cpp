@@ -5,7 +5,8 @@ namespace pkg::ts {
 type_checker_c::type_checker_c(
     const std::map<std::string, function_signature_s> &signatures,
     const std::map<std::string, slp::slp_type_e> &global_dollar_vars)
-    : function_signatures_(signatures), global_dollar_vars_(global_dollar_vars) {}
+    : function_signatures_(signatures),
+      global_dollar_vars_(global_dollar_vars) {}
 
 type_checker_c::check_result_s
 type_checker_c::check(const slp::slp_object_c &program) {
@@ -52,7 +53,7 @@ type_checker_c::infer_type(const slp::slp_object_c &obj,
 
   case slp::slp_type_e::SYMBOL: {
     std::string sym = obj.as_symbol();
-    
+
     if (!sym.empty() && sym[0] == '$') {
       auto it = global_dollar_vars_.find(sym);
       if (it != global_dollar_vars_.end()) {
@@ -60,7 +61,7 @@ type_checker_c::infer_type(const slp::slp_object_c &obj,
       }
       return type_info_s(slp::slp_type_e::ERROR, false);
     }
-    
+
     return type_info_s(slp::slp_type_e::SYMBOL, false);
   }
 
@@ -172,7 +173,7 @@ type_checker_c::infer_type(const slp::slp_object_c &obj,
 
     if (sig.is_detainter && list.size() >= 2) {
       auto arg_obj = list.at(1);
-      
+
       if (arg_obj.type() != slp::slp_type_e::PAREN_LIST) {
         return type_info_s(slp::slp_type_e::ERROR, false);
       }
@@ -217,24 +218,35 @@ type_checker_c::infer_type(const slp::slp_object_c &obj,
       auto type_param = list.at(3);
       if (type_param.type() == slp::slp_type_e::SYMBOL) {
         std::string type_sym = type_param.as_symbol();
-        
+
         std::optional<slp::slp_type_e> data_type_opt;
-        if (type_sym == ":int") data_type_opt = slp::slp_type_e::INTEGER;
-        else if (type_sym == ":real") data_type_opt = slp::slp_type_e::REAL;
-        else if (type_sym == ":str") data_type_opt = slp::slp_type_e::DQ_LIST;
-        else if (type_sym == ":some") data_type_opt = slp::slp_type_e::SOME;
-        else if (type_sym == ":none") data_type_opt = slp::slp_type_e::NONE;
-        else if (type_sym == ":error") data_type_opt = slp::slp_type_e::ERROR;
-        else if (type_sym == ":symbol") data_type_opt = slp::slp_type_e::SYMBOL;
-        else if (type_sym == ":list-p") data_type_opt = slp::slp_type_e::PAREN_LIST;
-        else if (type_sym == ":list-s") data_type_opt = slp::slp_type_e::BRACKET_LIST;
-        else if (type_sym == ":list-c") data_type_opt = slp::slp_type_e::BRACE_LIST;
-        else if (type_sym == ":rune") data_type_opt = slp::slp_type_e::RUNE;
-        
+        if (type_sym == ":int")
+          data_type_opt = slp::slp_type_e::INTEGER;
+        else if (type_sym == ":real")
+          data_type_opt = slp::slp_type_e::REAL;
+        else if (type_sym == ":str")
+          data_type_opt = slp::slp_type_e::DQ_LIST;
+        else if (type_sym == ":some")
+          data_type_opt = slp::slp_type_e::SOME;
+        else if (type_sym == ":none")
+          data_type_opt = slp::slp_type_e::NONE;
+        else if (type_sym == ":error")
+          data_type_opt = slp::slp_type_e::ERROR;
+        else if (type_sym == ":symbol")
+          data_type_opt = slp::slp_type_e::SYMBOL;
+        else if (type_sym == ":list-p")
+          data_type_opt = slp::slp_type_e::PAREN_LIST;
+        else if (type_sym == ":list-s")
+          data_type_opt = slp::slp_type_e::BRACKET_LIST;
+        else if (type_sym == ":list-c")
+          data_type_opt = slp::slp_type_e::BRACE_LIST;
+        else if (type_sym == ":rune")
+          data_type_opt = slp::slp_type_e::RUNE;
+
         if (data_type_opt.has_value()) {
           auto saved_dollar_vars = global_dollar_vars_;
           global_dollar_vars_["$data"] = data_type_opt.value();
-          
+
           auto handler_body = list.at(4);
           if (handler_body.type() == slp::slp_type_e::BRACE_LIST) {
             auto handler_list = handler_body.as_list();
@@ -246,15 +258,15 @@ type_checker_c::infer_type(const slp::slp_object_c &obj,
               }
             }
           }
-          
+
           global_dollar_vars_ = saved_dollar_vars;
         }
       }
     } else if (!sig.handler_context_vars.empty()) {
       for (size_t i = 0; i < sig.parameters.size(); i++) {
-        if (sig.parameters[i].type == slp::slp_type_e::BRACE_LIST && 
+        if (sig.parameters[i].type == slp::slp_type_e::BRACE_LIST &&
             !sig.parameters[i].is_evaluated) {
-          
+
           auto handler_obj = list.at(i + 1);
           if (handler_obj.type() == slp::slp_type_e::BRACE_LIST) {
             auto handler_list = handler_obj.as_list();
@@ -282,4 +294,3 @@ type_checker_c::infer_type(const slp::slp_object_c &obj,
 }
 
 } // namespace pkg::ts
-

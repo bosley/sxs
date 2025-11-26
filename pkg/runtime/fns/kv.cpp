@@ -125,7 +125,8 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
       };
 
   group.functions["exists"].return_type = slp::slp_type_e::SYMBOL;
-  group.functions["exists"].parameters = {{"key", slp::slp_type_e::SYMBOL, false}};
+  group.functions["exists"].parameters = {
+      {"key", slp::slp_type_e::SYMBOL, false}};
   group.functions["exists"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
@@ -227,8 +228,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
 
         auto expected_result =
             runtime_info.eval_object(session, expected_obj, context);
-        std::string expected_value =
-            object_to_storage_string(expected_result);
+        std::string expected_value = object_to_storage_string(expected_result);
 
         auto new_value_result =
             runtime_info.eval_object(session, new_value_obj, context);
@@ -350,7 +350,8 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
   };
 
   group.functions["load"].return_type = slp::slp_type_e::SOME;
-  group.functions["load"].parameters = {{"key", slp::slp_type_e::SYMBOL, false}};
+  group.functions["load"].parameters = {
+      {"key", slp::slp_type_e::SYMBOL, false}};
   group.functions["load"].can_return_error = false;
   group.functions["load"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
@@ -386,7 +387,8 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         std::string value;
         bool success = store->get(key, value);
         if (!success) {
-          return SLP_ERROR("core/kv/load failed (key not found or no permission)");
+          return SLP_ERROR(
+              "core/kv/load failed (key not found or no permission)");
         }
 
         logger->debug("[kv] load {} = {}", key, value);

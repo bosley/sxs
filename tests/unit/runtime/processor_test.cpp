@@ -889,7 +889,6 @@ TEST_CASE("processor core/expr/eval with kv operations",
   ensure_db_cleanup(entity_test_path);
 }
 
-
 TEST_CASE("processor ignores wrong category events",
           "[unit][runtime][processor]") {
   auto logger = create_test_logger();

@@ -1,6 +1,6 @@
 #pragma once
-#include <slp/slp.hpp>
 #include <optional>
+#include <slp/slp.hpp>
 
 #define SLP_ERROR(msg)                                                         \
   ([]() {                                                                      \
@@ -32,18 +32,30 @@
 #define SLP_TYPE_LIST_C slp::parse(":list-c").take()
 #define SLP_TYPE_RUNE slp::parse(":rune").take()
 
-inline std::optional<slp::slp_type_e> type_symbol_to_enum(const std::string& sym) {
-  if (sym == ":int") return slp::slp_type_e::INTEGER;
-  if (sym == ":real") return slp::slp_type_e::REAL;
-  if (sym == ":str") return slp::slp_type_e::DQ_LIST;
-  if (sym == ":some") return slp::slp_type_e::SOME;
-  if (sym == ":none") return slp::slp_type_e::NONE;
-  if (sym == ":error") return slp::slp_type_e::ERROR;
-  if (sym == ":symbol") return slp::slp_type_e::SYMBOL;
-  if (sym == ":list-p") return slp::slp_type_e::PAREN_LIST;
-  if (sym == ":list-s") return slp::slp_type_e::BRACKET_LIST;
-  if (sym == ":list-c") return slp::slp_type_e::BRACE_LIST;
-  if (sym == ":rune") return slp::slp_type_e::RUNE;
+inline std::optional<slp::slp_type_e>
+type_symbol_to_enum(const std::string &sym) {
+  if (sym == ":int")
+    return slp::slp_type_e::INTEGER;
+  if (sym == ":real")
+    return slp::slp_type_e::REAL;
+  if (sym == ":str")
+    return slp::slp_type_e::DQ_LIST;
+  if (sym == ":some")
+    return slp::slp_type_e::SOME;
+  if (sym == ":none")
+    return slp::slp_type_e::NONE;
+  if (sym == ":error")
+    return slp::slp_type_e::ERROR;
+  if (sym == ":symbol")
+    return slp::slp_type_e::SYMBOL;
+  if (sym == ":list-p")
+    return slp::slp_type_e::PAREN_LIST;
+  if (sym == ":list-s")
+    return slp::slp_type_e::BRACKET_LIST;
+  if (sym == ":list-c")
+    return slp::slp_type_e::BRACE_LIST;
+  if (sym == ":rune")
+    return slp::slp_type_e::RUNE;
   return std::nullopt;
 }
 

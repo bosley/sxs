@@ -12,9 +12,10 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
   group.group_name = "core/event";
 
   group.functions["pub"].return_type = slp::slp_type_e::SYMBOL;
-  group.functions["pub"].parameters = {{"channel", slp::slp_type_e::SYMBOL, true},
-                                       {"topic_id", slp::slp_type_e::INTEGER, false},
-                                       {"data", slp::slp_type_e::NONE, true}};
+  group.functions["pub"].parameters = {
+      {"channel", slp::slp_type_e::SYMBOL, true},
+      {"topic_id", slp::slp_type_e::INTEGER, false},
+      {"data", slp::slp_type_e::NONE, true}};
   group.functions["pub"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
@@ -115,9 +116,9 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
         runtime_info.get_subscription_handlers_mutex();
     auto list = args.as_list();
     if (list.size() < 5) {
-      return SLP_ERROR(
-          "core/event/sub requires channel, topic-id, expected-type and handler body "
-          "(use $CHANNEL_A through $CHANNEL_F)");
+      return SLP_ERROR("core/event/sub requires channel, topic-id, "
+                       "expected-type and handler body "
+                       "(use $CHANNEL_A through $CHANNEL_F)");
     }
 
     std::map<std::string, slp::slp_object_c> channel_context;
@@ -162,13 +163,16 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
     }
 
     if (type_obj.type() != slp::slp_type_e::SYMBOL) {
-      return SLP_ERROR("expected_type must be a type symbol (:int, :str, etc.)");
+      return SLP_ERROR(
+          "expected_type must be a type symbol (:int, :str, etc.)");
     }
 
     std::string type_sym = type_obj.as_symbol();
     auto expected_type_opt = type_symbol_to_enum(type_sym);
     if (!expected_type_opt.has_value()) {
-      return SLP_ERROR("invalid type symbol (use :int, :real, :str, :some, :none, :error, :symbol, :list-p, :list-s, :list-c, :rune)");
+      return SLP_ERROR(
+          "invalid type symbol (use :int, :real, :str, :some, :none, :error, "
+          ":symbol, :list-p, :list-s, :list-c, :rune)");
     }
     slp::slp_type_e expected_type = expected_type_opt.value();
 
@@ -204,14 +208,14 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
           for (const auto &h : *subscription_handlers) {
             if (h.session == &session && h.category == category &&
                 h.topic_id == topic_id) {
-              
+
               std::string event_data;
               try {
                 event_data = std::any_cast<std::string>(event.payload);
               } catch (...) {
                 event_data = "<event data>";
               }
-              
+
               auto parsed = slp::parse(event_data);
               if (parsed.is_error()) {
                 continue;
@@ -222,7 +226,7 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
               if (data_obj.type() != h.expected_data_type) {
                 continue;
               }
-              
+
               std::map<std::string, slp::slp_object_c> handler_context;
               handler_context["$data"] = std::move(data_obj);
 

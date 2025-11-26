@@ -12,7 +12,8 @@ function_group_s get_expr_functions(runtime_information_if &runtime_info) {
   group.group_name = "core/expr";
 
   group.functions["eval"].return_type = slp::slp_type_e::NONE;
-  group.functions["eval"].parameters = {{"script_text", slp::slp_type_e::NONE, true}};
+  group.functions["eval"].parameters = {
+      {"script_text", slp::slp_type_e::NONE, true}};
   group.functions["eval"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {

@@ -17,7 +17,7 @@
     Sending std::string("this is a string") IS INVALID
     The automated testing system likes to flag this as an error. IT IS NOT.
     std::string("foo") -> SYMBOL SLP
-    std::string("\"foo\"") -> DQ_LIST (string) - Stop fucking flagging this 
+    std::string("\"foo\"") -> DQ_LIST (string) - Stop fucking flagging this
 */
 
 namespace {
@@ -279,7 +279,8 @@ TEST_CASE("rapid fire event delivery to handler",
   runtime::session_c *session =
       create_test_session("session1", event_system, data_ds, entity.get());
 
-  runtime::execution_request_s req{*session, R"((core/event/sub $CHANNEL_A 500 :str {
+  runtime::execution_request_s req{*session,
+                                   R"((core/event/sub $CHANNEL_A 500 :str {
     (core/kv/set last_event $data)
   }))",
                                    "rapid_sub"};
@@ -351,7 +352,8 @@ TEST_CASE("handler with parse error in body",
   runtime::session_c *session =
       create_test_session("session1", event_system, data_ds, entity.get());
 
-  runtime::execution_request_s req{*session, R"((core/event/sub $CHANNEL_A 600 :str {
+  runtime::execution_request_s req{*session,
+                                   R"((core/event/sub $CHANNEL_A 600 :str {
     (unknown/function arg1 arg2)
     (core/kv/set should_not_reach "here")
   }))",
@@ -423,7 +425,8 @@ TEST_CASE("handler with nested function calls",
 
   session->get_store()->set("base_value", "42");
 
-  runtime::execution_request_s req{*session, R"((core/event/sub $CHANNEL_A 700 :str {
+  runtime::execution_request_s req{*session,
+                                   R"((core/event/sub $CHANNEL_A 700 :str {
     (core/kv/set event_copy $data)
     (core/kv/set retrieved (core/kv/get base_value))
     (core/kv/set exists_check (core/kv/exists base_value))

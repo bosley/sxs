@@ -409,7 +409,6 @@ TEST_CASE("core/kv/iterate processes keys with prefix",
     CHECK((lastKey == "num:1" || lastKey == "num:2" || lastKey == "num:3"));
   }
 
-
   SECTION("iterate with zero limit processes no items") {
     session->get_store()->set("zero:1", "a");
     session->get_store()->set("zero:2", "b");

@@ -80,11 +80,13 @@ TEST_CASE("core/util/insist passes through non-error values from functions",
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request{*session, 
-        "[(core/kv/set num 42) (core/util/insist (core/kv/get num))]", "req1"};
+    runtime::execution_request_s request{
+        *session, "[(core/kv/set num 42) (core/util/insist (core/kv/get num))]",
+        "req1"};
 
     runtime::events::event_s event;
-    event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
     event.topic_identifier = 0;
     event.payload = request;
 
@@ -97,11 +99,14 @@ TEST_CASE("core/util/insist passes through non-error values from functions",
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request{*session, 
-        "[(core/kv/set str \"hello\") (core/util/insist (core/kv/get str))]", "req2"};
+    runtime::execution_request_s request{
+        *session,
+        "[(core/kv/set str \"hello\") (core/util/insist (core/kv/get str))]",
+        "req2"};
 
     runtime::events::event_s event;
-    event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
     event.topic_identifier = 0;
     event.payload = request;
 
@@ -114,11 +119,14 @@ TEST_CASE("core/util/insist passes through non-error values from functions",
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request{*session, 
-        "[(core/kv/set key \"val\") (core/util/insist (core/kv/exists key))]", "req3"};
+    runtime::execution_request_s request{
+        *session,
+        "[(core/kv/set key \"val\") (core/util/insist (core/kv/exists key))]",
+        "req3"};
 
     runtime::events::event_s event;
-    event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
     event.topic_identifier = 0;
     event.payload = request;
 
@@ -141,8 +149,7 @@ TEST_CASE("core/util/insist halts execution on ERROR object",
   event_system.initialize(accessor);
 
   kvds::datastore_c data_ds;
-  std::string data_test_path =
-      get_unique_test_path("/tmp/insist_test_error");
+  std::string data_test_path = get_unique_test_path("/tmp/insist_test_error");
   ensure_db_cleanup(data_test_path);
   CHECK(data_ds.open(data_test_path));
 
@@ -165,10 +172,12 @@ TEST_CASE("core/util/insist halts execution on ERROR object",
 
     entity->grant_permission("test_scope", runtime::permission::READ_WRITE);
 
-    runtime::execution_request_s request{*session, "(core/util/insist (core/kv/get nonexistent))", "req2"};
+    runtime::execution_request_s request{
+        *session, "(core/util/insist (core/kv/get nonexistent))", "req2"};
 
     runtime::events::event_s event;
-    event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
     event.topic_identifier = 0;
     event.payload = request;
 
@@ -215,12 +224,14 @@ TEST_CASE("core/util/insist enables safe type patterns",
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request{*session, 
-        "[(core/kv/set x 42) (core/kv/set y (core/util/insist (core/kv/get x)))]", 
-        "req1"};
+    runtime::execution_request_s request{*session,
+                                         "[(core/kv/set x 42) (core/kv/set y "
+                                         "(core/util/insist (core/kv/get x)))]",
+                                         "req1"};
 
     runtime::events::event_s event;
-    event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
     event.topic_identifier = 0;
     event.payload = request;
 
@@ -233,12 +244,14 @@ TEST_CASE("core/util/insist enables safe type patterns",
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request{*session, 
-        "[(core/kv/set x 42) (core/kv/set y (core/util/insist (core/kv/get z)))]", 
-        "req2"};
+    runtime::execution_request_s request{*session,
+                                         "[(core/kv/set x 42) (core/kv/set y "
+                                         "(core/util/insist (core/kv/get z)))]",
+                                         "req2"};
 
     runtime::events::event_s event;
-    event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
     event.topic_identifier = 0;
     event.payload = request;
 
@@ -251,12 +264,15 @@ TEST_CASE("core/util/insist enables safe type patterns",
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request{*session, 
-        "[(core/kv/set x 42) (core/util/insist (core/util/insist (core/kv/get x)))]", 
+    runtime::execution_request_s request{
+        *session,
+        "[(core/kv/set x 42) (core/util/insist (core/util/insist (core/kv/get "
+        "x)))]",
         "req3"};
 
     runtime::events::event_s event;
-    event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
     event.topic_identifier = 0;
     event.payload = request;
 
@@ -279,8 +295,7 @@ TEST_CASE("core/util/insist with bracket list stops on first error",
   event_system.initialize(accessor);
 
   kvds::datastore_c data_ds;
-  std::string data_test_path =
-      get_unique_test_path("/tmp/insist_test_bracket");
+  std::string data_test_path = get_unique_test_path("/tmp/insist_test_bracket");
   ensure_db_cleanup(data_test_path);
   CHECK(data_ds.open(data_test_path));
 
@@ -303,12 +318,14 @@ TEST_CASE("core/util/insist with bracket list stops on first error",
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request{*session, 
-        "[(core/util/insist (core/kv/get nonexistent)) (core/kv/set marker 1)]", 
+    runtime::execution_request_s request{
+        *session,
+        "[(core/util/insist (core/kv/get nonexistent)) (core/kv/set marker 1)]",
         "req1"};
 
     runtime::events::event_s event;
-    event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
     event.topic_identifier = 0;
     event.payload = request;
 
@@ -355,10 +372,12 @@ TEST_CASE("core/util/insist rejects non-function arguments at runtime",
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request{*session, "(core/util/insist 42)", "req1"};
+    runtime::execution_request_s request{*session, "(core/util/insist 42)",
+                                         "req1"};
 
     runtime::events::event_s event;
-    event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
     event.topic_identifier = 0;
     event.payload = request;
 
@@ -371,10 +390,12 @@ TEST_CASE("core/util/insist rejects non-function arguments at runtime",
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request{*session, "(core/util/insist \"hello\")", "req2"};
+    runtime::execution_request_s request{
+        *session, "(core/util/insist \"hello\")", "req2"};
 
     runtime::events::event_s event;
-    event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
     event.topic_identifier = 0;
     event.payload = request;
 
@@ -387,10 +408,12 @@ TEST_CASE("core/util/insist rejects non-function arguments at runtime",
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request{*session, "(core/util/insist x)", "req3"};
+    runtime::execution_request_s request{*session, "(core/util/insist x)",
+                                         "req3"};
 
     runtime::events::event_s event;
-    event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
     event.topic_identifier = 0;
     event.payload = request;
 
@@ -403,10 +426,12 @@ TEST_CASE("core/util/insist rejects non-function arguments at runtime",
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request{*session, "(core/util/insist @\"error\")", "req4"};
+    runtime::execution_request_s request{
+        *session, "(core/util/insist @\"error\")", "req4"};
 
     runtime::events::event_s event;
-    event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+    event.category =
+        runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
     event.topic_identifier = 0;
     event.payload = request;
 
