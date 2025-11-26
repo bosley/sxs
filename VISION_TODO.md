@@ -122,5 +122,62 @@ lots of pre-processor type commands which may ellucidate new pathways by-way of 
 
 We should diagram "the weird realm" somewhere to see this top-down
 
+ealistically any "higher level type" should be able to be described to the runtime like fn, and others
+so we can have a save representation and means to access them from the data store after construction/etc
+
+if we create the "minimal object instruction set" then we could, in theory, black-box any custom slp object
+directly from our own instructions
+
+Say "i have this object "[]" and i call it "bob" and then say "in bob i have <types>" this is how i want
+to get and set them, then our objects can be made on the go. if we do this all within "#" lists, then
+that means we can do it on-the-fly but also before-hand and skip it for every single instruction.
+
+
+Perhaps since we are leveraging a kv store uth and hare in the psuedo db realm we can call object blueprints
+schemas and nobody will question?
+
+```
+; This stores the schema into the current entitie's local sconf as "an object the user likes to use"
+; This is distinct from the traditional notion of "my program has a library with object x" its "part of my work
+; flow incorperates data that i organize this way"
+
+; Now we are in the hash list we can have a whle different suite of commands and not even recognize the `core/`
+; commands. hell yeah
+
+#(blueprint my_data_blueprint
+    some_member_symbol :int 0
+    some_other_symbol :str ""
+)
+
+; Now its part of the types!
+#(blueprint my_other_blueprint
+    some_member_symbol :my_data_blueprint
+)
+
+I think i will want these to be installed on the system under the root path on first run and then auto-loaded
+into every runtime for compilation-sake. 
+
+this way we can dynamically create all of the types we will need to work with
+
+If we can find a means to "transact" against an object we can bypass load/taints/and runtime type checking
+entirely if we consider it like this:
+
+- given some known to exist; a valid symbol 
+- create a queue to describe a set of operations to be done against the object
+- provide potential fallback actions
+- execute
+
+Usually this is done on the db level or the k/v level but im talking about doing this on the
+individual "v" of the "k/v" level where we have some value "v" NOT loaded into memory (still on disk)
+that we can describe operations on, then, run the transaction: load the item into memory, perform operations, store back into memory.
+
+This makes these SIMILAR to types and SIMILAR to a db schema but not at all the same.
+
+
+```
+
+
+
+
 
 

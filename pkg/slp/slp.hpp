@@ -53,6 +53,8 @@ enum class slp_type_e {
   REAL = 10,
   BRACKET_LIST = 11,
   ERROR = 12,
+  DATUM = 13,
+  ABERRANT = 14,
 };
 
 /*

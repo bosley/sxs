@@ -29,10 +29,12 @@ std::string slp_object_to_string(const slp::slp_object_c &obj) {
     escaped += '"';
     return escaped;
   }
-
   case slp::slp_type_e::ERROR:
     return obj.as_string().to_string();
-
+  case slp::slp_type_e::DATUM:
+    [[fallthrough]];
+  case slp::slp_type_e::ABERRANT:
+    [[fallthrough]];
   case slp::slp_type_e::SOME: {
     if (!obj.has_data()) {
       return "'nil";

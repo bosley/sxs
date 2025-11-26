@@ -799,3 +799,48 @@ TEST_CASE("slp quoted and error objects", "[unit][slp][quote][error]") {
     CHECK(result.object().type() == slp::slp_type_e::ERROR);
   }
 }
+
+TEST_CASE("slp parse datum and aberrant objects",
+          "[unit][slp][datum][aberrant]") {
+  SECTION("datum with integer") {
+    auto result = slp::parse("#42");
+    CHECK(result.is_success());
+    CHECK(result.object().type() == slp::slp_type_e::DATUM);
+  }
+
+  SECTION("datum with symbol") {
+    auto result = slp::parse("#tag");
+    CHECK(result.is_success());
+    CHECK(result.object().type() == slp::slp_type_e::DATUM);
+  }
+
+  SECTION("datum with list") {
+    auto result = slp::parse("#(1 2 3)");
+    CHECK(result.is_success());
+    CHECK(result.object().type() == slp::slp_type_e::DATUM);
+  }
+
+  SECTION("aberrant with integer") {
+    auto result = slp::parse("?0");
+    CHECK(result.is_success());
+    CHECK(result.object().type() == slp::slp_type_e::ABERRANT);
+  }
+
+  SECTION("aberrant with symbol") {
+    auto result = slp::parse("?why");
+    CHECK(result.is_success());
+    CHECK(result.object().type() == slp::slp_type_e::ABERRANT);
+  }
+
+  SECTION("aberrant with list") {
+    auto result = slp::parse("?(what happened)");
+    CHECK(result.is_success());
+    CHECK(result.object().type() == slp::slp_type_e::ABERRANT);
+  }
+
+  SECTION("nested wrappers") {
+    auto result = slp::parse("#?@'42");
+    CHECK(result.is_success());
+    CHECK(result.object().type() == slp::slp_type_e::DATUM);
+  }
+}

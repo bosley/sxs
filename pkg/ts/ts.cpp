@@ -77,6 +77,12 @@ type_checker_c::infer_type(const slp::slp_object_c &obj,
   case slp::slp_type_e::ERROR:
     return type_info_s(slp::slp_type_e::ERROR, false);
 
+  case slp::slp_type_e::DATUM:
+    return type_info_s(slp::slp_type_e::DATUM, false);
+
+  case slp::slp_type_e::ABERRANT:
+    return type_info_s(slp::slp_type_e::ABERRANT, false);
+
   case slp::slp_type_e::PAREN_LIST: {
     auto list = obj.as_list();
     if (list.size() == 0) {
@@ -242,6 +248,10 @@ type_checker_c::infer_type(const slp::slp_object_c &obj,
           data_type_opt = slp::slp_type_e::BRACE_LIST;
         else if (type_sym == ":rune")
           data_type_opt = slp::slp_type_e::RUNE;
+        else if (type_sym == ":datum")
+          data_type_opt = slp::slp_type_e::DATUM;
+        else if (type_sym == ":aberrant")
+          data_type_opt = slp::slp_type_e::ABERRANT;
 
         if (data_type_opt.has_value()) {
           auto saved_dollar_vars = global_dollar_vars_;
