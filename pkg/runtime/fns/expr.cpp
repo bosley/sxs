@@ -22,11 +22,12 @@ function_group_s get_expr_functions(runtime_information_if &runtime_info) {
 
         auto script_obj =
             runtime_info.eval_object(session, list.at(1), context);
-        
+
         /*
-            Despite SLP being homoiconic, we take a step to compress SLP objects (a form of hydration)
-            when parsing them. We can execute them directly, but 'eval' can take
-            a raw unprocessed text (a string) and evaluate that as well
+            Despite SLP being homoiconic, we take a step to compress SLP objects
+           (a form of hydration) when parsing them. We can execute them
+           directly, but 'eval' can take a raw unprocessed text (a string) and
+           evaluate that as well
 
             So here, we check if we have a raw yet-to-be parsed string. If so
             then we parse it before running
@@ -40,12 +41,11 @@ function_group_s get_expr_functions(runtime_information_if &runtime_info) {
             return SLP_ERROR("core/expr/eval parse error");
           }
           return runtime_info.eval_object(session, parse_result.object(),
-                                        context);
+                                          context);
         }
 
         // Already ready to be evaluated
-        return runtime_info.eval_object(session, script_obj,
-                                        context);
+        return runtime_info.eval_object(session, script_obj, context);
       };
 
   group.functions["proc"].return_type = slp::slp_type_e::SYMBOL;

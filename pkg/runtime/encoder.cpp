@@ -98,4 +98,3 @@ std::string slp_object_to_string(const slp::slp_object_c &obj) {
 }
 
 } // namespace runtime
-

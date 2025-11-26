@@ -96,8 +96,7 @@ parse_result_internal_s parse_string(parser_state_s &state) {
       c = state.current();
     }
     size_t rune_offset = allocate_unit(state, slp_type_e::RUNE);
-    state.get_unit(rune_offset)->data.uint32 =
-        static_cast<std::uint32_t>(c);
+    state.get_unit(rune_offset)->data.uint32 = static_cast<std::uint32_t>(c);
     char_offsets.push_back(rune_offset);
     state.advance();
   }

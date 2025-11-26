@@ -75,7 +75,24 @@ bool runtime_c::script_executor_c::execute(const std::string &script_text) {
     logger->info("Script execution event published, waiting for completion...");
 
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    while (true) {
+    int consecutive_idle_samples = 0;
+    constexpr int required_idle_samples = 10;
+
+    /*
+        Due to the async nature of the runtime we determine if the system is
+       completed with the script if no exceptions have been thrown AND no work
+       has been done for a given set of samplings
+
+        If when we check, the processors and data bus are not busy 10x
+       sequentially, we infer completeness and begin shutdown of the system
+
+        Note: this is just the means by which this executor functions and is by
+       no means indicitve of "the only way" this can be accomplished given a the
+       runtime+session+entity
+    */
+    do {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
       bool queue_empty = runtime_.event_system_->is_queue_empty();
       bool all_idle = true;
       for (const auto &processor : runtime_.processors_) {
@@ -86,21 +103,14 @@ bool runtime_c::script_executor_c::execute(const std::string &script_text) {
       }
 
       if (queue_empty && all_idle) {
-        queue_empty = runtime_.event_system_->is_queue_empty();
-        all_idle = true;
-        for (const auto &processor : runtime_.processors_) {
-          if (processor->is_busy()) {
-            all_idle = false;
-            break;
-          }
-        }
-        if (queue_empty && all_idle) {
-          logger->info("Script execution complete");
-          break;
-        }
+        consecutive_idle_samples++;
+      } else {
+        consecutive_idle_samples = 0;
       }
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
+    } while (consecutive_idle_samples < required_idle_samples);
+
+    logger->info("Script execution complete after {} idle samples",
+                 consecutive_idle_samples);
 
     return true;
 
