@@ -51,24 +51,14 @@ public:
     session_c *session;
     events::event_category_e category;
     std::uint16_t topic_id;
+    slp::slp_type_e expected_data_type;
     slp::slp_buffer_c handler_data;
     std::map<std::uint64_t, std::string> handler_symbols;
     size_t handler_root_offset;
   };
 
-  struct pending_await_s {
-    std::condition_variable cv;
-    std::mutex mutex;
-    bool completed{false};
-    slp::slp_object_c result;
-  };
-
   virtual std::vector<subscription_handler_s> *get_subscription_handlers() = 0;
   virtual std::mutex *get_subscription_handlers_mutex() = 0;
-  virtual std::map<std::string, std::shared_ptr<pending_await_s>> *
-  get_pending_awaits() = 0;
-  virtual std::mutex *get_pending_awaits_mutex() = 0;
-  virtual std::chrono::seconds get_max_await_timeout() = 0;
 };
 
 class processor_c : public events::event_consumer_if,
@@ -80,6 +70,7 @@ public:
     session_c *session;
     events::event_category_e category;
     std::uint16_t topic_id;
+    slp::slp_type_e expected_data_type;
     slp::slp_buffer_c handler_data;
     std::map<std::uint64_t, std::string> handler_symbols;
     size_t handler_root_offset;
@@ -101,10 +92,6 @@ private:
   std::map<std::string, function_handler_t> function_registry_;
   std::vector<subscription_handler_s> subscription_handlers_;
   std::mutex subscription_handlers_mutex_;
-  std::map<std::string,
-           std::shared_ptr<runtime_information_if::pending_await_s>>
-      pending_awaits_;
-  std::mutex pending_awaits_mutex_;
   eval_context_s global_context_;
 
   void register_builtin_functions();
@@ -140,11 +127,6 @@ private:
   std::vector<runtime_information_if::subscription_handler_s> *
   get_subscription_handlers() override final;
   std::mutex *get_subscription_handlers_mutex() override final;
-  std::map<std::string,
-           std::shared_ptr<runtime_information_if::pending_await_s>> *
-  get_pending_awaits() override final;
-  std::mutex *get_pending_awaits_mutex() override final;
-  std::chrono::seconds get_max_await_timeout() override final;
 };
 
 } // namespace runtime

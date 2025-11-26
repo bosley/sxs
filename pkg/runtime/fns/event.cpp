@@ -102,9 +102,9 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
   group.functions["sub"].parameters = {
       {"channel", slp::slp_type_e::SYMBOL, true},
       {"topic_id", slp::slp_type_e::INTEGER, false},
+      {"expected_type", slp::slp_type_e::SYMBOL, false},
       {"handler_body", slp::slp_type_e::BRACE_LIST, false}};
-  group.functions["sub"].handler_context_vars = {
-      {"$data", slp::slp_type_e::SOME}};
+  group.functions["sub"].handler_context_vars = {};
   group.functions["sub"]
       .function = [&runtime_info](
                       session_c &session, const slp::slp_object_c &args,
@@ -114,9 +114,9 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
     auto subscription_handlers_mutex =
         runtime_info.get_subscription_handlers_mutex();
     auto list = args.as_list();
-    if (list.size() < 4) {
+    if (list.size() < 5) {
       return SLP_ERROR(
-          "core/event/sub requires channel, topic-id and handler body "
+          "core/event/sub requires channel, topic-id, expected-type and handler body "
           "(use $CHANNEL_A through $CHANNEL_F)");
     }
 
@@ -131,7 +131,8 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
     auto channel_obj =
         runtime_info.eval_object(session, list.at(1), channel_context);
     auto topic_obj = list.at(2);
-    auto handler_obj = list.at(3);
+    auto type_obj = list.at(3);
+    auto handler_obj = list.at(4);
 
     if (channel_obj.type() != slp::slp_type_e::SYMBOL) {
       return SLP_ERROR("channel must be $CHANNEL_A through $CHANNEL_F");
@@ -160,6 +161,17 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
       return SLP_ERROR("topic-id must be integer");
     }
 
+    if (type_obj.type() != slp::slp_type_e::SYMBOL) {
+      return SLP_ERROR("expected_type must be a type symbol (:int, :str, etc.)");
+    }
+
+    std::string type_sym = type_obj.as_symbol();
+    auto expected_type_opt = type_symbol_to_enum(type_sym);
+    if (!expected_type_opt.has_value()) {
+      return SLP_ERROR("invalid type symbol (use :int, :real, :str, :some, :none, :error, :symbol, :list-p, :list-s, :list-c, :rune)");
+    }
+    slp::slp_type_e expected_type = expected_type_opt.value();
+
     if (handler_obj.type() != slp::slp_type_e::BRACE_LIST) {
       return SLP_ERROR("handler must be a brace list {}");
     }
@@ -170,6 +182,7 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
     handler.session = &session;
     handler.category = category;
     handler.topic_id = topic_id;
+    handler.expected_data_type = expected_type;
     handler.handler_data = handler_obj.get_data();
     handler.handler_symbols = handler_obj.get_symbols();
     handler.handler_root_offset = handler_obj.get_root_offset();
@@ -191,15 +204,37 @@ function_group_s get_event_functions(runtime_information_if &runtime_info) {
           for (const auto &h : *subscription_handlers) {
             if (h.session == &session && h.category == category &&
                 h.topic_id == topic_id) {
-              std::map<std::string, slp::slp_object_c> handler_context;
-
+              
               std::string event_data;
               try {
                 event_data = std::any_cast<std::string>(event.payload);
               } catch (...) {
                 event_data = "<event data>";
               }
-              handler_context["$data"] = SLP_STRING(event_data);
+              
+              auto parsed = slp::parse(event_data);
+              slp::slp_object_c data_obj;
+              
+              if (parsed.is_error()) {
+                if (h.expected_data_type == slp::slp_type_e::DQ_LIST) {
+                  data_obj = SLP_STRING(event_data);
+                } else {
+                  continue;
+                }
+              } else {
+                data_obj = parsed.take();
+                if (data_obj.type() != h.expected_data_type && 
+                    h.expected_data_type == slp::slp_type_e::DQ_LIST) {
+                  data_obj = SLP_STRING(event_data);
+                }
+              }
+              
+              if (data_obj.type() != h.expected_data_type) {
+                continue;
+              }
+              
+              std::map<std::string, slp::slp_object_c> handler_context;
+              handler_context["$data"] = std::move(data_obj);
 
               auto handler_obj = slp::slp_object_c::from_data(
                   h.handler_data, h.handler_symbols, h.handler_root_offset);

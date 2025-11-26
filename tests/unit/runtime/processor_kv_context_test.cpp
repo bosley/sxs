@@ -433,7 +433,7 @@ TEST_CASE("event handler with $key operations", "[unit][runtime][processor][cont
       create_test_session(event_system, data_ds, entity.get());
 
   runtime::execution_request_s setup_request{*session, R"([
-    (core/event/sub $CHANNEL_A 100 {
+    (core/event/sub $CHANNEL_A 100 :str {
       (core/kv/set user:1 "alice")
       (core/kv/set user:2 "bob")
       (core/kv/set user:3 "charlie")
@@ -528,14 +528,14 @@ TEST_CASE("complex integration: events + iterate + insist", "[unit][runtime][pro
       create_test_session(event_system, data_ds, entity.get());
 
   runtime::execution_request_s setup_request{*session, R"([
-    (core/event/sub $CHANNEL_B 200 {
+    (core/event/sub $CHANNEL_B 200 :str {
       (core/kv/set product:1 "laptop")
       (core/kv/set product:2 "mouse")
       (core/kv/set product:3 "keyboard")
       (core/kv/set product:4 "monitor")
       (core/kv/set product:5 "headset")
     })
-    (core/event/sub $CHANNEL_B 201 {
+    (core/event/sub $CHANNEL_B 201 :str {
       (core/kv/iterate product: 0 100 {
         (core/util/insist (core/kv/exists $key))
         (core/util/insist (core/kv/load $key))

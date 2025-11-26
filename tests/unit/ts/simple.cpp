@@ -18,9 +18,6 @@ public:
   logger_t get_logger() override { return nullptr; }
   std::vector<subscription_handler_s> *get_subscription_handlers() override { return nullptr; }
   std::mutex *get_subscription_handlers_mutex() override { return nullptr; }
-  std::map<std::string, std::shared_ptr<pending_await_s>> *get_pending_awaits() override { return nullptr; }
-  std::mutex *get_pending_awaits_mutex() override { return nullptr; }
-  std::chrono::seconds get_max_await_timeout() override { return std::chrono::seconds(0); }
 };
 
 std::map<std::string, function_signature_s>
@@ -410,7 +407,7 @@ TEST_CASE("type system - event sub with $data", "[ts]") {
   type_checker_c checker(signatures, dollar_vars);
 
   auto parse_result = slp::parse(R"(
-    (core/event/sub $CHANNEL_A 100 {
+    (core/event/sub $CHANNEL_A 100 :str {
       (core/util/log $data)
     })
   )");
@@ -436,33 +433,6 @@ TEST_CASE("type system - channel vars in pub", "[ts]") {
   type_checker_c checker(signatures, dollar_vars);
 
   auto parse_result = slp::parse("((core/event/pub $CHANNEL_A 100 \"msg\"))");
-  REQUIRE_FALSE(parse_result.is_error());
-
-  auto result = checker.check(parse_result.object());
-  REQUIRE(result.success);
-}
-
-TEST_CASE("type system - channel vars in await", "[ts]") {
-  mock_runtime_info_c mock;
-  auto groups = get_all_function_groups(mock);
-  auto signatures = build_type_signatures(groups);
-  auto dollar_vars = extract_dollar_vars_from_signatures(signatures);
-
-  function_signature_s insist_sig;
-  insist_sig.return_type = slp::slp_type_e::NONE;
-  insist_sig.can_return_error = false;
-  insist_sig.is_detainter = true;
-  insist_sig.parameters.push_back({slp::slp_type_e::PAREN_LIST, false});
-  signatures["core/insist"] = insist_sig;
-
-  type_checker_c checker(signatures, dollar_vars);
-
-  auto parse_result = slp::parse(R"(
-    (core/expr/await 
-      (core/util/log "body")
-      $CHANNEL_B 
-      100)
-  )");
   REQUIRE_FALSE(parse_result.is_error());
 
   auto result = checker.check(parse_result.object());

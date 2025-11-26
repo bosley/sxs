@@ -33,7 +33,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
 
         auto value_result =
             runtime_info.eval_object(session, value_obj, context);
-        std::string value = runtime_info.object_to_string(value_result);
+        std::string value = object_to_storage_string(value_result);
 
         auto *store = session.get_store();
         if (!store) {
@@ -105,7 +105,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
           if (context_it == context.end()) {
             return SLP_ERROR("context variable not available");
           }
-          key = runtime_info.object_to_string(context_it->second);
+          key = object_to_storage_string(context_it->second);
         } else {
           key = key_symbol;
         }
@@ -147,7 +147,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
           if (context_it == context.end()) {
             return SLP_ERROR("context variable not available");
           }
-          key = runtime_info.object_to_string(context_it->second);
+          key = object_to_storage_string(context_it->second);
         } else {
           key = key_symbol;
         }
@@ -184,7 +184,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
 
         auto value_result =
             runtime_info.eval_object(session, value_obj, context);
-        std::string value = runtime_info.object_to_string(value_result);
+        std::string value = object_to_storage_string(value_result);
 
         auto *store = session.get_store();
         if (!store) {
@@ -228,11 +228,11 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         auto expected_result =
             runtime_info.eval_object(session, expected_obj, context);
         std::string expected_value =
-            runtime_info.object_to_string(expected_result);
+            object_to_storage_string(expected_result);
 
         auto new_value_result =
             runtime_info.eval_object(session, new_value_obj, context);
-        std::string new_value = runtime_info.object_to_string(new_value_result);
+        std::string new_value = object_to_storage_string(new_value_result);
 
         auto *store = session.get_store();
         if (!store) {
@@ -376,7 +376,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
           return SLP_ERROR("$key not available in context");
         }
 
-        std::string key = runtime_info.object_to_string(context_it->second);
+        std::string key = object_to_storage_string(context_it->second);
 
         auto *store = session.get_store();
         if (!store) {

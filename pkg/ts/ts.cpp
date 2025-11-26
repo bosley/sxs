@@ -213,7 +213,44 @@ type_checker_c::infer_type(const slp::slp_object_c &obj,
       }
     }
 
-    if (!sig.handler_context_vars.empty()) {
+    if (function_name == "core/event/sub" && list.size() >= 5) {
+      auto type_param = list.at(3);
+      if (type_param.type() == slp::slp_type_e::SYMBOL) {
+        std::string type_sym = type_param.as_symbol();
+        
+        std::optional<slp::slp_type_e> data_type_opt;
+        if (type_sym == ":int") data_type_opt = slp::slp_type_e::INTEGER;
+        else if (type_sym == ":real") data_type_opt = slp::slp_type_e::REAL;
+        else if (type_sym == ":str") data_type_opt = slp::slp_type_e::DQ_LIST;
+        else if (type_sym == ":some") data_type_opt = slp::slp_type_e::SOME;
+        else if (type_sym == ":none") data_type_opt = slp::slp_type_e::NONE;
+        else if (type_sym == ":error") data_type_opt = slp::slp_type_e::ERROR;
+        else if (type_sym == ":symbol") data_type_opt = slp::slp_type_e::SYMBOL;
+        else if (type_sym == ":list-p") data_type_opt = slp::slp_type_e::PAREN_LIST;
+        else if (type_sym == ":list-s") data_type_opt = slp::slp_type_e::BRACKET_LIST;
+        else if (type_sym == ":list-c") data_type_opt = slp::slp_type_e::BRACE_LIST;
+        else if (type_sym == ":rune") data_type_opt = slp::slp_type_e::RUNE;
+        
+        if (data_type_opt.has_value()) {
+          auto saved_dollar_vars = global_dollar_vars_;
+          global_dollar_vars_["$data"] = data_type_opt.value();
+          
+          auto handler_body = list.at(4);
+          if (handler_body.type() == slp::slp_type_e::BRACE_LIST) {
+            auto handler_list = handler_body.as_list();
+            for (size_t i = 0; i < handler_list.size(); i++) {
+              auto result = infer_type(handler_list.at(i), symbol_map);
+              if (result.type == slp::slp_type_e::ERROR) {
+                global_dollar_vars_ = saved_dollar_vars;
+                return result;
+              }
+            }
+          }
+          
+          global_dollar_vars_ = saved_dollar_vars;
+        }
+      }
+    } else if (!sig.handler_context_vars.empty()) {
       for (size_t i = 0; i < sig.parameters.size(); i++) {
         if (sig.parameters[i].type == slp::slp_type_e::BRACE_LIST && 
             !sig.parameters[i].is_evaluated) {

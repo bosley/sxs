@@ -507,7 +507,7 @@ All `$`-prefixed symbols are **globally available** at the bytecode level:
 | `$CHANNEL_E` | SYMBOL | Event channel identifier |
 | `$CHANNEL_F` | SYMBOL | Event channel identifier |
 | `$key` | DQ_LIST | Injected in `core/kv/iterate` handlers |
-| `$data` | SOME | Injected in `core/event/sub` handlers (off-wire data) |
+| `$data` | (dynamic) | Injected in `core/event/sub` handlers, type matches subscription's `expected_type` parameter |
 
 **Key Properties:**
 - All $ variables are **pure types** (never tainted)
@@ -550,21 +550,30 @@ Functions with **handler context variables** have their BRACE_LIST handler bodie
 
 **Functions with handlers:**
 - `core/kv/iterate` - injects `$key` (DQ_LIST) into handler body
-- `core/event/sub` - injects `$data` (SOME) into handler body - off-wire data, dynamically typed
+- `core/event/sub` - injects `$data` with type determined by the `expected_type` parameter
 
 **Type checking process:**
-1. Function has non-empty `handler_context_vars` map
-2. Find the BRACE_LIST parameter (unevaluated)
-3. Recursively call `infer_type` on each expression inside the BRACE_LIST
-4. All handler expressions are validated against the same symbol_map
-5. $ variables (like `$key`, `$data`) resolve from `global_dollar_vars_`
+1. For `core/event/sub`, the type checker extracts the `expected_type` parameter (e.g., `:str`, `:int`) and temporarily adds `$data` with that type to `global_dollar_vars_` for handler body checking
+2. For other functions with `handler_context_vars`, the $ variables are resolved from the static `handler_context_vars` map
+3. Find the BRACE_LIST parameter (unevaluated)
+4. Recursively call `infer_type` on each expression inside the BRACE_LIST
+5. All handler expressions are validated against the same symbol_map
+6. $ variables resolve from `global_dollar_vars_`
 
 **Example:**
 ```
 (core/kv/iterate user: 0 10 {
-  (core/util/log $key)          ; $key is valid - globally available
-  (core/kv/load $key)            ; Returns pure SOME
-  (core/expr/eval (core/kv/load $key))  ; Evaluates the SOME
+  (core/util/log $key)
+  (core/kv/load $key)
+})
+
+(core/event/sub $CHANNEL_A 100 :str {
+  (core/util/log "String event:" $data)
+  (core/kv/set last_message $data)
+})
+
+(core/event/sub $CHANNEL_A 100 :int {
+  (core/kv/set counter $data)
 })
 ```
 

@@ -81,7 +81,7 @@ TEST_CASE("core/event/sub with handler body executes on event",
 
   SECTION("handler executes and can use $data binding") {
     runtime::execution_request_s sub_request{*session,
-                                             R"((core/event/sub $CHANNEL_A 300 {
+                                             R"((core/event/sub $CHANNEL_A 300 :str {
       (core/kv/set received_data $data)
       (core/util/log "Received event:" $data)
     }))",
@@ -118,7 +118,7 @@ TEST_CASE("core/event/sub with handler body executes on event",
 
   SECTION("handler with multiple statements executes in order") {
     runtime::execution_request_s sub_request{*session,
-                                             R"((core/event/sub $CHANNEL_A 300 {
+                                             R"((core/event/sub $CHANNEL_A 300 :str {
       (core/kv/set step1 "first")
       (core/kv/set step2 "second")
       (core/kv/set data_copy $data)

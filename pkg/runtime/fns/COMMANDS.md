@@ -132,7 +132,7 @@ Most commands return `true` (boolean symbol) on success or an ERROR type `@"mess
 
 **Handler-Injected Context Variables** (available only in specific handlers):
 - `$key` - injected in `core/kv/iterate` handler bodies, contains the current iteration key as DQ_LIST (string). Can be used with `core/kv/load`, `core/kv/del`, and `core/kv/exists`.
-- `$data` - injected in `core/event/sub` handler bodies, contains the event payload as DQ_LIST (string)
+- `$data` - injected in `core/event/sub` handler bodies, contains the event payload with type matching the subscription's `expected_type` parameter
 
 These context variables are provided by the runtime and do not require explicit loading from the KV store.
 
@@ -373,29 +373,38 @@ Publish an event to a specified channel and topic.
 
 ### core/event/sub
 
-Subscribe to events on a channel and topic, executing a handler for each event. Injects `$data` variable into handler context.
+Subscribe to events on a channel and topic with type filtering. Only events matching the expected type will trigger the handler.
 
-**Signature:** `(core/event/sub channel topic_id handler_body)`
+**Signature:** `(core/event/sub channel topic_id expected_type handler_body)`
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
 | channel | symbol | yes | Channel identifier: `$CHANNEL_A` through `$CHANNEL_F` |
 | topic_id | integer | no | Topic identifier (uint16) |
+| expected_type | symbol | no | Expected data type: `:int`, `:real`, `:str`, `:some`, `:none`, `:error`, `:symbol`, `:list-p`, `:list-s`, `:list-c`, `:rune` |
 | handler_body | brace-list | no | Handler code block (must be `{...}`) |
 
-**Context Variables:** `$data` (DQ_LIST type) is injected with event payload string for each event
+**Context Variables:** `$data` (type matches expected_type) is injected with event payload for each matching event
 
-**Implementation Note:** The handler_context_vars declares `$data` as SOME type, but the runtime actually injects it as DQ_LIST (string) using `SLP_STRING(event_data)`.
+**Type Filtering:** The runtime checks the published event data type against `expected_type`. Only events with matching types invoke the handler. This enables type-safe event handling and allows multiple handlers on the same topic with different type expectations.
 
 **Returns:** SYMBOL `true` on successful subscription, ERROR on failure
 
 **Example:**
 
 ```
-(core/event/sub $CHANNEL_A 100 {
-  (core/util/log "Received:" $data)
-  (core/kv/set last_event $data)
+(core/event/sub $CHANNEL_A 100 :str {
+  (core/util/log "String event:" $data)
+  (core/kv/set last_message $data)
 })
+
+(core/event/sub $CHANNEL_A 100 :int {
+  (core/util/log "Integer event:" $data)
+  (core/kv/set counter $data)
+})
+
+(core/event/pub $CHANNEL_A 100 "hello")
+(core/event/pub $CHANNEL_A 100 42)
 ```
 
 ---
@@ -417,31 +426,6 @@ Evaluate SLP script text dynamically.
 ```
 (core/expr/eval "42")
 (core/expr/eval "(core/kv/get mykey)")
-```
-
----
-
-### core/expr/await
-
-Execute a body and wait for a response on a specified channel and topic (blocking with timeout).
-
-**Signature:** `(core/expr/await body response_channel response_topic)`
-
-| Parameter | Type | Evaluated | Description |
-|-----------|------|-----------|-------------|
-| body | any | yes | Expression to execute before waiting |
-| response_channel | symbol | yes | Channel to await response: `$CHANNEL_A` through `$CHANNEL_F` |
-| response_topic | integer | no | Topic identifier to await response on |
-
-**Returns:** DQ_LIST (string containing the event data received), or ERROR on timeout/failure
-
-**Example:**
-
-```
-(core/expr/await
-  (core/event/pub $CHANNEL_A 1 "request")
-  $CHANNEL_B
-  100)
 ```
 
 ---

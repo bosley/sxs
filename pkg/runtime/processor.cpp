@@ -4,8 +4,6 @@
 #include <chrono>
 #include <spdlog/spdlog.h>
 
-constexpr std::chrono::seconds MAX_AWAIT_TIMEOUT = std::chrono::seconds(5);
-
 namespace runtime {
 
 std::string
@@ -18,7 +16,18 @@ processor_c::slp_object_to_string(const slp::slp_object_c &obj) const {
   } else if (type == slp::slp_type_e::SYMBOL) {
     return obj.as_symbol();
   } else if (type == slp::slp_type_e::DQ_LIST) {
-    return obj.as_string().to_string();
+    std::string content = obj.as_string().to_string();
+    std::string escaped;
+    escaped.reserve(content.size() + 2);
+    escaped += '"';
+    for (char c : content) {
+      if (c == '"' || c == '\\') {
+        escaped += '\\';
+      }
+      escaped += c;
+    }
+    escaped += '"';
+    return escaped;
   } else if (type == slp::slp_type_e::ERROR) {
     return obj.as_string().to_string();
   }
@@ -253,20 +262,6 @@ processor_c::get_subscription_handlers() {
 
 std::mutex *processor_c::get_subscription_handlers_mutex() {
   return &subscription_handlers_mutex_;
-}
-
-std::map<std::string,
-         std::shared_ptr<runtime_information_if::pending_await_s>> *
-processor_c::get_pending_awaits() {
-  return &pending_awaits_;
-}
-
-std::mutex *processor_c::get_pending_awaits_mutex() {
-  return &pending_awaits_mutex_;
-}
-
-std::chrono::seconds processor_c::get_max_await_timeout() {
-  return MAX_AWAIT_TIMEOUT;
 }
 
 } // namespace runtime

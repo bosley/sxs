@@ -87,17 +87,17 @@ TEST_CASE("multiple sessions subscribe to same topic",
 
   runtime::execution_request_s req1{
       *session1,
-      R"((core/event/sub $CHANNEL_A 400 {(core/kv/set session1_data $data)}))",
+      R"((core/event/sub $CHANNEL_A 400 :str {(core/kv/set session1_data $data)}))",
       "req1"};
 
   runtime::execution_request_s req2{
       *session2,
-      R"((core/event/sub $CHANNEL_A 400 {(core/kv/set session2_data $data)}))",
+      R"((core/event/sub $CHANNEL_A 400 :str {(core/kv/set session2_data $data)}))",
       "req2"};
 
   runtime::execution_request_s req3{
       *session3,
-      R"((core/event/sub $CHANNEL_A 400 {(core/kv/set session3_data $data)}))",
+      R"((core/event/sub $CHANNEL_A 400 :str {(core/kv/set session3_data $data)}))",
       "req3"};
 
   runtime::events::event_s sub_event1;
@@ -183,9 +183,9 @@ TEST_CASE("session subscribes to multiple topics",
       create_test_session("session1", event_system, data_ds, entity.get());
 
   runtime::execution_request_s req{*session, R"([
-    (core/event/sub $CHANNEL_A 401 {(core/kv/set topic401 $data)})
-    (core/event/sub $CHANNEL_A 402 {(core/kv/set topic402 $data)})
-    (core/event/sub $CHANNEL_A 403 {(core/kv/set topic403 $data)})
+    (core/event/sub $CHANNEL_A 401 :str {(core/kv/set topic401 $data)})
+    (core/event/sub $CHANNEL_A 402 :str {(core/kv/set topic402 $data)})
+    (core/event/sub $CHANNEL_A 403 :str {(core/kv/set topic403 $data)})
   ])",
                                    "multi_sub"};
 
@@ -271,7 +271,7 @@ TEST_CASE("rapid fire event delivery to handler",
   runtime::session_c *session =
       create_test_session("session1", event_system, data_ds, entity.get());
 
-  runtime::execution_request_s req{*session, R"((core/event/sub $CHANNEL_A 500 {
+  runtime::execution_request_s req{*session, R"((core/event/sub $CHANNEL_A 500 :str {
     (core/kv/set last_event $data)
   }))",
                                    "rapid_sub"};
@@ -343,7 +343,7 @@ TEST_CASE("handler with parse error in body",
   runtime::session_c *session =
       create_test_session("session1", event_system, data_ds, entity.get());
 
-  runtime::execution_request_s req{*session, R"((core/event/sub $CHANNEL_A 600 {
+  runtime::execution_request_s req{*session, R"((core/event/sub $CHANNEL_A 600 :str {
     (unknown/function arg1 arg2)
     (core/kv/set should_not_reach "here")
   }))",
@@ -415,7 +415,7 @@ TEST_CASE("handler with nested function calls",
 
   session->get_store()->set("base_value", "42");
 
-  runtime::execution_request_s req{*session, R"((core/event/sub $CHANNEL_A 700 {
+  runtime::execution_request_s req{*session, R"((core/event/sub $CHANNEL_A 700 :str {
     (core/kv/set event_copy $data)
     (core/kv/set retrieved (core/kv/get base_value))
     (core/kv/set exists_check (core/kv/exists base_value))
@@ -495,11 +495,11 @@ TEST_CASE("handler publishes event creating chain",
       create_test_session("session1", event_system, data_ds, entity.get());
 
   runtime::execution_request_s req{*session, R"([
-    (core/event/sub $CHANNEL_A 800 {
+    (core/event/sub $CHANNEL_A 800 :str {
       (core/kv/set step1 $data)
       (core/event/pub $CHANNEL_A 801 "chained")
     })
-    (core/event/sub $CHANNEL_A 801 {
+    (core/event/sub $CHANNEL_A 801 :str {
       (core/kv/set step2 $data)
     })
   ])",
@@ -572,7 +572,7 @@ TEST_CASE("empty handler body", "[unit][runtime][processor][stress]") {
       create_test_session("session1", event_system, data_ds, entity.get());
 
   runtime::execution_request_s req{
-      *session, R"((core/event/sub $CHANNEL_A 900 {}))", "empty_sub"};
+      *session, R"((core/event/sub $CHANNEL_A 900 :str {}))", "empty_sub"};
 
   runtime::events::event_s sub_event;
   sub_event.category =
