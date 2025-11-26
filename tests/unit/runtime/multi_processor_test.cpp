@@ -302,8 +302,8 @@ TEST_CASE("multi processor with kv operations on different scopes",
   for (size_t i = 0; i < num_processors; i++) {
     std::thread([&, i]() {
       runtime::execution_request_s request{*sessions[i],
-                                           "[(core/kv/set key \"value_" +
-                                               std::to_string(i) + "\")]",
+                                           "{(core/kv/set key \"value_" +
+                                               std::to_string(i) + "\")}",
                                            "kv_req_" + std::to_string(i)};
 
       runtime::events::event_s event;

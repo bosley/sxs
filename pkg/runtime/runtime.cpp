@@ -1,9 +1,13 @@
 #include "runtime/runtime.hpp"
+#include "runtime/entity/entity.hpp"
 #include "runtime/events/events.hpp"
 #include "runtime/processor.hpp"
 #include "runtime/session/session.hpp"
 #include "runtime/system/system.hpp"
+#include <chrono>
+#include <record/record.hpp>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <thread>
 
 namespace runtime {
 
@@ -141,6 +145,70 @@ bool runtime_c::shutdown() {
 bool runtime_c::is_running() const { return running_; }
 
 logger_t runtime_c::get_logger() const { return logger_; }
+
+bool runtime_c::execute_script(const std::string &entity_id,
+                               const std::string &scope,
+                               const std::string &script_text) {
+  if (!running_) {
+    logger_->error("Runtime not running, cannot execute script");
+    return false;
+  }
+
+  logger_->info("Creating session for entity '{}' with scope '{}'", entity_id,
+                scope);
+  auto session = session_subsystem_->create_session(entity_id, scope);
+  if (!session) {
+    logger_->error("Failed to create session for entity: {}", entity_id);
+    return false;
+  }
+
+  logger_->info("Executing script for session: {}", session->get_id());
+
+  execution_request_s request{*session, script_text, "script_exec"};
+
+  events::event_s event;
+  event.category = events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+  event.topic_identifier = 0;
+  event.payload = request;
+
+  auto producer =
+      event_system_->get_event_producer_for_category(event.category);
+  if (!producer) {
+    logger_->error("Failed to get event producer for RUNTIME_EXECUTION_REQUEST");
+    return false;
+  }
+
+  auto writer = producer->get_topic_writer_for_topic(event.topic_identifier);
+  if (!writer) {
+    logger_->error("Failed to get topic writer for topic: {}",
+                   event.topic_identifier);
+    return false;
+  }
+
+  writer->write_event(event);
+
+  logger_->info("Script execution event published, waiting for completion...");
+
+  while (true) {
+    bool queue_empty = event_system_->is_queue_empty();
+    bool all_idle = true;
+    for (const auto &processor : processors_) {
+      if (processor->is_busy()) {
+        all_idle = false;
+        break;
+      }
+    }
+
+    if (queue_empty && all_idle) {
+      logger_->info("Script execution complete");
+      break;
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+
+  return true;
+}
 
 runtime_c::specific_accessor_c::specific_accessor_c(
     runtime_subsystem_if &subsystem)

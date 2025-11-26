@@ -308,6 +308,13 @@ entity_c *session_subsystem_c::get_entity(const std::string &entity_id) {
   }
 
   auto entity = std::shared_ptr<entity_c>(std::move(entity_opt.value()));
+  
+  entity->grant_permission("default", permission::READ_WRITE);
+  for (std::uint16_t topic = 0; topic <= 1023; ++topic) {
+    entity->grant_topic_permission(topic, topic_permission::PUBSUB);
+  }
+  entity->save();
+  
   entity_cache_[entity_id] = entity;
 
   return entity.get();

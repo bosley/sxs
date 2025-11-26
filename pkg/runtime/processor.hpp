@@ -3,6 +3,7 @@
 #include "runtime/events/events.hpp"
 #include "runtime/runtime.hpp"
 #include "runtime/session/session.hpp"
+#include <atomic>
 #include <functional>
 #include <map>
 #include <mutex>
@@ -83,6 +84,8 @@ public:
 
   void register_function(const std::string &name, function_handler_t handler);
 
+  bool is_busy() const;
+
 private:
   logger_t logger_;
   events::event_system_c &event_system_;
@@ -90,6 +93,7 @@ private:
   std::vector<subscription_handler_s> subscription_handlers_;
   std::mutex subscription_handlers_mutex_;
   eval_context_s global_context_;
+  std::atomic<bool> busy_;
 
   void register_builtin_functions();
 

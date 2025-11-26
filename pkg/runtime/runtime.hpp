@@ -17,6 +17,7 @@ class runtime_accessor_if;
 class processor_c;
 class system_c;
 class session_subsystem_c;
+class entity_c;
 using runtime_t = std::shared_ptr<runtime_c>;
 using runtime_subsystem_t = std::unique_ptr<runtime_subsystem_if>;
 using runtime_accessor_t = std::shared_ptr<runtime_accessor_if>;
@@ -62,6 +63,9 @@ public:
   bool is_running() const;
 
   logger_t get_logger() const;
+
+  bool execute_script(const std::string &entity_id, const std::string &scope,
+                      const std::string &script_text);
 
 private:
   bool initialize_event_system();

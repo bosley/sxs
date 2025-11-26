@@ -190,11 +190,11 @@ TEST_CASE("session subscribes to multiple topics",
   runtime::session_c *session =
       create_test_session("session1", event_system, data_ds, entity.get());
 
-  runtime::execution_request_s req{*session, R"([
+  runtime::execution_request_s req{*session, R"({
     (core/event/sub $CHANNEL_A 401 :str {(core/kv/set topic401 $data)})
     (core/event/sub $CHANNEL_A 402 :str {(core/kv/set topic402 $data)})
     (core/event/sub $CHANNEL_A 403 :str {(core/kv/set topic403 $data)})
-  ])",
+  })",
                                    "multi_sub"};
 
   runtime::events::event_s sub_event;
@@ -502,7 +502,7 @@ TEST_CASE("handler publishes event creating chain",
   runtime::session_c *session =
       create_test_session("session1", event_system, data_ds, entity.get());
 
-  runtime::execution_request_s req{*session, R"([
+  runtime::execution_request_s req{*session, R"({
     (core/event/sub $CHANNEL_A 800 :str {
       (core/kv/set step1 $data)
       (core/event/pub $CHANNEL_A 801 "chained")
@@ -510,7 +510,7 @@ TEST_CASE("handler publishes event creating chain",
     (core/event/sub $CHANNEL_A 801 :str {
       (core/kv/set step2 $data)
     })
-  ])",
+  })",
                                    "chain_sub"};
 
   runtime::events::event_s sub_event;

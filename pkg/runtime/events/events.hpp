@@ -70,6 +70,7 @@ public:
   event_producer_t get_event_producer_for_category(event_category_e category);
   void register_consumer(std::uint16_t topic_identifier,
                          event_consumer_t consumer);
+  bool is_queue_empty() const;
 
 private:
   class specific_topic_writer_c : public topic_writer_if {
@@ -114,7 +115,7 @@ private:
   std::vector<std::thread> worker_threads_;
   std::queue<event_s> event_queue_;
   std::map<std::uint16_t, std::vector<event_consumer_t>> topic_consumers_;
-  std::mutex mutex_;
+  mutable std::mutex mutex_;
   std::condition_variable queue_not_empty_;
   std::condition_variable queue_not_full_;
   bool shutdown_requested_;

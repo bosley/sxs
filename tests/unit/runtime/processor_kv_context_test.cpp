@@ -432,7 +432,7 @@ TEST_CASE("event handler with $key operations", "[unit][runtime][processor][cont
   runtime::session_c *session =
       create_test_session(event_system, data_ds, entity.get());
 
-  runtime::execution_request_s setup_request{*session, R"([
+  runtime::execution_request_s setup_request{*session, R"({
     (core/event/sub $CHANNEL_A 100 :str {
       (core/kv/set user:1 "alice")
       (core/kv/set user:2 "bob")
@@ -445,7 +445,7 @@ TEST_CASE("event handler with $key operations", "[unit][runtime][processor][cont
       (core/kv/set user:9 "iris")
       (core/kv/set user:10 "jack")
     })
-  ])", "setup"};
+  })", "setup"};
 
   runtime::events::event_s setup_event;
   setup_event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
@@ -527,7 +527,7 @@ TEST_CASE("complex integration: events + iterate + insist", "[unit][runtime][pro
   runtime::session_c *session =
       create_test_session(event_system, data_ds, entity.get());
 
-  runtime::execution_request_s setup_request{*session, R"([
+  runtime::execution_request_s setup_request{*session, R"({
     (core/event/sub $CHANNEL_B 200 :str {
       (core/kv/set product:1 "laptop")
       (core/kv/set product:2 "mouse")
@@ -543,7 +543,7 @@ TEST_CASE("complex integration: events + iterate + insist", "[unit][runtime][pro
       })
       (core/kv/set cleanup_done "true")
     })
-  ])", "setup"};
+  })", "setup"};
 
   runtime::events::event_s setup_event;
   setup_event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;
@@ -801,13 +801,13 @@ TEST_CASE("context variable vs literal key behavior", "[unit][runtime][processor
   session->get_store()->set("test:x", "dynamic_value");
   session->get_store()->set("$key", "literal_dollar_key_value");
 
-  runtime::execution_request_s request{*session, R"([
+  runtime::execution_request_s request{*session, R"({
     (core/kv/iterate test: 0 100 {
       (core/kv/load $key)
       (core/kv/set iter_ran "true")
     })
     (core/kv/set from_literal (core/kv/get $key))
-  ])", "req1"};
+  })", "req1"};
 
   runtime::events::event_s event;
   event.category = runtime::events::event_category_e::RUNTIME_EXECUTION_REQUEST;

@@ -631,9 +631,9 @@ TEST_CASE("processor bracket list execution", "[unit][runtime][processor]") {
   SECTION("bracket list executes multiple statements") {
     runtime::execution_request_s request{
         *session,
-        "[(core/kv/set key1 \"value1\") (core/kv/set key2 "
+        "{(core/kv/set key1 \"value1\") (core/kv/set key2 "
         "\"value2\") (core/kv/set key3 "
-        "\"value3\")]",
+        "\"value3\")}",
         "req1"};
 
     runtime::events::event_s event;
@@ -687,13 +687,13 @@ TEST_CASE("processor complex script execution", "[unit][runtime][processor]") {
       create_test_session(event_system, data_ds, entity.get());
 
   SECTION("complex script with multiple operations") {
-    runtime::execution_request_s request{*session, R"([
+    runtime::execution_request_s request{*session, R"({
       (core/kv/set user_name "Alice")
       (core/kv/set user_age 30)
       (core/util/log "User created:" (core/kv/get user_name))
       (core/event/sub $CHANNEL_A 100)
       (core/event/pub $CHANNEL_A 100 "User Alice logged in")
-    ])",
+    })",
                                          "req1"};
 
     runtime::events::event_s event;
@@ -862,11 +862,11 @@ TEST_CASE("processor core/expr/eval with kv operations",
     runtime::session_c *session =
         create_test_session(event_system, data_ds, entity.get());
 
-    runtime::execution_request_s request{*session, R"===([
+    runtime::execution_request_s request{*session, R"===({
       (core/kv/set script "(core/kv/set computed 999)")
       (core/expr/eval (core/kv/get script))
       (core/kv/get computed)
-    ])===",
+    })===",
                                          "req1"};
 
     runtime::events::event_s event;

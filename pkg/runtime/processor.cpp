@@ -35,13 +35,15 @@ processor_c::slp_object_to_string(const slp::slp_object_c &obj) const {
 }
 
 processor_c::processor_c(logger_t logger, events::event_system_c &event_system)
-    : logger_(logger), event_system_(event_system) {
+    : logger_(logger), event_system_(event_system), busy_(false) {
   logger_->info("[processor_c] Initializing processor");
 
   register_builtin_functions();
   logger_->info("[processor_c] Registered {} builtin functions",
                 function_registry_.size());
 }
+
+bool processor_c::is_busy() const { return busy_.load(); }
 
 void processor_c::consume_event(const events::event_s &event) {
   if (event.category != events::event_category_e::RUNTIME_EXECUTION_REQUEST) {
@@ -52,6 +54,8 @@ void processor_c::consume_event(const events::event_s &event) {
 
   logger_->debug("[processor_c] Received execution request event for topic {}",
                  event.topic_identifier);
+
+  busy_.store(true);
 
   try {
     const auto &request = std::any_cast<execution_request_s>(event.payload);
@@ -70,6 +74,8 @@ void processor_c::consume_event(const events::event_s &event) {
     logger_->error("[processor_c] Exception during event processing: {}",
                    e.what());
   }
+
+  busy_.store(false);
 }
 
 execution_result_s processor_c::execute_script(session_c &session,
@@ -161,7 +167,7 @@ processor_c::eval_object_with_context(session_c &session,
     return slp::parse("0").take();
   }
 
-  if (type == slp::slp_type_e::BRACKET_LIST) {
+  if (type == slp::slp_type_e::BRACE_LIST) {
     auto list = obj.as_list();
     slp::slp_object_c last_result = slp::parse("0").take();
     for (size_t i = 0; i < list.size(); i++) {
