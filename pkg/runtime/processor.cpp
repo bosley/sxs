@@ -1,38 +1,21 @@
 #include "runtime/processor.hpp"
+#include "runtime/encoder.hpp"
 #include "runtime/fns/fns.hpp"
 #include <any>
-#include <chrono>
 #include <spdlog/spdlog.h>
-
-constexpr std::chrono::seconds MAX_AWAIT_TIMEOUT = std::chrono::seconds(5);
 
 namespace runtime {
 
-std::string
-processor_c::slp_object_to_string(const slp::slp_object_c &obj) const {
-  auto type = obj.type();
-  if (type == slp::slp_type_e::INTEGER) {
-    return std::to_string(obj.as_int());
-  } else if (type == slp::slp_type_e::REAL) {
-    return std::to_string(obj.as_real());
-  } else if (type == slp::slp_type_e::SYMBOL) {
-    return obj.as_symbol();
-  } else if (type == slp::slp_type_e::DQ_LIST) {
-    return obj.as_string().to_string();
-  } else if (type == slp::slp_type_e::ERROR) {
-    return obj.as_string().to_string();
-  }
-  return "nil";
-}
-
 processor_c::processor_c(logger_t logger, events::event_system_c &event_system)
-    : logger_(logger), event_system_(event_system) {
+    : logger_(logger), event_system_(event_system), busy_(false) {
   logger_->info("[processor_c] Initializing processor");
 
   register_builtin_functions();
   logger_->info("[processor_c] Registered {} builtin functions",
                 function_registry_.size());
 }
+
+bool processor_c::is_busy() const { return busy_.load(); }
 
 void processor_c::consume_event(const events::event_s &event) {
   if (event.category != events::event_category_e::RUNTIME_EXECUTION_REQUEST) {
@@ -43,6 +26,8 @@ void processor_c::consume_event(const events::event_s &event) {
 
   logger_->debug("[processor_c] Received execution request event for topic {}",
                  event.topic_identifier);
+
+  busy_.store(true);
 
   try {
     const auto &request = std::any_cast<execution_request_s>(event.payload);
@@ -61,6 +46,8 @@ void processor_c::consume_event(const events::event_s &event) {
     logger_->error("[processor_c] Exception during event processing: {}",
                    e.what());
   }
+
+  busy_.store(false);
 }
 
 execution_result_s processor_c::execute_script(session_c &session,
@@ -86,7 +73,7 @@ execution_result_s processor_c::execute_script(session_c &session,
       logger_->error("[processor_c] Script execution returned error: {}",
                      result.error_message);
     } else {
-      result.result_data = slp_object_to_string(eval_result);
+      result.result_data = runtime::slp_object_to_string(eval_result);
       result.success = true;
       logger_->debug("[processor_c] Script executed successfully");
     }
@@ -152,7 +139,7 @@ processor_c::eval_object_with_context(session_c &session,
     return slp::parse("0").take();
   }
 
-  if (type == slp::slp_type_e::BRACKET_LIST) {
+  if (type == slp::slp_type_e::BRACE_LIST) {
     auto list = obj.as_list();
     slp::slp_object_c last_result = slp::parse("0").take();
     for (size_t i = 0; i < list.size(); i++) {
@@ -162,6 +149,26 @@ processor_c::eval_object_with_context(session_c &session,
       }
     }
     return last_result;
+  }
+
+  if (type == slp::slp_type_e::BRACKET_LIST) {
+    /*
+        This is where we will call a function to take the [] list and turn it
+       into a function!
+
+        We neeed to presere the parameter names so we can inject the $vars later
+        as seen in VISION_TODO.md
+
+        We should be able to use the SOME object but it might behoove us to make
+       an "aberrant" enum type for a SLP (in slp) that slp doesnt itself
+       generate so we can add another abstraction "into" the object to switch on
+       aberrant so we can make more than one special type
+
+        aberrant -> (fn specialType1 specialType2) etc
+
+        if we can get by without it and without making a hack hat would be nice
+       though
+    */
   }
 
   return slp::parse("0").take();
@@ -179,6 +186,9 @@ slp::slp_object_c processor_c::call_function(session_c &session,
 
   try {
     return it->second(session, args, context);
+  } catch (const insist_failure_exception &e) {
+    // this is required for the guarantee of detainting an object
+    throw;
   } catch (const std::exception &e) {
     logger_->error("[processor_c] Function {} threw exception: {}", name,
                    e.what());
@@ -202,9 +212,9 @@ void processor_c::register_builtin_functions() {
   auto groups = fns::get_all_function_groups(*this);
 
   for (const auto &group : groups) {
-    for (const auto &[name, handler] : group.functions) {
+    for (const auto &[name, function_info] : group.functions) {
       std::string qualified_name = std::string(group.group_name) + "/" + name;
-      register_function(qualified_name, handler);
+      register_function(qualified_name, function_info.function);
     }
   }
 }
@@ -218,7 +228,7 @@ slp::slp_object_c processor_c::eval_object(session_c &session,
 }
 
 std::string processor_c::object_to_string(const slp::slp_object_c &obj) {
-  return slp_object_to_string(obj);
+  return runtime::slp_object_to_string(obj);
 }
 
 std::vector<runtime_information_if::subscription_handler_s> *
@@ -232,18 +242,28 @@ std::mutex *processor_c::get_subscription_handlers_mutex() {
   return &subscription_handlers_mutex_;
 }
 
-std::map<std::string,
-         std::shared_ptr<runtime_information_if::pending_await_s>> *
-processor_c::get_pending_awaits() {
-  return &pending_awaits_;
-}
+publish_result_e processor_c::publish_to_processor(
+    session_c &session, std::uint16_t processor_id,
+    const std::string &script_text, const std::string &request_id) {
+  execution_request_s request{session, script_text, request_id};
 
-std::mutex *processor_c::get_pending_awaits_mutex() {
-  return &pending_awaits_mutex_;
-}
+  events::event_s event;
+  event.category = events::event_category_e::RUNTIME_EXECUTION_REQUEST;
+  event.topic_identifier = processor_id;
+  event.payload = request;
 
-std::chrono::seconds processor_c::get_max_await_timeout() {
-  return MAX_AWAIT_TIMEOUT;
+  auto producer = event_system_.get_event_producer_for_category(event.category);
+  if (!producer) {
+    return publish_result_e::NO_PRODUCER;
+  }
+
+  auto writer = producer->get_topic_writer_for_topic(event.topic_identifier);
+  if (!writer) {
+    return publish_result_e::NO_TOPIC_WRITER;
+  }
+
+  writer->write_event(event);
+  return publish_result_e::OK;
 }
 
 } // namespace runtime

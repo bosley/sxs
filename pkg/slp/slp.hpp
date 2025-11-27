@@ -53,6 +53,8 @@ enum class slp_type_e {
   REAL = 10,
   BRACKET_LIST = 11,
   ERROR = 12,
+  DATUM = 13,
+  ABERRANT = 14,
 };
 
 /*
@@ -133,6 +135,7 @@ enum class slp_parse_error_e {
   UNCLOSED_BRACE_LIST = 3,
   UNCLOSED_DQ_LIST = 4,
   MALFORMED_NUMERIC_LITERAL = 5,
+  ERROR_OPERATOR_REQUIRES_OBJECT = 6,
 };
 
 struct slp_parse_error_s {

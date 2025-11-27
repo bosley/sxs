@@ -1,0 +1,117 @@
+; Dynamic KV Loading Demonstration
+; This script demonstrates core/kv/load for dynamic key access in iterate handlers
+;
+; Key concepts:
+; - load vs get: load works with $key context variable, get requires static symbols
+; - load returns SOME (quoted), get returns DQ_LIST (tainted string)
+; - load is only available inside iterate handlers where $key is injected
+; - Use eval to evaluate loaded SOME values if needed
+; - Common pattern: iterate + load + process for batch operations
+
+{
+  (core/util/log "=== Dynamic KV Loading Demo ===")
+  (core/util/log "")
+  
+  ; Setup test data
+  (core/util/log "Setup: Creating test data")
+  (core/kv/set data:value1 "100")
+  (core/kv/set data:value2 "200")
+  (core/kv/set data:value3 "300")
+  (core/kv/set data:text1 "hello")
+  (core/kv/set data:text2 "world")
+  (core/util/log "Created 5 data: keys")
+  (core/util/log "")
+  
+  ; PART 1: Understanding load vs get
+  
+  (core/util/log "--- Part 1: load vs get ---")
+  (core/util/log "")
+  
+  (core/util/log "Using get (static key, returns DQ_LIST):")
+  (core/util/log "  (core/kv/get data:value1) =>" (core/kv/get data:value1))
+  (core/util/log "  Type: DQ_LIST (tainted string)")
+  (core/util/log "")
+  
+  (core/util/log "Using load (dynamic $key, returns SOME):")
+  (core/kv/iterate data:value1 0 1 {
+    (core/util/log "  Inside iterate handler, $key =" $key)
+    (core/util/log "  (core/kv/load $key) => result is quoted SOME type")
+    (core/util/log "  load requires $key context variable from iterate")
+  })
+  (core/util/log "")
+  
+  ; PART 2: Basic load pattern with iterate
+  
+  (core/util/log "--- Part 2: Iterate + Load Pattern ---")
+  (core/util/log "")
+  
+  (core/util/log "Processing numeric values:")
+  (core/kv/iterate data:value 0 10 {
+    (core/util/log "  Key:" $key)
+    (core/util/log "  Loaded value (SOME type):" (core/kv/load $key))
+  })
+  (core/util/log "")
+  
+  (core/util/log "Processing text values:")
+  (core/kv/iterate data:text 0 10 {
+    (core/util/log "  Key:" $key)
+    (core/util/log "  Loaded value:" (core/kv/load $key))
+  })
+  (core/util/log "")
+  
+  ; PART 3: Evaluating loaded values
+  ; load returns SOME (quoted), use eval to get the actual value
+  
+  (core/util/log "--- Part 3: Evaluating Loaded Values ---")
+  (core/util/log "")
+  
+  (core/util/log "Pattern: load + eval to process values")
+  (core/kv/iterate data:value 0 10 {
+    (core/util/log "  Processing key:" $key)
+    (core/util/log "    Raw loaded (SOME):" (core/kv/load $key))
+    (core/util/log "    After eval:" (core/expr/eval (core/kv/load $key)))
+    (core/util/log "")
+  })
+  (core/util/log "")
+  
+  ; PART 4: Practical use case - conditional processing
+  
+  (core/util/log "--- Part 4: Conditional Processing ---")
+  (core/util/log "")
+  
+  (core/util/log "Setup: Store different data types")
+  (core/kv/set item:active1 "true")
+  (core/kv/set item:active2 "false")
+  (core/kv/set item:active3 "true")
+  (core/util/log "")
+  
+  (core/util/log "Processing items based on loaded values:")
+  (core/kv/iterate item:active 0 10 {
+    (core/util/log "  Checking key:" $key "exists:" (core/kv/exists $key))
+    (core/util/log "    Loaded value:" (core/kv/load $key))
+  })
+  (core/util/log "")
+  
+  ; PART 5: When to use load vs get
+  
+  (core/util/log "--- Part 5: Choosing load vs get ---")
+  (core/util/log "")
+  (core/util/log "Use core/kv/get when:")
+  (core/util/log "  - You know the exact key name at code-write time")
+  (core/util/log "  - Example: (core/kv/get username)")
+  (core/util/log "")
+  (core/util/log "Use core/kv/load when:")
+  (core/util/log "  - Inside iterate handlers with dynamic $key")
+  (core/util/log "  - Processing multiple keys in a loop")
+  (core/util/log "  - Example: (core/kv/iterate prefix: 0 10 { (core/kv/load $key) })")
+  (core/util/log "")
+  (core/util/log "Type differences:")
+  (core/util/log "  - get returns DQ_LIST (tainted string)")
+  (core/util/log "  - load returns SOME (quoted value)")
+  (core/util/log "  - Use insist or eval to detaint/evaluate as needed")
+  (core/util/log "")
+  
+  (core/util/log "=== Demo Complete ===")
+}
+
+

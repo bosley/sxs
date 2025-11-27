@@ -17,6 +17,8 @@ class runtime_accessor_if;
 class processor_c;
 class system_c;
 class session_subsystem_c;
+class entity_c;
+class session_c;
 using runtime_t = std::shared_ptr<runtime_c>;
 using runtime_subsystem_t = std::unique_ptr<runtime_subsystem_if>;
 using runtime_accessor_t = std::shared_ptr<runtime_accessor_if>;
@@ -62,6 +64,36 @@ public:
   bool is_running() const;
 
   logger_t get_logger() const;
+
+  class script_executor_c {
+  public:
+    script_executor_c(const script_executor_c &) = delete;
+    script_executor_c(script_executor_c &&) = delete;
+    script_executor_c &operator=(const script_executor_c &) = delete;
+    script_executor_c &operator=(script_executor_c &&) = delete;
+
+    script_executor_c(runtime_c &runtime, const std::string &entity_id,
+                      const std::string &scope);
+    ~script_executor_c();
+
+    bool execute(const std::string &script_text);
+    std::string get_last_result() const;
+    bool has_error() const;
+    std::string get_last_error() const;
+    bool require_topic_range(std::uint16_t start, std::uint16_t end);
+
+  private:
+    runtime_c &runtime_;
+    std::shared_ptr<session_c> session_;
+    std::string entity_id_;
+    std::string last_result_;
+    std::string last_error_;
+    bool has_error_;
+  };
+
+  std::unique_ptr<script_executor_c>
+  create_script_executor(const std::string &entity_id,
+                         const std::string &scope);
 
 private:
   bool initialize_event_system();

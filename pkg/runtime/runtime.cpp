@@ -3,6 +3,7 @@
 #include "runtime/processor.hpp"
 #include "runtime/session/session.hpp"
 #include "runtime/system/system.hpp"
+#include <memory>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 namespace runtime {
@@ -125,14 +126,14 @@ bool runtime_c::shutdown() {
 
   logger_->info("Shutting down runtime subsystems...");
 
+  logger_->info("Shutting down subsystem: {}", event_system_->get_name());
+  event_system_->shutdown();
+
   logger_->info("Shutting down subsystem: {}", session_subsystem_->get_name());
   session_subsystem_->shutdown();
 
   logger_->info("Shutting down subsystem: {}", system_->get_name());
   system_->shutdown();
-
-  logger_->info("Shutting down subsystem: {}", event_system_->get_name());
-  event_system_->shutdown();
 
   running_ = false;
   return true;
@@ -141,6 +142,18 @@ bool runtime_c::shutdown() {
 bool runtime_c::is_running() const { return running_; }
 
 logger_t runtime_c::get_logger() const { return logger_; }
+
+std::unique_ptr<runtime_c::script_executor_c>
+runtime_c::create_script_executor(const std::string &entity_id,
+                                  const std::string &scope) {
+  if (!running_) {
+    logger_->error("Runtime not running, cannot create script executor");
+    return nullptr;
+  }
+
+  return std::unique_ptr<runtime_c::script_executor_c>(
+      new script_executor_c(*this, entity_id, scope));
+}
 
 runtime_c::specific_accessor_c::specific_accessor_c(
     runtime_subsystem_if &subsystem)

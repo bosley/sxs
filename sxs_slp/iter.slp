@@ -1,0 +1,106 @@
+; KV Iterate and Delete Demonstration
+; This script demonstrates core/kv/iterate for bulk operations and core/kv/del for cleanup
+; 
+; Key concepts covered:
+; - Using iterate to process keys matching a prefix pattern
+; - The $key context variable available inside iterate handlers
+; - Dynamic key deletion using core/kv/del with $key
+; - Offset and limit parameters for pagination and partial processing
+; - Prefix isolation to avoid accidentally deleting unrelated keys
+
+{
+  (core/util/log "=== KV Iterate and Delete Demo ===")
+  (core/util/log "")
+  
+  ; PART 1: Full deletion of all keys matching a prefix
+  ; We'll create several keys with different prefixes to show isolation
+  
+  (core/util/log "Step 1: Creating test data with 'temp:' prefix")
+  (core/kv/set temp:user1 "alice")
+  (core/kv/set temp:user2 "bob")
+  (core/kv/set temp:user3 "charlie")
+  (core/kv/set temp:user4 "diana")
+  (core/kv/set temp:user5 "eve")
+  (core/kv/set keep:data "this should remain")
+  (core/util/log "Created 5 temp: keys and 1 keep: key")
+  (core/util/log "")
+  
+  ; First, list all keys with the temp: prefix to see what we have
+  ; The iterate handler body {} executes once per matching key
+  ; $key is automatically set to the current key name as a string
+  
+  (core/util/log "Step 2: Listing all temp: keys")
+  (core/kv/iterate temp: 0 10 {
+    (core/util/log "  Found key:" $key)
+  })
+  (core/util/log "")
+  
+  ; Now delete all temp: keys using the same iteration pattern
+  ; core/kv/del accepts $key as a dynamic parameter
+  ; This is a common cleanup pattern for bulk deletion
+  
+  (core/util/log "Step 3: Deleting keys matching temp: prefix")
+  (core/kv/iterate temp: 0 10 {
+    (core/util/log "  Deleting:" $key)
+    (core/kv/del $key)
+  })
+  (core/util/log "")
+  
+  ; Verify all temp: keys are gone by attempting to iterate again
+  ; If any keys remain, the handler will execute and log an error
+  
+  (core/util/log "Step 4: Verifying deletion - checking temp: keys")
+  (core/kv/iterate temp: 0 10 {
+    (core/util/log "  ERROR: Found remaining key:" $key)
+  })
+  (core/util/log "No temp: keys found (expected)")
+  (core/util/log "")
+  
+  ; Verify that keys with different prefixes were not affected
+  ; The keep: prefix should be untouched by our temp: deletion
+  
+  (core/util/log "Step 5: Verifying keep: key was not deleted")
+  (core/util/log "keep:data exists:" (core/kv/exists keep:data))
+  (core/util/log "keep:data value:" (core/kv/get keep:data))
+  (core/util/log "")
+  
+  ; PART 2: Partial deletion using offset and limit
+  ; offset=N skips the first N matching keys
+  ; limit=M processes at most M keys after the offset
+  ; This enables paginated processing or selective cleanup
+  
+  (core/util/log "=== Partial Delete Demo ===")
+  (core/util/log "")
+  
+  (core/util/log "Creating numbered items")
+  (core/kv/set item:01 "first")
+  (core/kv/set item:02 "second")
+  (core/kv/set item:03 "third")
+  (core/kv/set item:04 "fourth")
+  (core/kv/set item:05 "fifth")
+  (core/util/log "")
+  
+  ; Delete only items 2 and 3 by skipping the first (offset=1)
+  ; and limiting to 2 items (limit=2)
+  ; Items 01, 04, and 05 should remain
+  
+  (core/util/log "Deleting only items 2-3 using offset=1 limit=2")
+  (core/kv/iterate item: 1 2 {
+    (core/util/log "  Deleting:" $key)
+    (core/kv/del $key)
+  })
+  (core/util/log "")
+  
+  ; List remaining keys to verify selective deletion
+  ; Should see item:01, item:04, and item:05
+  
+  (core/util/log "Listing remaining item: keys")
+  (core/kv/iterate item: 0 10 {
+    (core/util/log "  Remaining key:" $key "exists:" (core/kv/exists $key))
+  })
+  (core/util/log "")
+  
+  (core/util/log "=== Demo Complete ===")
+}
+
+

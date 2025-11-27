@@ -78,6 +78,11 @@ void event_system_c::shutdown() {
 
 bool event_system_c::is_running() const { return running_; }
 
+bool event_system_c::is_queue_empty() const {
+  std::unique_lock<std::mutex> lock(mutex_);
+  return event_queue_.empty();
+}
+
 event_producer_t
 event_system_c::get_event_producer_for_category(event_category_e category) {
   assert(static_cast<int>(category) >= 0 &&

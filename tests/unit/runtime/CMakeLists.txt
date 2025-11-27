@@ -2,7 +2,6 @@ add_executable(runtime_tests
   runtime_test.cpp
   entity_test.cpp
   entity_rps_test.cpp
-  entity_rps_await_test.cpp
   session_test.cpp
   session_event_test.cpp
   events_test.cpp
@@ -10,7 +9,9 @@ add_executable(runtime_tests
   processor_event_sub_test.cpp
   processor_event_sub_stress_test.cpp
   processor_kv_atomic_test.cpp
+  processor_kv_context_test.cpp
   multi_processor_test.cpp
+  insist_test.cpp
 )
 
 target_link_libraries(runtime_tests PRIVATE 
@@ -106,8 +107,6 @@ add_test(NAME entity_rps_stress_test_with_rapid_publishes
          COMMAND runtime_tests "entity rps stress test with rapid publishes")
 add_test(NAME entity_rps_different_entities_independent_limits
          COMMAND runtime_tests "entity rps different entities independent limits")
-add_test(NAME entity_rps_with_runtime_await_cross_channel_limiting
-         COMMAND runtime_tests "entity rps with core/expr/await cross-channel limiting")
 add_test(NAME entity_rps_limit_tracking_across_channels
          COMMAND runtime_tests "entity rps limit tracking across channels")
 
@@ -187,12 +186,44 @@ add_test(NAME empty_handler_body
 
 add_test(NAME processor_runtime_eval_operation
          COMMAND runtime_tests "processor core/expr/eval operation")
-add_test(NAME processor_runtime_await_operation
-         COMMAND runtime_tests "processor core/expr/await operation")
 add_test(NAME processor_runtime_eval_with_kv_operations
          COMMAND runtime_tests "processor core/expr/eval with kv operations")
-add_test(NAME processor_runtime_await_async_communication
-         COMMAND runtime_tests "processor core/expr/await async communication")
+
+add_test(NAME insist_passes_through_non_error_values
+         COMMAND runtime_tests "core/util/insist passes through non-error values")
+add_test(NAME insist_halts_execution_on_error_object
+         COMMAND runtime_tests "core/util/insist halts execution on ERROR object")
+add_test(NAME insist_enables_safe_type_patterns
+         COMMAND runtime_tests "core/util/insist enables safe type patterns")
+add_test(NAME insist_with_bracket_list_stops_on_first_error
+         COMMAND runtime_tests "core/util/insist with bracket list stops on first error")
+
+add_test(NAME kv_context_basic_iterate_with_key_del
+         COMMAND runtime_tests "basic iterate with $key del")
+add_test(NAME kv_context_iterate_with_key_exists_check
+         COMMAND runtime_tests "iterate with $key exists check")
+add_test(NAME kv_context_iterate_with_key_load
+         COMMAND runtime_tests "iterate with $key load")
+add_test(NAME kv_context_combined_del_exists_load
+         COMMAND runtime_tests "combined del + exists + load in iteration")
+add_test(NAME kv_context_insist_with_key_operations
+         COMMAND runtime_tests "insist with $key operations in iteration")
+add_test(NAME kv_context_insist_failure_with_key
+         COMMAND runtime_tests "insist failure with $key in iteration")
+add_test(NAME kv_context_event_handler_with_key
+         COMMAND runtime_tests "event handler with $key operations")
+add_test(NAME kv_context_complex_integration
+         COMMAND runtime_tests "complex integration: events + iterate + insist")
+add_test(NAME kv_context_error_key_not_available
+         COMMAND runtime_tests "error case: $key not available")
+add_test(NAME kv_context_error_insist_with_missing_key
+         COMMAND runtime_tests "error case: insist with missing $key")
+add_test(NAME kv_context_exists_returning_false
+         COMMAND runtime_tests "iterate with $key exists returning false")
+add_test(NAME kv_context_loads_all_values_separately
+         COMMAND runtime_tests "iterate loads all values into separate keys")
+add_test(NAME kv_context_vs_literal_key_behavior
+         COMMAND runtime_tests "context variable vs literal key behavior")
 
 add_test(NAME multi_processor_initialization_with_1_processor
          COMMAND runtime_tests "multi processor initialization with 1 processor")
@@ -220,7 +251,7 @@ if(WITH_ASAN)
                        entity_rps_concurrent_multi_threaded_publishing entity_rps_sliding_window_behavior
                        entity_rps_edge_cases entity_rps_with_permission_blocking
                        entity_rps_stress_test_with_rapid_publishes entity_rps_different_entities_independent_limits
-                       entity_rps_with_runtime_await_cross_channel_limiting entity_rps_limit_tracking_across_channels
+                       entity_rps_limit_tracking_across_channels
                        entity_topic_permission_granting entity_topic_permission_revocation
                        entity_topic_permission_persistence
                        session_subsystem_initialization session_creation_with_entity_and_scope
@@ -249,8 +280,17 @@ if(WITH_ASAN)
                        rapid_fire_event_delivery_to_handler handler_with_parse_error_in_body
                        handler_with_nested_function_calls handler_publishes_event_creating_chain
                        empty_handler_body
-                       processor_runtime_eval_operation processor_runtime_await_operation
-                       processor_runtime_eval_with_kv_operations processor_runtime_await_async_communication
+                       processor_runtime_eval_operation
+                       processor_runtime_eval_with_kv_operations
+                       insist_passes_through_non_error_values insist_halts_execution_on_error_object
+                       insist_enables_safe_type_patterns insist_with_bracket_list_stops_on_first_error
+                       kv_context_basic_iterate_with_key_del kv_context_iterate_with_key_exists_check
+                       kv_context_iterate_with_key_load kv_context_combined_del_exists_load
+                       kv_context_insist_with_key_operations kv_context_insist_failure_with_key
+                       kv_context_event_handler_with_key kv_context_complex_integration
+                       kv_context_error_key_not_available kv_context_error_insist_with_missing_key
+                       kv_context_exists_returning_false kv_context_loads_all_values_separately
+                       kv_context_vs_literal_key_behavior
                        multi_processor_initialization_with_1_processor
                        multi_processor_initialization_with_4_processors
                        multi_processor_concurrent_execution_on_different_topics

@@ -119,7 +119,7 @@ Moving `slp_object_c` is efficient (transfers buffer ownership), but extracting 
 
 ## Core Command Reference
 
-All commands return `true` (boolean) on success or an ERROR type `@"message"` on failure. Parameters are positional starting at index 1 (index 0 is the command itself).
+Most commands return `true` (boolean symbol) on success or an ERROR type `@"message"` on failure. Some commands return other types as documented. Parameters are positional starting at index 1 (index 0 is the command itself).
 
 ### Symbol Semantics
 
@@ -128,13 +128,15 @@ All commands return `true` (boolean) on success or an ERROR type `@"message"` on
 **Exception:** Symbols prefixed with `$` are context variables:
 
 **Event Function Context Variables** (available only in event-related functions):
-- `$CHANNEL_A` through `$CHANNEL_F` - evaluate to symbols `A` through `F`, used in core/event/pub, core/event/sub, and core/expr/await
+- `$CHANNEL_A` through `$CHANNEL_F` - evaluate to symbols `A` through `F`, used in core/event/pub and core/event/sub
 
 **Handler-Injected Context Variables** (available only in specific handlers):
-- `$key` - injected in `core/kv/iterate` handler bodies, contains the current iteration key
-- `$data` - injected in `core/event/sub` handler bodies, contains the event payload
+- `$key` - injected in `core/kv/iterate` handler bodies, contains the current iteration key as DQ_LIST (string). Can be used with `core/kv/load`, `core/kv/del`, and `core/kv/exists`.
+- `$data` - injected in `core/event/sub` handler bodies, contains the event payload with type matching the subscription's `expected_type` parameter
 
 These context variables are provided by the runtime and do not require explicit loading from the KV store.
+
+**Context Variable Resolution:** Functions that accept context variables (those with `$` prefix) will automatically resolve them from the handler's context map. If a context variable is not found, an ERROR is returned.
 
 ### core/kv/set
 
@@ -144,10 +146,12 @@ Set a key-value pair in the session store.
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
-| key | symbol | no | Key to set |
+| key | symbol | no | Key to set (literal symbol name) |
 | value | any | yes | Value to store (evaluated, then converted to string) |
 
-**Returns:** `true` on success, ERROR on failure
+**Returns:** SYMBOL `true` on success, ERROR on failure
+
+**Note:** The key parameter is used as a literal symbol name for storage. It is not evaluated, so using context variables like `$key` would create a key literally named "$key" rather than using the dynamic value. To work with dynamic keys from context variables, use `core/kv/load` within iteration handlers.
 
 **Example:**
 
@@ -167,9 +171,11 @@ Retrieve a value by key from the session store.
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
-| key | symbol | no | Key to retrieve |
+| key | symbol | no | Key to retrieve (static symbols only, not $ variables) |
 
-**Returns:** String value on success, ERROR if key not found or no permission
+**Returns:** DQ_LIST (string value) on success, ERROR if key not found or no permission
+
+**Note:** This function requires a static symbol key and does NOT accept `$` context variables. For dynamic key access using `$` variables (e.g., `$key` in iteration handlers), use `core/kv/load` instead.
 
 **Example:**
 
@@ -188,15 +194,21 @@ Delete a key from the session store.
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
-| key | symbol | no | Key to delete |
+| key | symbol | no | Key to delete (literal symbol name or context variable) |
 
-**Returns:** `true` on success, ERROR on failure
+**Returns:** SYMBOL `true` on success, ERROR on failure
+
+**Note:** The key parameter can be either a literal symbol name or a context variable (prefixed with `$`). When a `$` prefixed symbol is provided (e.g., `$key`), it will be resolved from the context. This enables dynamic key deletion during iteration.
 
 **Example:**
 
 ```
 (core/kv/del mykey)
 (core/kv/del user:123)
+
+(core/kv/iterate temp: 0 100 {
+  (core/kv/del $key)
+})
 ```
 
 ---
@@ -209,15 +221,21 @@ Check if a key exists in the session store.
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
-| key | symbol | no | Key to check |
+| key | symbol | no | Key to check (literal symbol name or context variable) |
 
-**Returns:** `true` if exists, `false` if not
+**Returns:** SYMBOL `true` if exists, SYMBOL `false` if not, ERROR if context variable not found
+
+**Note:** The key parameter can be either a literal symbol name or a context variable (prefixed with `$`). When a `$` prefixed symbol is provided (e.g., `$key`), it will be resolved from the context. This enables dynamic key existence checks during iteration.
 
 **Example:**
 
 ```
 (core/kv/exists mykey)
 (core/kv/exists user:123)
+
+(core/kv/iterate cache: 0 50 {
+  (core/kv/exists $key)
+})
 ```
 
 ---
@@ -230,10 +248,12 @@ Set a key-value pair only if the key does not already exist (atomic operation).
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
-| key | symbol | no | Key to set |
+| key | symbol | no | Key to set (literal symbol name) |
 | value | any | yes | Value to store if key doesn't exist |
 
-**Returns:** `true` if set successfully, `false` if key already exists
+**Returns:** SYMBOL `true` if set successfully, SYMBOL `false` if key already exists, ERROR on invalid parameters or missing store
+
+**Note:** Like `core/kv/set`, the key parameter is a literal symbol name and is not evaluated. Context variables like `$key` cannot be used directly with this function.
 
 **Example:**
 
@@ -252,11 +272,13 @@ Compare and swap: atomically set a new value only if the current value matches t
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
-| key | symbol | no | Key to update |
+| key | symbol | no | Key to update (literal symbol name) |
 | expected_value | any | yes | Expected current value (evaluated) |
 | new_value | any | yes | New value to set if expectation matches |
 
-**Returns:** `true` if swap succeeded, `false` if current value doesn't match expected
+**Returns:** SYMBOL `true` if swap succeeded, SYMBOL `false` if current value doesn't match expected, ERROR on invalid parameters or missing store
+
+**Note:** The key parameter is a literal symbol name and is not evaluated. Context variables like `$key` cannot be used directly with this function.
 
 **Example:**
 
@@ -275,21 +297,52 @@ Iterate over keys matching a prefix, executing a handler for each key. Injects `
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
-| prefix | symbol or string | yes | Key prefix to match (evaluated, accepts symbol or DQ_LIST) |
+| prefix | symbol | no | Key prefix to match (symbol literal) |
 | offset | integer | no | Number of matching keys to skip |
 | limit | integer | no | Maximum number of keys to process |
 | handler_body | brace-list | no | Handler code block (must be `{...}`) |
 
-**Context Variables:** `$key` is injected for each iteration
+**Context Variables:** `$key` (DQ_LIST type) is injected with the current key as a string for each iteration
 
-**Returns:** `true` when iteration completes
+**Returns:** SYMBOL `true` when iteration completes, ERROR on invalid parameters
 
 **Example:**
 
 ```
-(core/kv/iterate "user:" 0 10 {
+(core/kv/iterate user: 0 10 {
   (core/util/log "Found key:" $key)
   (core/kv/del $key)
+})
+```
+
+**Design Note:** The prefix parameter must be a symbol literal (e.g., `user:`). Dynamic prefix iteration is NOT supported by design - at this level, we are concerned with loading specific variable objects via `core/kv/load`, not iterating over dynamic ranges. If you need to work with keys from a dynamic prefix, store the prefix as a symbol and reference it directly.
+
+Within the handler, `$key` contains the current key as a string and can be used with `core/kv/load` (to retrieve values), `core/kv/del` (to delete keys), or `core/kv/exists` (to check existence).
+
+---
+
+### core/kv/load
+
+Retrieve and parse a value by key from the session store, returning it as a quoted SLP object. Requires the `$key` context variable.
+
+**Signature:** `(core/kv/load key)`
+
+| Parameter | Type | Evaluated | Description |
+|-----------|------|-----------|-------------|
+| key | symbol | no | Must be `$key` context variable specifically |
+
+**Returns:** Quoted SLP object (SOME type) on success, ERROR if key not found or no permission
+
+**Implementation Note:** The function has `can_return_error = false` in its type declaration but still returns ERROR at runtime. This is an inconsistency between the type system declaration and runtime behavior.
+
+**Note:** Unlike `core/kv/get` which accepts static symbol keys and returns DQ_LIST (tainted string), `core/kv/load` ONLY accepts the `$key` context variable (injected by `core/kv/iterate` handlers) and returns a SOME type (quoted value). The returned value is created by parsing `'` + value, which quotes the stored string. Use `core/expr/eval` to evaluate the loaded SOME value if needed.
+
+**Example:**
+
+```
+(core/kv/iterate user: 0 10 {
+  (core/util/log "Loading value for key:" $key)
+  (core/kv/load $key)
 })
 ```
 
@@ -307,7 +360,7 @@ Publish an event to a specified channel and topic.
 | topic_id | integer | no | Topic identifier (uint16) |
 | data | any | yes | Event payload (evaluated, converted to string) |
 
-**Returns:** `true` on success, ERROR on failure (rate limit, permission, etc.)
+**Returns:** SYMBOL `true` on success, ERROR on failure (rate limit, permission, etc.)
 
 **Example:**
 
@@ -320,27 +373,58 @@ Publish an event to a specified channel and topic.
 
 ### core/event/sub
 
-Subscribe to events on a channel and topic, executing a handler for each event. Injects `$data` variable into handler context.
+Subscribe to events on a channel and topic with type filtering. Only events matching the expected type will trigger the handler.
 
-**Signature:** `(core/event/sub channel topic_id handler_body)`
+**Signature:** `(core/event/sub channel topic_id expected_type handler_body)`
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
 | channel | symbol | yes | Channel identifier: `$CHANNEL_A` through `$CHANNEL_F` |
 | topic_id | integer | no | Topic identifier (uint16) |
+| expected_type | symbol | no | Expected data type: `:int`, `:real`, `:str`, `:some`, `:none`, `:error`, `:symbol`, `:list-p`, `:list-s`, `:list-c`, `:rune` |
 | handler_body | brace-list | no | Handler code block (must be `{...}`) |
 
-**Context Variables:** `$data` is injected with event payload for each event
+**Context Variables:** `$data` (type matches expected_type) is injected with event payload for each matching event
 
-**Returns:** `true` on successful subscription, ERROR on failure
+**Implementation Note:** The function has `handler_context_vars = {}` (empty) in its type declaration but still injects `$data` at runtime. This is an inconsistency between the type system declaration and runtime behavior.
+
+**Type Filtering:** The runtime checks the published event data type against `expected_type`. Only events with matching types invoke the handler. This enables type-safe event handling and allows multiple handlers on the same topic with different type expectations.
+
+**Type Filtering Behavior:**
+
+The runtime enforces strict type matching between published events and subscription handlers:
+
+1. When an event is published, its data payload is serialized to a string
+2. When received by subscribers, the payload is parsed back into an SLP object
+3. The parsed object's type is compared against the handler's `expected_type`
+4. Only handlers with exactly matching types are invoked
+5. If parsing fails or types don't match, the handler is skipped (no implicit conversions)
+
+This allows multiple handlers on the same channel/topic to receive different types of events safely:
+- A `:str` handler only receives string-typed events
+- An `:int` handler only receives integer-typed events  
+- Published integers will NOT be auto-converted to strings for `:str` handlers
+- Unparseable data will NOT trigger any handlers
+
+Type safety is enforced at both compile-time (via the type checker) and runtime (via strict type matching).
+
+**Returns:** SYMBOL `true` on successful subscription, ERROR on failure
 
 **Example:**
 
 ```
-(core/event/sub $CHANNEL_A 100 {
-  (core/util/log "Received:" $data)
-  (core/kv/set last_event $data)
+(core/event/sub $CHANNEL_A 100 :str {
+  (core/util/log "String event:" $data)
+  (core/kv/set last_message $data)
 })
+
+(core/event/sub $CHANNEL_A 100 :int {
+  (core/util/log "Integer event:" $data)
+  (core/kv/set counter $data)
+})
+
+(core/event/pub $CHANNEL_A 100 "hello")
+(core/event/pub $CHANNEL_A 100 42)
 ```
 
 ---
@@ -353,9 +437,9 @@ Evaluate SLP script text dynamically.
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
-| script_text | any | yes | Script text to parse and evaluate |
+| script_text | any | yes | Script text to parse and evaluate (converted to string) |
 
-**Returns:** Result of evaluating the script, or ERROR on parse/eval failure
+**Returns:** Result of evaluating the script (any type), or ERROR on parse/eval failure
 
 **Example:**
 
@@ -366,27 +450,39 @@ Evaluate SLP script text dynamically.
 
 ---
 
-### core/expr/await
+### core/expr/proc
 
-Execute a body and wait for a response on a specified channel and topic (blocking with timeout).
+Send a script body to a specific processor for execution. This bypasses normal session publishing restrictions for RUNTIME_EXECUTION_REQUEST by using an internal runtime mechanism.
 
-**Signature:** `(core/expr/await body response_channel response_topic)`
+**Signature:** `(core/expr/proc processor_id body)`
 
 | Parameter | Type | Evaluated | Description |
 |-----------|------|-----------|-------------|
-| body | any | yes | Expression to execute before waiting |
-| response_channel | symbol | yes | Channel to await response: `$CHANNEL_A` through `$CHANNEL_F` |
-| response_topic | integer | no | Topic identifier to await response on |
+| processor_id | integer | no | Processor identifier (0 through num_processors-1) |
+| body | brace-list | no | Script body to execute (must be `{...}`) |
 
-**Returns:** String containing the event data received, or ERROR on timeout/failure
+**Returns:** SYMBOL `true` on success, ERROR if processor not configured
+
+**Note:** Processor count is configurable via runtime options (`num_processors`). The default configuration creates 4 processors (IDs 0-3). Attempting to send to a non-existent processor will return an error.
+
+**Design Note:** This function allows direct targeting of specific processors, which is useful for load distribution and parallel execution. Each processor maintains its own execution queue and runs in its own thread context within the event system.
 
 **Example:**
 
 ```
-(core/expr/await
-  (core/event/pub $CHANNEL_A 1 "request")
-  $CHANNEL_B
-  100)
+(core/expr/proc 0 {
+  (core/util/log "Executing on processor 0")
+  (core/kv/set result "from-proc-0")
+})
+
+(core/expr/proc 1 {
+  (core/util/log "Executing on processor 1")
+  (core/kv/set result "from-proc-1")
+})
+
+(core/expr/proc 99 {
+  (core/util/log "This will fail")
+})
 ```
 
 ---
@@ -401,11 +497,57 @@ Log one or more messages to the session logger.
 |-----------|------|-----------|-------------|
 | message... | any (variadic) | yes | Messages to log (space-separated when multiple) |
 
-**Returns:** `true` after logging
+**Returns:** SYMBOL `true` after logging, ERROR if no message provided
 
 **Example:**
 
 ```
 (core/util/log "Processing started")
 (core/util/log "User" "Alice" "logged in" "at" 12345)
+```
+
+---
+
+### core/util/insist
+
+Detaint operator: execute a function call and ensure it did not return an error, halting execution if it did.
+
+**Signature:** `(core/util/insist expr)`
+
+| Parameter | Type | Evaluated | Description |
+|-----------|------|-----------|-------------|
+| expr | paren-list | no | Function call to execute (must be `(...)` form) |
+
+**Returns:** The result of the function call (passes through unchanged if not an error)
+
+**Implementation Note:** This function has `can_return_error = false` in its type declaration because it throws an exception instead of returning ERROR.
+
+**Critical Design Constraint:** This function ONLY accepts unevaluated PAREN_LIST expressions (function calls in `(...)` form). It does NOT accept literals, symbols, or other types.
+
+**Why This Constraint Exists:**
+
+1. **Single Evaluation Semantics:** The parameter is unevaluated, and `insist` evaluates it exactly once. This prevents double evaluation issues and ensures correct semantics.
+
+2. **Type Preservation:** The result is returned as-is. If a function returns `SOME` (quoted value), `insist` returns `SOME` unchanged - it does NOT unquote it. This is critical for preserving type semantics.
+
+3. **Intent Clarity:** `insist` wraps fallible function calls to assert success. The pattern `(insist (function ...))` clearly expresses "call this function and ensure it didn't error."
+
+4. **Type System Role (Detainter):** In the type system, `insist` is a detainter - it removes the taint from a type. If `(core/kv/get x)` returns `#DQ_LIST` (tainted), then `(insist (core/kv/get x))` returns `DQ_LIST` (pure). The type checker verifies the argument is tainted before allowing detaint.
+
+5. **Runtime Role:** At runtime, if the function call returns ERROR, `insist` throws `insist_failure_exception`, terminating execution. If not ERROR, the result passes through unchanged.
+
+**Example (Correct Usage):**
+
+```
+(core/util/insist (core/kv/get required_key))
+(core/util/insist (core/kv/cas counter "5" "6"))
+(core/util/insist (core/kv/load $key))
+```
+
+**Invalid Usage (Will Fail Type Checking):**
+
+```
+(core/util/insist x)
+(core/util/insist 42)
+(core/util/insist "hello")
 ```

@@ -25,7 +25,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 #
 # Options
 #
-option(WITH_ASAN     "Compile with ASAN" ON)
+option(WITH_ASAN     "Compile with ASAN" OFF)
 
 #
 # Setup build type 'Release vs Debug'
@@ -79,3 +79,12 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/pkg)
 add_subdirectory(${PROJECT_SOURCE_DIR}/cmd)
 add_subdirectory(${PROJECT_SOURCE_DIR}/examples)
 
+#
+# Custom target for release builds
+#
+add_custom_target(release
+  COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Release -DWITH_ASAN=OFF ${PROJECT_SOURCE_DIR}
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config Release -j8
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  COMMENT "Building release version without ASAN"
+)

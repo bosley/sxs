@@ -12,6 +12,14 @@
 #include <spdlog/spdlog.h>
 #include <thread>
 
+/*
+    NOTE: The even system NEEDS TO SEND VALID SLP
+    Sending std::string("this is a string") IS INVALID
+    The automated testing system likes to flag this as an error. IT IS NOT.
+    std::string("foo") -> SYMBOL SLP
+    std::string("\"foo\"") -> DQ_LIST (string) - Stop fucking flagging this
+*/
+
 namespace {
 void ensure_db_cleanup(const std::string &path) {
   std::filesystem::remove_all(path);
@@ -87,17 +95,17 @@ TEST_CASE("multiple sessions subscribe to same topic",
 
   runtime::execution_request_s req1{
       *session1,
-      R"((core/event/sub $CHANNEL_A 400 {(core/kv/set session1_data $data)}))",
+      R"((core/event/sub $CHANNEL_A 400 :str {(core/kv/set session1_data $data)}))",
       "req1"};
 
   runtime::execution_request_s req2{
       *session2,
-      R"((core/event/sub $CHANNEL_A 400 {(core/kv/set session2_data $data)}))",
+      R"((core/event/sub $CHANNEL_A 400 :str {(core/kv/set session2_data $data)}))",
       "req2"};
 
   runtime::execution_request_s req3{
       *session3,
-      R"((core/event/sub $CHANNEL_A 400 {(core/kv/set session3_data $data)}))",
+      R"((core/event/sub $CHANNEL_A 400 :str {(core/kv/set session3_data $data)}))",
       "req3"};
 
   runtime::events::event_s sub_event1;
@@ -126,7 +134,7 @@ TEST_CASE("multiple sessions subscribe to same topic",
   data_event.category =
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
   data_event.topic_identifier = 400;
-  data_event.payload = std::string("broadcast message");
+  data_event.payload = std::string("\"broadcast message\"");
 
   writer->write_event(data_event);
 
@@ -182,11 +190,11 @@ TEST_CASE("session subscribes to multiple topics",
   runtime::session_c *session =
       create_test_session("session1", event_system, data_ds, entity.get());
 
-  runtime::execution_request_s req{*session, R"([
-    (core/event/sub $CHANNEL_A 401 {(core/kv/set topic401 $data)})
-    (core/event/sub $CHANNEL_A 402 {(core/kv/set topic402 $data)})
-    (core/event/sub $CHANNEL_A 403 {(core/kv/set topic403 $data)})
-  ])",
+  runtime::execution_request_s req{*session, R"({
+    (core/event/sub $CHANNEL_A 401 :str {(core/kv/set topic401 $data)})
+    (core/event/sub $CHANNEL_A 402 :str {(core/kv/set topic402 $data)})
+    (core/event/sub $CHANNEL_A 403 :str {(core/kv/set topic403 $data)})
+  })",
                                    "multi_sub"};
 
   runtime::events::event_s sub_event;
@@ -209,15 +217,15 @@ TEST_CASE("session subscribes to multiple topics",
   runtime::events::event_s event401;
   event401.category = runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
   event401.topic_identifier = 401;
-  event401.payload = std::string("message for 401");
+  event401.payload = std::string("\"message for 401\"");
 
   runtime::events::event_s event402 = event401;
   event402.topic_identifier = 402;
-  event402.payload = std::string("message for 402");
+  event402.payload = std::string("\"message for 402\"");
 
   runtime::events::event_s event403 = event401;
   event403.topic_identifier = 403;
-  event403.payload = std::string("message for 403");
+  event403.payload = std::string("\"message for 403\"");
 
   writer401->write_event(event401);
   writer402->write_event(event402);
@@ -271,7 +279,8 @@ TEST_CASE("rapid fire event delivery to handler",
   runtime::session_c *session =
       create_test_session("session1", event_system, data_ds, entity.get());
 
-  runtime::execution_request_s req{*session, R"((core/event/sub $CHANNEL_A 500 {
+  runtime::execution_request_s req{*session,
+                                   R"((core/event/sub $CHANNEL_A 500 :str {
     (core/kv/set last_event $data)
   }))",
                                    "rapid_sub"};
@@ -295,7 +304,7 @@ TEST_CASE("rapid fire event delivery to handler",
     data_event.category =
         runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
     data_event.topic_identifier = 500;
-    data_event.payload = std::string("event_") + std::to_string(i);
+    data_event.payload = std::string("\"event_") + std::to_string(i) + "\"";
     writer->write_event(data_event);
   }
 
@@ -343,7 +352,8 @@ TEST_CASE("handler with parse error in body",
   runtime::session_c *session =
       create_test_session("session1", event_system, data_ds, entity.get());
 
-  runtime::execution_request_s req{*session, R"((core/event/sub $CHANNEL_A 600 {
+  runtime::execution_request_s req{*session,
+                                   R"((core/event/sub $CHANNEL_A 600 :str {
     (unknown/function arg1 arg2)
     (core/kv/set should_not_reach "here")
   }))",
@@ -367,7 +377,7 @@ TEST_CASE("handler with parse error in body",
   data_event.category =
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
   data_event.topic_identifier = 600;
-  data_event.payload = std::string("test");
+  data_event.payload = std::string("\"test\"");
 
   writer->write_event(data_event);
 
@@ -415,7 +425,8 @@ TEST_CASE("handler with nested function calls",
 
   session->get_store()->set("base_value", "42");
 
-  runtime::execution_request_s req{*session, R"((core/event/sub $CHANNEL_A 700 {
+  runtime::execution_request_s req{*session,
+                                   R"((core/event/sub $CHANNEL_A 700 :str {
     (core/kv/set event_copy $data)
     (core/kv/set retrieved (core/kv/get base_value))
     (core/kv/set exists_check (core/kv/exists base_value))
@@ -441,7 +452,7 @@ TEST_CASE("handler with nested function calls",
   data_event.category =
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
   data_event.topic_identifier = 700;
-  data_event.payload = std::string("nested test");
+  data_event.payload = std::string("\"nested test\"");
 
   writer->write_event(data_event);
 
@@ -494,15 +505,15 @@ TEST_CASE("handler publishes event creating chain",
   runtime::session_c *session =
       create_test_session("session1", event_system, data_ds, entity.get());
 
-  runtime::execution_request_s req{*session, R"([
-    (core/event/sub $CHANNEL_A 800 {
+  runtime::execution_request_s req{*session, R"({
+    (core/event/sub $CHANNEL_A 800 :str {
       (core/kv/set step1 $data)
       (core/event/pub $CHANNEL_A 801 "chained")
     })
-    (core/event/sub $CHANNEL_A 801 {
+    (core/event/sub $CHANNEL_A 801 :str {
       (core/kv/set step2 $data)
     })
-  ])",
+  })",
                                    "chain_sub"};
 
   runtime::events::event_s sub_event;
@@ -523,7 +534,7 @@ TEST_CASE("handler publishes event creating chain",
   data_event.category =
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
   data_event.topic_identifier = 800;
-  data_event.payload = std::string("initial");
+  data_event.payload = std::string("\"initial\"");
 
   writer->write_event(data_event);
 
@@ -572,7 +583,7 @@ TEST_CASE("empty handler body", "[unit][runtime][processor][stress]") {
       create_test_session("session1", event_system, data_ds, entity.get());
 
   runtime::execution_request_s req{
-      *session, R"((core/event/sub $CHANNEL_A 900 {}))", "empty_sub"};
+      *session, R"((core/event/sub $CHANNEL_A 900 :str {}))", "empty_sub"};
 
   runtime::events::event_s sub_event;
   sub_event.category =
@@ -592,7 +603,7 @@ TEST_CASE("empty handler body", "[unit][runtime][processor][stress]") {
   data_event.category =
       runtime::events::event_category_e::RUNTIME_BACKCHANNEL_A;
   data_event.topic_identifier = 900;
-  data_event.payload = std::string("test");
+  data_event.payload = std::string("\"test\"");
 
   writer->write_event(data_event);
 

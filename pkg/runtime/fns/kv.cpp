@@ -5,13 +5,45 @@
 
 namespace runtime::fns {
 
+static std::string object_to_storage_string(const slp::slp_object_c &obj) {
+  switch (obj.type()) {
+  case slp::slp_type_e::SYMBOL:
+    return obj.as_symbol();
+  case slp::slp_type_e::INTEGER:
+    return std::to_string(obj.as_int());
+  case slp::slp_type_e::REAL:
+    return std::to_string(obj.as_real());
+  case slp::slp_type_e::DATUM:
+    [[fallthrough]];
+  case slp::slp_type_e::ABERRANT:
+    [[fallthrough]];
+  case slp::slp_type_e::DQ_LIST:
+    [[fallthrough]];
+  case slp::slp_type_e::ERROR:
+    [[fallthrough]];
+  case slp::slp_type_e::NONE:
+    [[fallthrough]];
+  case slp::slp_type_e::SOME: {
+    return obj.as_string().to_string();
+  default:
+    return slp::parse("@(unknown object type when attempting to store)")
+        .take()
+        .as_string()
+        .to_string();
+  }
+  } // EOS
+} // EOF
+
 function_group_s get_kv_functions(runtime_information_if &runtime_info) {
   auto logger = runtime_info.get_logger();
 
   function_group_s group;
   group.group_name = "core/kv";
 
-  group.functions["set"] =
+  group.functions["set"].return_type = slp::slp_type_e::SYMBOL;
+  group.functions["set"].parameters = {{"key", slp::slp_type_e::SYMBOL, false},
+                                       {"value", slp::slp_type_e::NONE, true}};
+  group.functions["set"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto logger = runtime_info.get_logger();
@@ -30,7 +62,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
 
         auto value_result =
             runtime_info.eval_object(session, value_obj, context);
-        std::string value = runtime_info.object_to_string(value_result);
+        std::string value = object_to_storage_string(value_result);
 
         auto *store = session.get_store();
         if (!store) {
@@ -46,7 +78,9 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         return SLP_BOOL(true);
       };
 
-  group.functions["get"] =
+  group.functions["get"].return_type = slp::slp_type_e::DQ_LIST;
+  group.functions["get"].parameters = {{"key", slp::slp_type_e::SYMBOL, false}};
+  group.functions["get"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto logger = runtime_info.get_logger();
@@ -77,7 +111,9 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         return SLP_STRING(value);
       };
 
-  group.functions["del"] =
+  group.functions["del"].return_type = slp::slp_type_e::SYMBOL;
+  group.functions["del"].parameters = {{"key", slp::slp_type_e::SYMBOL, false}};
+  group.functions["del"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto logger = runtime_info.get_logger();
@@ -90,7 +126,18 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         if (key_obj.type() != slp::slp_type_e::SYMBOL) {
           return SLP_ERROR("key must be a symbol");
         }
-        std::string key = key_obj.as_symbol();
+        std::string key_symbol = key_obj.as_symbol();
+
+        std::string key;
+        if (!key_symbol.empty() && key_symbol[0] == '$') {
+          auto context_it = context.find(key_symbol);
+          if (context_it == context.end()) {
+            return SLP_ERROR("context variable not available");
+          }
+          key = object_to_storage_string(context_it->second);
+        } else {
+          key = key_symbol;
+        }
 
         auto *store = session.get_store();
         if (!store) {
@@ -106,7 +153,10 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         return SLP_BOOL(true);
       };
 
-  group.functions["exists"] =
+  group.functions["exists"].return_type = slp::slp_type_e::SYMBOL;
+  group.functions["exists"].parameters = {
+      {"key", slp::slp_type_e::SYMBOL, false}};
+  group.functions["exists"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto logger = runtime_info.get_logger();
@@ -119,7 +169,18 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         if (key_obj.type() != slp::slp_type_e::SYMBOL) {
           return SLP_ERROR("key must be a symbol");
         }
-        std::string key = key_obj.as_symbol();
+        std::string key_symbol = key_obj.as_symbol();
+
+        std::string key;
+        if (!key_symbol.empty() && key_symbol[0] == '$') {
+          auto context_it = context.find(key_symbol);
+          if (context_it == context.end()) {
+            return SLP_ERROR("context variable not available");
+          }
+          key = object_to_storage_string(context_it->second);
+        } else {
+          key = key_symbol;
+        }
 
         auto *store = session.get_store();
         if (!store) {
@@ -131,7 +192,10 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         return SLP_BOOL(exists);
       };
 
-  group.functions["snx"] =
+  group.functions["snx"].return_type = slp::slp_type_e::SYMBOL;
+  group.functions["snx"].parameters = {{"key", slp::slp_type_e::SYMBOL, false},
+                                       {"value", slp::slp_type_e::NONE, true}};
+  group.functions["snx"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto logger = runtime_info.get_logger();
@@ -150,7 +214,7 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
 
         auto value_result =
             runtime_info.eval_object(session, value_obj, context);
-        std::string value = runtime_info.object_to_string(value_result);
+        std::string value = object_to_storage_string(value_result);
 
         auto *store = session.get_store();
         if (!store) {
@@ -167,7 +231,12 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         return SLP_BOOL(true);
       };
 
-  group.functions["cas"] =
+  group.functions["cas"].return_type = slp::slp_type_e::SYMBOL;
+  group.functions["cas"].parameters = {
+      {"key", slp::slp_type_e::SYMBOL, false},
+      {"expected_value", slp::slp_type_e::NONE, true},
+      {"new_value", slp::slp_type_e::NONE, true}};
+  group.functions["cas"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto logger = runtime_info.get_logger();
@@ -188,12 +257,11 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
 
         auto expected_result =
             runtime_info.eval_object(session, expected_obj, context);
-        std::string expected_value =
-            runtime_info.object_to_string(expected_result);
+        std::string expected_value = object_to_storage_string(expected_result);
 
         auto new_value_result =
             runtime_info.eval_object(session, new_value_obj, context);
-        std::string new_value = runtime_info.object_to_string(new_value_result);
+        std::string new_value = object_to_storage_string(new_value_result);
 
         auto *store = session.get_store();
         if (!store) {
@@ -212,102 +280,152 @@ function_group_s get_kv_functions(runtime_information_if &runtime_info) {
         return SLP_BOOL(true);
       };
 
-  group.functions["iterate"] =
+  group.functions["iterate"].return_type = slp::slp_type_e::SYMBOL;
+  group.functions["iterate"].parameters = {
+      {"prefix", slp::slp_type_e::SYMBOL, false},
+      {"offset", slp::slp_type_e::INTEGER, false},
+      {"limit", slp::slp_type_e::INTEGER, false},
+      {"handler_body", slp::slp_type_e::BRACE_LIST, false}};
+  group.functions["iterate"].handler_context_vars = {
+      {"$key", slp::slp_type_e::DQ_LIST}};
+  group.functions["iterate"]
+      .function = [&runtime_info](
+                      session_c &session, const slp::slp_object_c &args,
+                      const std::map<std::string, slp::slp_object_c> &context) {
+    auto logger = runtime_info.get_logger();
+    auto list = args.as_list();
+    if (list.size() < 5) {
+      return SLP_ERROR("core/kv/iterate requires prefix, offset, limit, and "
+                       "handler body");
+    }
+
+    auto prefix_obj = list.at(1);
+    auto offset_obj = list.at(2);
+    auto limit_obj = list.at(3);
+    auto handler_obj = list.at(4);
+
+    if (prefix_obj.type() != slp::slp_type_e::SYMBOL) {
+      return SLP_ERROR("prefix must be symbol");
+    }
+    std::string prefix = prefix_obj.as_symbol();
+
+    if (offset_obj.type() != slp::slp_type_e::INTEGER) {
+      return SLP_ERROR("offset must be integer");
+    }
+
+    if (limit_obj.type() != slp::slp_type_e::INTEGER) {
+      return SLP_ERROR("limit must be integer");
+    }
+
+    if (handler_obj.type() != slp::slp_type_e::BRACE_LIST) {
+      return SLP_ERROR("handler must be a brace list {}");
+    }
+
+    std::int64_t offset = offset_obj.as_int();
+    std::int64_t limit = limit_obj.as_int();
+
+    if (offset < 0) {
+      return SLP_ERROR("offset must be non-negative");
+    }
+
+    if (limit < 0) {
+      return SLP_ERROR("limit must be non-negative");
+    }
+
+    auto *store = session.get_store();
+    if (!store) {
+      return SLP_ERROR("session store not available");
+    }
+
+    std::int64_t current_index = 0;
+    std::int64_t processed_count = 0;
+
+    store->iterate(
+        prefix, [&](const std::string &key, const std::string &value) -> bool {
+          if (current_index < offset) {
+            current_index++;
+            return true;
+          }
+
+          if (processed_count >= limit) {
+            return false;
+          }
+
+          std::map<std::string, slp::slp_object_c> handler_context;
+          for (const auto &[k, v] : context) {
+            handler_context[k] = slp::slp_object_c::from_data(
+                v.get_data(), v.get_symbols(), v.get_root_offset());
+          }
+          handler_context["$key"] = SLP_STRING(key);
+
+          auto handler_list = handler_obj.as_list();
+          for (size_t i = 0; i < handler_list.size(); i++) {
+            auto result = runtime_info.eval_object(session, handler_list.at(i),
+                                                   handler_context);
+            if (result.type() == slp::slp_type_e::ERROR) {
+              logger->debug("[kv] iterate handler encountered error, stopping");
+              return false;
+            }
+          }
+
+          current_index++;
+          processed_count++;
+          return true;
+        });
+
+    logger->debug("[kv] iterate prefix {} offset {} limit {} processed {}",
+                  prefix, offset, limit, processed_count);
+    return SLP_BOOL(true);
+  };
+
+  group.functions["load"].return_type = slp::slp_type_e::SOME;
+  group.functions["load"].parameters = {
+      {"key", slp::slp_type_e::SYMBOL, false}};
+  group.functions["load"].can_return_error = false;
+  group.functions["load"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto logger = runtime_info.get_logger();
         auto list = args.as_list();
-        if (list.size() < 5) {
-          return SLP_ERROR(
-              "core/kv/iterate requires prefix, offset, limit, and "
-              "handler body");
+        if (list.size() < 2) {
+          return SLP_ERROR("core/kv/load requires key");
         }
 
-        auto prefix_obj = list.at(1);
-        auto offset_obj = list.at(2);
-        auto limit_obj = list.at(3);
-        auto handler_obj = list.at(4);
+        auto key_obj = list.at(1);
+        if (key_obj.type() != slp::slp_type_e::SYMBOL) {
+          return SLP_ERROR("key must be a symbol");
+        }
+        std::string key_symbol = key_obj.as_symbol();
 
-        auto prefix_result =
-            runtime_info.eval_object(session, prefix_obj, context);
-        std::string prefix;
-        if (prefix_result.type() == slp::slp_type_e::SYMBOL) {
-          prefix = prefix_result.as_symbol();
-        } else if (prefix_result.type() == slp::slp_type_e::DQ_LIST) {
-          prefix = prefix_result.as_string().to_string();
-        } else {
-          return SLP_ERROR("prefix must be symbol or string");
+        if (key_symbol != "$key") {
+          return SLP_ERROR("core/kv/load requires $key context variable");
         }
 
-        if (offset_obj.type() != slp::slp_type_e::INTEGER) {
-          return SLP_ERROR("offset must be integer");
+        auto context_it = context.find("$key");
+        if (context_it == context.end()) {
+          return SLP_ERROR("$key not available in context");
         }
 
-        if (limit_obj.type() != slp::slp_type_e::INTEGER) {
-          return SLP_ERROR("limit must be integer");
-        }
-
-        if (handler_obj.type() != slp::slp_type_e::BRACE_LIST) {
-          return SLP_ERROR("handler must be a brace list {}");
-        }
-
-        std::int64_t offset = offset_obj.as_int();
-        std::int64_t limit = limit_obj.as_int();
-
-        if (offset < 0) {
-          return SLP_ERROR("offset must be non-negative");
-        }
-
-        if (limit < 0) {
-          return SLP_ERROR("limit must be non-negative");
-        }
+        std::string key = object_to_storage_string(context_it->second);
 
         auto *store = session.get_store();
         if (!store) {
           return SLP_ERROR("session store not available");
         }
 
-        std::int64_t current_index = 0;
-        std::int64_t processed_count = 0;
+        std::string value;
+        bool success = store->get(key, value);
+        if (!success) {
+          return SLP_ERROR(
+              "core/kv/load failed (key not found or no permission)");
+        }
 
-        store->iterate(
-            prefix,
-            [&](const std::string &key, const std::string &value) -> bool {
-              if (current_index < offset) {
-                current_index++;
-                return true;
-              }
-
-              if (processed_count >= limit) {
-                return false;
-              }
-
-              std::map<std::string, slp::slp_object_c> handler_context;
-              for (const auto &[k, v] : context) {
-                handler_context[k] = slp::slp_object_c::from_data(
-                    v.get_data(), v.get_symbols(), v.get_root_offset());
-              }
-              handler_context["$key"] = SLP_STRING(key);
-
-              auto handler_list = handler_obj.as_list();
-              for (size_t i = 0; i < handler_list.size(); i++) {
-                auto result = runtime_info.eval_object(
-                    session, handler_list.at(i), handler_context);
-                if (result.type() == slp::slp_type_e::ERROR) {
-                  logger->debug(
-                      "[kv] iterate handler encountered error, stopping");
-                  return false;
-                }
-              }
-
-              current_index++;
-              processed_count++;
-              return true;
-            });
-
-        logger->debug("[kv] iterate prefix {} offset {} limit {} processed {}",
-                      prefix, offset, limit, processed_count);
-        return SLP_BOOL(true);
+        logger->debug("[kv] load {} = {}", key, value);
+        auto result = slp::parse("'" + value);
+        if (result.is_error()) {
+          return SLP_ERROR("core/kv/load failed to quote value");
+        }
+        return result.take();
       };
 
   return group;

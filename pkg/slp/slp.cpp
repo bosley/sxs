@@ -90,9 +90,13 @@ parse_result_internal_s parse_string(parser_state_s &state) {
   std::vector<size_t> char_offsets;
 
   while (!state.at_end() && state.current() != '"') {
+    char c = state.current();
+    if (c == '\\' && state.peek() != '\0') {
+      state.advance();
+      c = state.current();
+    }
     size_t rune_offset = allocate_unit(state, slp_type_e::RUNE);
-    state.get_unit(rune_offset)->data.uint32 =
-        static_cast<std::uint32_t>(state.current());
+    state.get_unit(rune_offset)->data.uint32 = static_cast<std::uint32_t>(c);
     char_offsets.push_back(rune_offset);
     state.advance();
   }
@@ -314,51 +318,74 @@ parse_result_internal_s parse_object(parser_state_s &state) {
 
   char c = state.current();
 
-  if (c == '\'') {
+  switch (c) {
+  case '\'':
+    [[fallthrough]];
+  case '@':
+    [[fallthrough]];
+  case '#':
+    [[fallthrough]];
+  case '?': {
+    slp_type_e type;
+    const char *err_msg;
+
+    switch (c) {
+    case '\'':
+      type = slp_type_e::SOME;
+      err_msg = "Quote operator requires an object";
+      break;
+    case '@':
+      type = slp_type_e::ERROR;
+      err_msg = "Error operator requires an object";
+      break;
+    case '#':
+      type = slp_type_e::DATUM;
+      err_msg = "Datum operator requires an object";
+      break;
+    case '?':
+      type = slp_type_e::ABERRANT;
+      err_msg = "Aberrant operator requires an object";
+      break;
+    default:
+      return parse_result_internal_s{std::nullopt, std::nullopt};
+    }
+
     state.advance();
     auto inner_result = parse_object(state);
     if (inner_result.error.has_value()) {
       return inner_result;
     }
 
-    size_t some_offset = allocate_unit(state, slp_type_e::SOME);
-    state.get_unit(some_offset)->data.data_ptr = reinterpret_cast<data_u *>(
-        state.get_unit(inner_result.unit_offset.value()));
-
-    return parse_result_internal_s{some_offset, std::nullopt};
-  }
-
-  if (c == '@') {
-    state.advance();
-    auto inner_result = parse_object(state);
-    if (inner_result.error.has_value()) {
-      return inner_result;
+    if (!inner_result.unit_offset.has_value()) {
+      slp_parse_error_s err;
+      err.error_code = slp_parse_error_e::ERROR_OPERATOR_REQUIRES_OBJECT;
+      err.message = err_msg;
+      err.byte_position = state.pos;
+      return parse_result_internal_s{std::nullopt, err};
     }
 
-    size_t error_offset = allocate_unit(state, slp_type_e::ERROR);
-    state.get_unit(error_offset)->data.data_ptr = reinterpret_cast<data_u *>(
+    size_t unit_offset = allocate_unit(state, type);
+    state.get_unit(unit_offset)->data.data_ptr = reinterpret_cast<data_u *>(
         state.get_unit(inner_result.unit_offset.value()));
 
-    return parse_result_internal_s{error_offset, std::nullopt};
+    return parse_result_internal_s{unit_offset, std::nullopt};
   }
 
-  if (c == '(') {
+  case '(':
     return parse_list(state, '(', ')', slp_type_e::PAREN_LIST);
-  }
 
-  if (c == '[') {
+  case '[':
     return handle_bracket_list(state);
-  }
 
-  if (c == '{') {
+  case '{':
     return parse_list(state, '{', '}', slp_type_e::BRACE_LIST);
-  }
 
-  if (c == '"') {
+  case '"':
     return parse_string(state);
-  }
 
-  return parse_atom(state);
+  default:
+    return parse_atom(state);
+  }
 }
 
 slp_object_c::list_c::list_c() : parent_(nullptr), is_valid_(false) {}

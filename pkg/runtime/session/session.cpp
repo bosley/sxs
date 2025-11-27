@@ -308,6 +308,11 @@ entity_c *session_subsystem_c::get_entity(const std::string &entity_id) {
   }
 
   auto entity = std::shared_ptr<entity_c>(std::move(entity_opt.value()));
+
+  entity->grant_permission("default", permission::READ_WRITE);
+  entity->grant_topic_permission(0, topic_permission::PUBSUB);
+  entity->save();
+
   entity_cache_[entity_id] = entity;
 
   return entity.get();
@@ -492,6 +497,26 @@ void session_subsystem_c::set_event_system(
     events::event_system_c *event_system) {
   event_system_ = event_system;
   logger_->info("[{}] Event system wired", name_);
+}
+
+bool session_subsystem_c::grant_entity_topic_range(const std::string &entity_id,
+                                                   std::uint16_t start,
+                                                   std::uint16_t end) {
+  entity_c *entity = get_entity(entity_id);
+  if (!entity) {
+    logger_->error("[{}] Cannot grant topic range: entity {} not found", name_,
+                   entity_id);
+    return false;
+  }
+
+  for (std::uint16_t topic = start; topic <= end; ++topic) {
+    entity->grant_topic_permission(topic, topic_permission::PUBSUB);
+  }
+  entity->save();
+
+  logger_->info("[{}] Granted topic range {}-{} to entity {}", name_, start,
+                end, entity_id);
+  return true;
 }
 
 } // namespace runtime

@@ -2,8 +2,6 @@
 #include "runtime/fns/helpers.hpp"
 #include "runtime/processor.hpp"
 #include "runtime/session/session.hpp"
-#include <any>
-#include <sstream>
 
 namespace runtime::fns {
 
@@ -11,7 +9,10 @@ function_group_s get_expr_functions(runtime_information_if &runtime_info) {
   function_group_s group;
   group.group_name = "core/expr";
 
-  group.functions["eval"] =
+  group.functions["eval"].return_type = slp::slp_type_e::NONE;
+  group.functions["eval"].parameters = {
+      {"script_text", slp::slp_type_e::NONE, true}};
+  group.functions["eval"].function =
       [&runtime_info](session_c &session, const slp::slp_object_c &args,
                       const std::map<std::string, slp::slp_object_c> &context) {
         auto list = args.as_list();
@@ -21,146 +22,78 @@ function_group_s get_expr_functions(runtime_information_if &runtime_info) {
 
         auto script_obj =
             runtime_info.eval_object(session, list.at(1), context);
-        std::string script_text = runtime_info.object_to_string(script_obj);
 
-        auto parse_result = slp::parse(script_text);
-        if (parse_result.is_error()) {
-          return SLP_ERROR("core/expr/eval parse error");
+        /*
+            Despite SLP being homoiconic, we take a step to compress SLP objects
+           (a form of hydration) when parsing them. We can execute them
+           directly, but 'eval' can take a raw unprocessed text (a string) and
+           evaluate that as well
+
+            So here, we check if we have a raw yet-to-be parsed string. If so
+            then we parse it before running
+
+            Otherwise we just eval the script object directlry
+        */
+        if (script_obj.type() == slp::slp_type_e::DQ_LIST) {
+          auto script_text = script_obj.as_string().to_string();
+          auto parse_result = slp::parse(script_text);
+          if (parse_result.is_error()) {
+            return SLP_ERROR("core/expr/eval parse error");
+          }
+          return runtime_info.eval_object(session, parse_result.object(),
+                                          context);
         }
 
-        return runtime_info.eval_object(session, parse_result.object(),
-                                        context);
+        // Already ready to be evaluated
+        return runtime_info.eval_object(session, script_obj, context);
       };
 
-  group.functions["await"] = [&runtime_info](
-                                 session_c &session,
-                                 const slp::slp_object_c &args,
-                                 const std::map<std::string, slp::slp_object_c>
-                                     &context) {
-    auto pending_awaits = runtime_info.get_pending_awaits();
-    auto pending_awaits_mutex = runtime_info.get_pending_awaits_mutex();
-    auto max_await_timeout = runtime_info.get_max_await_timeout();
-    auto list = args.as_list();
-    if (list.size() < 4) {
-      return SLP_ERROR(
-          "core/expr/await requires body, response-channel and response-topic");
-    }
+  group.functions["proc"].return_type = slp::slp_type_e::SYMBOL;
+  group.functions["proc"].parameters = {
+      {"processor_id", slp::slp_type_e::INTEGER, false},
+      {"body", slp::slp_type_e::BRACE_LIST, false}};
+  group.functions["proc"].function =
+      [&runtime_info](session_c &session, const slp::slp_object_c &args,
+                      const std::map<std::string, slp::slp_object_c> &context) {
+        auto logger = runtime_info.get_logger();
+        auto list = args.as_list();
+        if (list.size() < 3) {
+          return SLP_ERROR("core/expr/proc requires processor_id and body");
+        }
 
-    auto body_obj = list.at(1);
+        auto processor_id_obj = list.at(1);
+        auto body_obj = list.at(2);
 
-    std::map<std::string, slp::slp_object_c> channel_context;
-    channel_context["$CHANNEL_A"] = slp::parse("A").take();
-    channel_context["$CHANNEL_B"] = slp::parse("B").take();
-    channel_context["$CHANNEL_C"] = slp::parse("C").take();
-    channel_context["$CHANNEL_D"] = slp::parse("D").take();
-    channel_context["$CHANNEL_E"] = slp::parse("E").take();
-    channel_context["$CHANNEL_F"] = slp::parse("F").take();
+        if (processor_id_obj.type() != slp::slp_type_e::INTEGER) {
+          return SLP_ERROR("processor_id must be integer");
+        }
 
-    auto resp_channel_obj =
-        runtime_info.eval_object(session, list.at(2), channel_context);
-    auto resp_topic_obj = list.at(3);
+        if (body_obj.type() != slp::slp_type_e::BRACE_LIST) {
+          return SLP_ERROR("body must be a brace list {}");
+        }
 
-    if (resp_channel_obj.type() != slp::slp_type_e::SYMBOL) {
-      return SLP_ERROR(
-          "response channel must be $CHANNEL_A through $CHANNEL_F");
-    }
+        std::uint16_t processor_id =
+            static_cast<std::uint16_t>(processor_id_obj.as_int());
+        std::string script_text = runtime_info.object_to_string(body_obj);
 
-    if (resp_topic_obj.type() != slp::slp_type_e::INTEGER) {
-      return SLP_ERROR("response topic must be integer");
-    }
+        publish_result_e result = runtime_info.publish_to_processor(
+            session, processor_id, script_text, "proc_exec");
 
-    std::string channel_sym = resp_channel_obj.as_symbol();
-    events::event_category_e category;
+        switch (result) {
+        case publish_result_e::OK:
+          break;
+        case publish_result_e::NO_PRODUCER:
+          return SLP_ERROR("core/expr/proc failed (no producer)");
+        case publish_result_e::NO_TOPIC_WRITER:
+          return SLP_ERROR("core/expr/proc failed (processor not configured)");
+        default:
+          return SLP_ERROR("core/expr/proc failed (unknown error)");
+        }
 
-    if (channel_sym == "A") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_A;
-    } else if (channel_sym == "B") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_B;
-    } else if (channel_sym == "C") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_C;
-    } else if (channel_sym == "D") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_D;
-    } else if (channel_sym == "E") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_E;
-    } else if (channel_sym == "F") {
-      category = events::event_category_e::RUNTIME_BACKCHANNEL_F;
-    } else {
-      return SLP_ERROR("invalid channel (must be A, B, C, D, E, or F)");
-    }
-
-    std::uint16_t topic_id =
-        static_cast<std::uint16_t>(resp_topic_obj.as_int());
-
-    std::string await_id =
-        session.get_id() + "_" +
-        std::to_string(
-            std::chrono::steady_clock::now().time_since_epoch().count());
-
-    auto pending = std::make_shared<runtime_information_if::pending_await_s>();
-
-    {
-      std::lock_guard<std::mutex> lock(*pending_awaits_mutex);
-      (*pending_awaits)[await_id] = pending;
-    }
-
-    bool sub_success = session.subscribe_to_topic(
-        category, topic_id,
-        [await_id, pending,
-         pending_awaits_mutex](const events::event_s &event) {
-          std::string event_data;
-          try {
-            event_data = std::any_cast<std::string>(event.payload);
-          } catch (...) {
-            event_data = "<event data>";
-          }
-
-          std::lock_guard<std::mutex> lock(pending->mutex);
-          pending->result = SLP_STRING(event_data);
-          pending->completed = true;
-          pending->cv.notify_one();
-        });
-
-    if (!sub_success) {
-      std::lock_guard<std::mutex> lock(*pending_awaits_mutex);
-      pending_awaits->erase(await_id);
-      return SLP_ERROR("core/expr/await failed to subscribe");
-    }
-
-    auto body_result = runtime_info.eval_object(session, body_obj, context);
-    if (body_result.type() == slp::slp_type_e::ERROR) {
-      session.unsubscribe_from_topic(category, topic_id);
-      std::lock_guard<std::mutex> lock(*pending_awaits_mutex);
-      pending_awaits->erase(await_id);
-      return body_result;
-    }
-
-    {
-      std::unique_lock<std::mutex> lock(pending->mutex);
-      if (!pending->cv.wait_for(lock, max_await_timeout,
-                                [&pending] { return pending->completed; })) {
-        session.unsubscribe_from_topic(category, topic_id);
-        std::lock_guard<std::mutex> await_lock(*pending_awaits_mutex);
-        pending_awaits->erase(await_id);
-        return SLP_ERROR("core/expr/await timeout waiting for response");
-      }
-    }
-
-    session.unsubscribe_from_topic(category, topic_id);
-    slp::slp_object_c result;
-    {
-      std::lock_guard<std::mutex> lock(pending->mutex);
-      result = slp::slp_object_c::from_data(pending->result.get_data(),
-                                            pending->result.get_symbols(),
-                                            pending->result.get_root_offset());
-    }
-
-    {
-      std::lock_guard<std::mutex> lock(*pending_awaits_mutex);
-      pending_awaits->erase(await_id);
-    }
-
-    return result;
-  };
+        logger->debug("[expr] proc sent to processor {} with body {}",
+                      processor_id, script_text);
+        return SLP_BOOL(true);
+      };
 
   return group;
 }
