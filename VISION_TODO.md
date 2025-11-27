@@ -1,3 +1,19 @@
+pivot.
+
+we use this to describe a virtual machine. the language is used to describe a virtual machine like nabla or others ive made. Then from the schematic this sxs program will read that in and combile an executable that is the virtual processor and also an executable that is the assembler for that processor. 
+
+This means it would "make nabla" and "make solace" so then the programmer could write the assembly, compile it with their assembler and then run that resulting binary with the other binary this program produces
+
+
+
+
+
+
+
+
+
+
+
 We have the COMMANDS and type stuff down enugh for this level i think.
 We can validate types for any given block of code and can work
 
