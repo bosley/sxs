@@ -112,25 +112,8 @@ sxs_object_t create_string_callback(const char *value) {
     return create_none_callback();
   }
 
-  std::string str(value);
-  std::string escaped;
-  escaped.reserve(str.length() + 2);
-
-  for (char c : str) {
-    if (c == '"' || c == '\\') {
-      escaped += '\\';
-    }
-    escaped += c;
-  }
-
-  auto parse_result = slp::parse("\"" + escaped + "\"");
-  if (parse_result.is_error()) {
-    return create_none_callback();
-  }
-
-  auto obj = parse_result.take();
-  return new slp::slp_object_c(slp::slp_object_c::from_data(
-      obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+  auto obj = slp::create_string_direct(std::string(value));
+  return new slp::slp_object_c(std::move(obj));
 }
 
 } // namespace

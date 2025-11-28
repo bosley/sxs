@@ -1,6 +1,7 @@
 [
     #(load "io")
     #(load "random")
+    #(load "alu")
 
     (io/put "TEST_IO_PUT_SIMPLE:Hello World")
     (io/put "|||")
@@ -33,6 +34,74 @@
     (io/put "TEST_RANDOM_ALPHA_LEN:%s" (random/string_alpha 15))
     (io/put "|||")
     (io/put "TEST_RANDOM_ALPHA_LEN:%s" (random/string_alpha 5))
+    (io/put "|||")
+    
+    (io/put "TEST_ALU_ADD:%d" (alu/add 5 3))
+    (io/put "|||")
+    (io/put "TEST_ALU_SUB:%d" (alu/sub 10 4))
+    (io/put "|||")
+    (io/put "TEST_ALU_MUL:%d" (alu/mul 7 6))
+    (io/put "|||")
+    (io/put "TEST_ALU_DIV:%d" (alu/div 20 4))
+    (io/put "|||")
+    (io/put "TEST_ALU_DIV_ZERO:%d" (alu/div 10 0))
+    (io/put "|||")
+    (io/put "TEST_ALU_MOD:%d" (alu/mod 17 5))
+    (io/put "|||")
+    (io/put "TEST_ALU_MOD_ZERO:%d" (alu/mod 10 0))
+    (io/put "|||")
+    
+    (io/put "TEST_ALU_ADD_R:%f" (alu/add_r 5.5 3.2))
+    (io/put "|||")
+    (io/put "TEST_ALU_SUB_R:%f" (alu/sub_r 10.5 4.2))
+    (io/put "|||")
+    (io/put "TEST_ALU_MUL_R:%f" (alu/mul_r 2.5 4.0))
+    (io/put "|||")
+    (io/put "TEST_ALU_DIV_R:%f" (alu/div_r 15.0 3.0))
+    (io/put "|||")
+    (io/put "TEST_ALU_DIV_R_ZERO:%f" (alu/div_r 10.0 0.0))
+    (io/put "|||")
+    
+    (def x 7)
+    (def y 3)
+    (io/put "TEST_ALU_ADD_VAR:%d" (alu/add x y))
+    (io/put "|||")
+    (io/put "TEST_ALU_MUL_VAR:%d" (alu/mul x y))
+    (io/put "|||")
+    (io/put "TEST_ALU_SUB_VAR:%d" (alu/sub x y))
+    (io/put "|||")
+    
+    (def a 12.5)
+    (def b 2.5)
+    (io/put "TEST_ALU_ADD_R_VAR:%f" (alu/add_r a b))
+    (io/put "|||")
+    (io/put "TEST_ALU_DIV_R_VAR:%f" (alu/div_r a b))
+    (io/put "|||")
+    
+    (def result (alu/add (alu/mul 2 3) (alu/sub 10 5)))
+    (io/put "TEST_ALU_NESTED:%d" result)
+    (io/put "|||")
+    
+    (def my_fn (fn (n :int) :int [
+        (alu/mul n 2)
+    ]))
+    
+    (def z 5)
+    (io/put "TEST_ALU_LAMBDA:%d" (alu/add (my_fn 3) z))
+    (io/put "|||")
+    
+    (def double_r (fn (val :real) :real [
+        (alu/mul_r val 2.0)
+    ]))
+    
+    (io/put "TEST_ALU_LAMBDA_R:%f" (alu/add_r (double_r 3.5) 1.0))
+    (io/put "|||")
+    
+    (def compute (fn (a :int b :int) :int [
+        (alu/add (alu/mul a 2) b)
+    ]))
+    
+    (io/put "TEST_ALU_LAMBDA_COMPLEX:%d" (alu/mul (compute 4 3) 2))
     (io/put "|||")
     
     (io/put "TEST_COMPLETE")

@@ -126,6 +126,7 @@ private:
   std::map<std::uint64_t, std::string> symbols_;
 
   friend slp_parse_result_c parse(const std::string &source);
+  friend slp_object_c create_string_direct(const std::string &str);
   friend class ::slp_test_accessor;
 };
 
@@ -167,5 +168,7 @@ private:
 };
 
 extern slp_parse_result_c parse(const std::string &source);
+
+extern slp_object_c create_string_direct(const std::string &str);
 
 } // namespace slp
