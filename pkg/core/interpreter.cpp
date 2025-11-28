@@ -1,4 +1,6 @@
 #include "interpreter.hpp"
+#include "core/imports/imports.hpp"
+#include "core/kernels/kernels.hpp"
 #include "datum/datum.hpp"
 #include <fmt/core.h>
 #include <stdexcept>
@@ -15,9 +17,12 @@ struct function_definition_s {
 class interpreter_c : public callable_context_if {
 public:
   interpreter_c(
-      const std::map<std::string, callable_symbol_s> &callable_symbols)
-      : callable_symbols_(callable_symbols), next_lambda_id_(1),
-        current_scope_level_(0) {
+      const std::map<std::string, callable_symbol_s> &callable_symbols,
+      imports::import_context_if *import_context,
+      kernels::kernel_context_if *kernel_context)
+      : callable_symbols_(callable_symbols), import_context_(import_context),
+        kernel_context_(kernel_context), next_lambda_id_(1),
+        current_scope_level_(0), imports_locks_triggered_(false) {
     initialize_type_map();
     push_scope();
   }
@@ -116,6 +121,13 @@ public:
       slp::slp_object_c result;
       for (size_t i = 0; i < list.size(); i++) {
         auto elem = list.at(i);
+
+        if (!imports_locks_triggered_ &&
+            elem.type() != slp::slp_type_e::DATUM) {
+          trigger_import_locks();
+          imports_locks_triggered_ = true;
+        }
+
         result = eval(elem);
       }
       return result;
@@ -192,7 +204,47 @@ public:
     return true;
   }
 
+  imports::import_context_if *get_import_context() override {
+    return import_context_;
+  }
+
+  kernels::kernel_context_if *get_kernel_context() override {
+    return kernel_context_;
+  }
+
+  bool copy_lambda_from(callable_context_if *source,
+                        std::uint64_t lambda_id) override {
+    auto *source_interpreter = dynamic_cast<interpreter_c *>(source);
+    if (!source_interpreter) {
+      return false;
+    }
+
+    auto it = source_interpreter->lambda_definitions_.find(lambda_id);
+    if (it == source_interpreter->lambda_definitions_.end()) {
+      return false;
+    }
+
+    function_definition_s def;
+    def.parameters = it->second.parameters;
+    def.return_type = it->second.return_type;
+    def.body = slp::slp_object_c::from_data(it->second.body.get_data(),
+                                            it->second.body.get_symbols(),
+                                            it->second.body.get_root_offset());
+    def.scope_level = current_scope_level_;
+
+    lambda_definitions_[lambda_id] = std::move(def);
+    return true;
+  }
+
 private:
+  void trigger_import_locks() {
+    if (import_context_) {
+      import_context_->lock();
+    }
+    if (kernel_context_) {
+      kernel_context_->lock();
+    }
+  }
   void initialize_type_map() {
     std::vector<std::pair<std::string, slp::slp_type_e>> base_types = {
         {"int", slp::slp_type_e::INTEGER},
@@ -297,11 +349,17 @@ private:
   std::map<std::string, slp::slp_type_e> type_symbol_map_;
   std::uint64_t next_lambda_id_;
   size_t current_scope_level_;
+  imports::import_context_if *import_context_;
+  kernels::kernel_context_if *kernel_context_;
+  bool imports_locks_triggered_;
 };
 
 std::unique_ptr<callable_context_if> create_interpreter(
-    const std::map<std::string, callable_symbol_s> &callable_symbols) {
-  return std::make_unique<interpreter_c>(callable_symbols);
+    const std::map<std::string, callable_symbol_s> &callable_symbols,
+    imports::import_context_if *import_context,
+    kernels::kernel_context_if *kernel_context) {
+  return std::make_unique<interpreter_c>(callable_symbols, import_context,
+                                         kernel_context);
 }
 
 } // namespace pkg::core

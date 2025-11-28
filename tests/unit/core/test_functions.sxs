@@ -1,14 +1,14 @@
 [
-    (set add-two (fn (a :int b :int) :int [
+    (def add-two (fn (a :int b :int) :int [
         (debug "Inside add-two:" a b)
-        (set result-placeholder 0)
+        (def result-placeholder 0)
     ]))
     
     (debug "Function defined, type check")
     
-    (set simple-fn (fn () :int [
+    (def simple-fn (fn () :int [
         (debug "No params function")
-        (set ret 42)
+        (def ret 42)
     ]))
     
     (debug "Calling simple-fn")
@@ -17,16 +17,16 @@
     (debug "Calling add-two with args")
     (add-two 10 20)
     
-    (set with-return (fn (x :int) :int [
+    (def with-return (fn (x :int) :int [
         (debug "Param value:" x)
-        (set doubled 999)
+        (def doubled 999)
     ]))
     
     (with-return 5)
     
-    (set multi-param (fn (a :int b :real c :symbol) :int [
+    (def multi-param (fn (a :int b :real c :symbol) :int [
         (debug "Multi params:" a b c)
-        (set done 1)
+        (def done 1)
     ]))
     
     (multi-param 100 3.14 test-symbol)

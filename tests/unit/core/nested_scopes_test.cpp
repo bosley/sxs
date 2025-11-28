@@ -36,14 +36,14 @@ TEST_CASE("nested scopes - parse and execute", "[unit][core][nested][parse]") {
 TEST_CASE("nested scopes - deep nesting visibility",
           "[unit][core][nested][visibility]") {
   std::string source = R"([
-    (set level1 100)
-    (set fn1 (fn () :int [
-      (set level2 200)
-      (set fn2 (fn () :int [
-        (set level3 300)
-        (set fn3 (fn () :int [
-          (set level4 400)
-          (set all-levels level1)
+    (def level1 100)
+    (def fn1 (fn () :int [
+      (def level2 200)
+      (def fn2 (fn () :int [
+        (def level3 300)
+        (def fn3 (fn () :int [
+          (def level4 400)
+          (def all-levels level1)
         ]))
         (fn3)
       ]))
@@ -71,23 +71,23 @@ TEST_CASE("nested scopes - deep nesting visibility",
 TEST_CASE("nested scopes - shadowing at multiple levels",
           "[unit][core][nested][shadow]") {
   std::string source = R"([
-    (set x 1)
-    (set fn1 (fn () :int [
-      (set x 2)
-      (set fn2 (fn () :int [
-        (set x 3)
-        (set fn3 (fn () :int [
-          (set x 4)
-          (set deepest x)
+    (def x 1)
+    (def fn1 (fn () :int [
+      (def x 2)
+      (def fn2 (fn () :int [
+        (def x 3)
+        (def fn3 (fn () :int [
+          (def x 4)
+          (def deepest x)
         ]))
         (fn3)
-        (set level3-x x)
+        (def level3-x x)
       ]))
       (fn2)
-      (set level2-x x)
+      (def level2-x x)
     ]))
     (fn1)
-    (set level1-x x)
+    (def level1-x x)
   ])";
 
   auto parse_result = slp::parse(source);
@@ -111,12 +111,12 @@ TEST_CASE("nested scopes - shadowing at multiple levels",
 TEST_CASE("nested scopes - nested functions",
           "[unit][core][nested][functions]") {
   std::string source = R"([
-    (set outer-fn (fn (x :int) :int [
-      (set inner-fn (fn (y :int) :int [
-        (set sum 42)
+    (def outer-fn (fn (x :int) :int [
+      (def inner-fn (fn (y :int) :int [
+        (def sum 42)
       ]))
       (inner-fn 20)
-      (set result 1)
+      (def result 1)
     ]))
     (outer-fn 10)
   ])";
@@ -137,9 +137,9 @@ TEST_CASE("nested scopes - nested functions",
 TEST_CASE("nested scopes - function accessing outer scope",
           "[unit][core][nested][capture]") {
   std::string source = R"([
-    (set outer-var 999)
-    (set fn-captures (fn (x :int) :int [
-      (set captured outer-var)
+    (def outer-var 999)
+    (def fn-captures (fn (x :int) :int [
+      (def captured outer-var)
     ]))
     (fn-captures 1)
   ])";
@@ -157,17 +157,17 @@ TEST_CASE("nested scopes - function accessing outer scope",
 TEST_CASE("nested scopes - multiple nested bracket scopes",
           "[unit][core][nested][brackets]") {
   std::string source = R"([
-    (set a 1)
-    (set fn1 (fn () :int [
-      (set b 2)
-      (set fn2 (fn () :int [
-        (set c 3)
+    (def a 1)
+    (def fn1 (fn () :int [
+      (def b 2)
+      (def fn2 (fn () :int [
+        (def c 3)
       ]))
       (fn2)
-      (set after-c a)
+      (def after-c a)
     ]))
     (fn1)
-    (set final a)
+    (def final a)
   ])";
 
   auto parse_result = slp::parse(source);
@@ -189,12 +189,12 @@ TEST_CASE("nested scopes - multiple nested bracket scopes",
 TEST_CASE("nested scopes - scope isolation between siblings",
           "[unit][core][nested][sibling]") {
   std::string source = R"([
-    (set fn1 (fn () :int [
-      (set first-scope 1)
+    (def fn1 (fn () :int [
+      (def first-scope 1)
     ]))
     (fn1)
-    (set fn2 (fn () :int [
-      (set second-scope 2)
+    (def fn2 (fn () :int [
+      (def second-scope 2)
     ]))
     (fn2)
   ])";

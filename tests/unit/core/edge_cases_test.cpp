@@ -51,8 +51,8 @@ TEST_CASE("edge cases - undefined symbol as function call",
 
 TEST_CASE("edge cases - wrong argument count", "[unit][core][edge][argcount]") {
   std::string source = R"([
-    (set fn-two-args (fn (a :int b :int) :int [
-      (set r 1)
+    (def fn-two-args (fn (a :int b :int) :int [
+      (def r 1)
     ]))
     (fn-two-args 42)
   ])";
@@ -69,8 +69,8 @@ TEST_CASE("edge cases - wrong argument count", "[unit][core][edge][argcount]") {
 
 TEST_CASE("edge cases - too many arguments", "[unit][core][edge][toomany]") {
   std::string source = R"([
-    (set fn-one-arg (fn (x :int) :int [
-      (set r 1)
+    (def fn-one-arg (fn (x :int) :int [
+      (def r 1)
     ]))
     (fn-one-arg 1 2 3)
   ])";
@@ -83,33 +83,6 @@ TEST_CASE("edge cases - too many arguments", "[unit][core][edge][toomany]") {
 
   auto obj = parse_result.take();
   CHECK_THROWS_AS(interpreter->eval(obj), std::exception);
-}
-
-TEST_CASE("edge cases - symbol shadowing function name",
-          "[unit][core][edge][shadow]") {
-  std::string source = R"([
-    (set my-fn (fn (x :int) :int [
-      (set r 1)
-    ]))
-    (my-fn 42)
-    (set my-fn 999)
-  ])";
-
-  auto parse_result = slp::parse(source);
-  REQUIRE(parse_result.is_success());
-
-  auto symbols = pkg::core::instructions::get_standard_callable_symbols();
-  auto interpreter = pkg::core::create_interpreter(symbols);
-
-  auto obj = parse_result.take();
-  CHECK_NOTHROW(interpreter->eval(obj));
-
-  auto my_fn_parsed = slp::parse("my-fn");
-  REQUIRE(my_fn_parsed.is_success());
-  auto my_fn_obj = my_fn_parsed.take();
-  auto my_fn_val = interpreter->eval(my_fn_obj);
-  CHECK(my_fn_val.type() == slp::slp_type_e::INTEGER);
-  CHECK(my_fn_val.as_int() == 999);
 }
 
 TEST_CASE("edge cases - accessing undefined symbol",
@@ -130,8 +103,8 @@ TEST_CASE("edge cases - accessing undefined symbol",
 
 TEST_CASE("edge cases - empty function body", "[unit][core][edge][empty]") {
   std::string source = R"([
-    (set empty (fn () :int [
-      (set dummy 0)
+    (def empty (fn () :int [
+      (def dummy 0)
     ]))
     (empty)
   ])";
@@ -149,9 +122,9 @@ TEST_CASE("edge cases - empty function body", "[unit][core][edge][empty]") {
 TEST_CASE("edge cases - function parameter shadowing",
           "[unit][core][edge][param-shadow]") {
   std::string source = R"([
-    (set outer-x 100)
-    (set shadow-fn (fn (x :int) :int [
-      (set inner-x x)
+    (def outer-x 100)
+    (def shadow-fn (fn (x :int) :int [
+      (def inner-x x)
     ]))
     (shadow-fn 42)
   ])";

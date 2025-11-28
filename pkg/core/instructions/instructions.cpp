@@ -1,4 +1,5 @@
 #include "instructions.hpp"
+#include "core/imports/imports.hpp"
 #include "core/interpreter.hpp"
 #include <fmt/core.h>
 
@@ -8,7 +9,7 @@ std::map<std::string, pkg::core::callable_symbol_s>
 get_standard_callable_symbols() {
   std::map<std::string, pkg::core::callable_symbol_s> symbols;
 
-  symbols["set"] = callable_symbol_s{
+  symbols["def"] = callable_symbol_s{
       .return_type = slp::slp_type_e::NONE,
       .required_parameters = {},
       .variadic = false,
@@ -16,16 +17,22 @@ get_standard_callable_symbols() {
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
         auto list = args_list.as_list();
         if (list.size() != 3) {
-          throw std::runtime_error("set requires exactly 2 arguments");
+          throw std::runtime_error("def requires exactly 2 arguments");
         }
 
         auto symbol_obj = list.at(1);
         if (symbol_obj.type() != slp::slp_type_e::SYMBOL) {
           throw std::runtime_error(
-              "set requires first argument to be a symbol");
+              "def requires first argument to be a symbol");
         }
 
         std::string symbol_name = symbol_obj.as_symbol();
+
+        if (context.has_symbol(symbol_name, true)) {
+          throw std::runtime_error(fmt::format(
+              "Symbol '{}' is already defined in current scope", symbol_name));
+        }
+
         auto value_obj = list.at(2);
         auto evaluated_value = context.eval(value_obj);
 
@@ -153,6 +160,42 @@ get_standard_callable_symbols() {
           }
         }
         fmt::print("\n");
+
+        slp::slp_object_c result;
+        return result;
+      }};
+
+  symbols["export"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::NONE,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 3) {
+          throw std::runtime_error(
+              "export requires exactly 2 arguments: name and value");
+        }
+
+        auto name_obj = list.at(1);
+        if (name_obj.type() != slp::slp_type_e::SYMBOL) {
+          throw std::runtime_error(
+              "export: first argument must be a symbol (export name)");
+        }
+
+        std::string export_name = name_obj.as_symbol();
+        auto value_obj = list.at(2);
+        auto evaluated_value = context.eval(value_obj);
+
+        auto import_context = context.get_import_context();
+        if (!import_context) {
+          throw std::runtime_error("export: no import context available");
+        }
+
+        if (!import_context->register_export(export_name, evaluated_value)) {
+          throw std::runtime_error(
+              fmt::format("export: failed to register export {}", export_name));
+        }
 
         slp::slp_object_c result;
         return result;

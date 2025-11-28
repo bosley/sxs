@@ -1,0 +1,7 @@
+[
+    #(import config "test_import_exported_values.sxs")
+    
+    (debug "Version:" config/version)
+    (debug "Max count:" config/max_count)
+]
+

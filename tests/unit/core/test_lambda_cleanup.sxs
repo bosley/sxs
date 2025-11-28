@@ -1,25 +1,25 @@
 [
-    (set persistent-fn (fn (x :int) :int [
+    (def persistent-fn (fn (x :int) :int [
         (debug "Persistent function:" x)
-        (set r 1)
+        (def r 1)
     ]))
     
     (debug "Calling persistent function")
     (persistent-fn 42)
     
     [
-        (set scoped-fn (fn (y :int) :int [
+        (def scoped-fn (fn (y :int) :int [
             (debug "Scoped function:" y)
-            (set r 2)
+            (def r 2)
         ]))
         
         (debug "Calling scoped function inside scope")
         (scoped-fn 100)
         
         [
-            (set deep-scoped-fn (fn (z :int) :int [
+            (def deep-scoped-fn (fn (z :int) :int [
                 (debug "Deep scoped function:" z)
-                (set r 3)
+                (def r 3)
             ]))
             
             (debug "Calling deep scoped function")

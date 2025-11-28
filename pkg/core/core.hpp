@@ -7,6 +7,14 @@
 
 namespace pkg::core {
 
+namespace imports {
+class imports_manager_c;
+}
+
+namespace kernels {
+class kernel_manager_c;
+}
+
 typedef std::shared_ptr<spdlog::logger> logger_t;
 
 struct option_s {
@@ -25,6 +33,8 @@ public:
 
 private:
   option_s options_;
+  std::unique_ptr<imports::imports_manager_c> imports_manager_;
+  std::unique_ptr<kernels::kernel_manager_c> kernel_manager_;
 };
 
 } // namespace pkg::core

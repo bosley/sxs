@@ -14,7 +14,7 @@
     ; the params are to be evaluated at call site, checked for type based on
     ; the definition of the target lambda, and then iff pass, we push scope,
     ; set the symbols, interpret the body, then pop the scope, and return the result
-    (set x (fn (a :int b :int) :int [
+    (def x (fn (a :int b :int) :int [
         (debug "Hello from function!" a b)
     ]))
 

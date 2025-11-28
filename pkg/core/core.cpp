@@ -1,6 +1,8 @@
 #include "core.hpp"
+#include "imports/imports.hpp"
 #include "instructions/instructions.hpp"
 #include "interpreter.hpp"
+#include "kernels/kernels.hpp"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -19,6 +21,14 @@ core_c::core_c(const option_s &options) : options_(options) {
   if (!std::filesystem::exists(options_.file_path)) {
     throw std::runtime_error("File does not exist: " + options_.file_path);
   }
+
+  imports_manager_ = std::make_unique<imports::imports_manager_c>(
+      options_.logger->clone("imports"), options_.include_paths,
+      options_.working_directory);
+
+  kernel_manager_ = std::make_unique<kernels::kernel_manager_c>(
+      options_.logger->clone("kernels"), options_.include_paths,
+      options_.working_directory);
 }
 
 core_c::~core_c() = default;
@@ -52,10 +62,17 @@ int core_c::run() {
     options_.logger->info("Parse successful");
 
     auto symbols = instructions::get_standard_callable_symbols();
-    auto interpreter = create_interpreter(symbols);
+    auto interpreter =
+        create_interpreter(symbols, &imports_manager_->get_import_context(),
+                           &kernel_manager_->get_kernel_context());
+
+    imports_manager_->set_parent_context(interpreter.get());
 
     auto obj = parse_result.take();
     auto result = interpreter->eval(obj);
+
+    imports_manager_->lock_imports();
+    kernel_manager_->lock_kernels();
 
     options_.logger->info("Execution complete");
 

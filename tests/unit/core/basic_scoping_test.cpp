@@ -43,9 +43,9 @@ TEST_CASE("basic scoping - parse and execute", "[unit][core][scoping][parse]") {
 TEST_CASE("basic scoping - symbol visibility after scope exit",
           "[unit][core][scoping][visibility]") {
   std::string source = R"([
-    (set outer 100)
-    (set test-fn (fn () :int [
-      (set inner 42)
+    (def outer 100)
+    (def test-fn (fn () :int [
+      (def inner 42)
     ]))
     (test-fn)
   ])";
@@ -66,13 +66,13 @@ TEST_CASE("basic scoping - symbol visibility after scope exit",
 TEST_CASE("basic scoping - symbol shadowing",
           "[unit][core][scoping][shadowing]") {
   std::string source = R"([
-    (set x 100)
-    (set shadow-fn (fn () :int [
-      (set x 200)
-      (set inner-x x)
+    (def x 100)
+    (def shadow-fn (fn () :int [
+      (def x 200)
+      (def inner-x x)
     ]))
     (shadow-fn)
-    (set outer-x x)
+    (def outer-x x)
   ])";
 
   auto parse_result = slp::parse(source);
@@ -97,9 +97,9 @@ TEST_CASE("basic scoping - symbol shadowing",
 TEST_CASE("basic scoping - nested scope access to outer",
           "[unit][core][scoping][nested]") {
   std::string source = R"([
-    (set outer 999)
-    (set capture-fn (fn () :int [
-      (set captured outer)
+    (def outer 999)
+    (def capture-fn (fn () :int [
+      (def captured outer)
     ]))
     (capture-fn)
   ])";

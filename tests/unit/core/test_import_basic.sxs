@@ -1,0 +1,6 @@
+[
+    #(import testlib "test_import_exported_basic.sxs")
+    
+    (testlib/greet "World")
+]
+

@@ -36,12 +36,12 @@ TEST_CASE("lambda cleanup - parse and execute", "[unit][core][lambda][parse]") {
 TEST_CASE("lambda cleanup - persistent function remains callable",
           "[unit][core][lambda][persistent]") {
   std::string source = R"([
-    (set persistent (fn (x :int) :int [
-      (set r 1)
+    (def persistent (fn (x :int) :int [
+      (def r 1)
     ]))
-    (set outer (fn () :int [
-      (set scoped (fn (y :int) :int [
-        (set r 2)
+    (def outer (fn () :int [
+      (def scoped (fn (y :int) :int [
+        (def r 2)
       ]))
       (scoped 100)
     ]))
@@ -65,9 +65,9 @@ TEST_CASE("lambda cleanup - persistent function remains callable",
 TEST_CASE("lambda cleanup - scoped function symbol removed",
           "[unit][core][lambda][removed]") {
   std::string source = R"([
-    (set outer (fn () :int [
-      (set inner-fn (fn (x :int) :int [
-        (set r 1)
+    (def outer (fn () :int [
+      (def inner-fn (fn (x :int) :int [
+        (def r 1)
       ]))
       (inner-fn 10)
     ]))
@@ -89,12 +89,12 @@ TEST_CASE("lambda cleanup - scoped function symbol removed",
 TEST_CASE("lambda cleanup - calling removed lambda fails",
           "[unit][core][lambda][call-removed]") {
   std::string source = R"([
-    (set saved-fn none)
-    (set outer (fn () :int [
-      (set temp-fn (fn (x :int) :int [
-        (set r 1)
+    (def saved-fn none)
+    (def outer (fn () :int [
+      (def temp-fn (fn (x :int) :int [
+        (def r 1)
       ]))
-      (set saved-fn temp-fn)
+      (def saved-fn temp-fn)
     ]))
     (outer)
     (saved-fn 42)
@@ -113,16 +113,16 @@ TEST_CASE("lambda cleanup - calling removed lambda fails",
 TEST_CASE("lambda cleanup - nested scope lambda cleanup",
           "[unit][core][lambda][nested]") {
   std::string source = R"([
-    (set level1-fn (fn (x :int) :int [
-      (set r 1)
+    (def level1-fn (fn (x :int) :int [
+      (def r 1)
     ]))
-    (set fn-outer (fn () :int [
-      (set level2-fn (fn (x :int) :int [
-        (set r 2)
+    (def fn-outer (fn () :int [
+      (def level2-fn (fn (x :int) :int [
+        (def r 2)
       ]))
-      (set fn-inner (fn () :int [
-        (set level3-fn (fn (x :int) :int [
-          (set r 3)
+      (def fn-inner (fn () :int [
+        (def level3-fn (fn (x :int) :int [
+          (def r 3)
         ]))
       ]))
       (fn-inner)
@@ -147,10 +147,10 @@ TEST_CASE("lambda cleanup - nested scope lambda cleanup",
 TEST_CASE("lambda cleanup - multiple lambdas in same scope",
           "[unit][core][lambda][multiple]") {
   std::string source = R"([
-    (set outer (fn () :int [
-      (set fn1 (fn (x :int) :int [ (set r 1) ]))
-      (set fn2 (fn (x :int) :int [ (set r 2) ]))
-      (set fn3 (fn (x :int) :int [ (set r 3) ]))
+    (def outer (fn () :int [
+      (def fn1 (fn (x :int) :int [ (def r 1) ]))
+      (def fn2 (fn (x :int) :int [ (def r 2) ]))
+      (def fn3 (fn (x :int) :int [ (def r 3) ]))
       (fn1 1)
       (fn2 2)
       (fn3 3)
@@ -175,12 +175,12 @@ TEST_CASE("lambda cleanup - multiple lambdas in same scope",
 TEST_CASE("lambda cleanup - lambda in function scope",
           "[unit][core][lambda][function-scope]") {
   std::string source = R"([
-    (set outer (fn (x :int) :int [
-      (set inner (fn (y :int) :int [
-        (set r 1)
+    (def outer (fn (x :int) :int [
+      (def inner (fn (y :int) :int [
+        (def r 1)
       ]))
       (inner x)
-      (set result 42)
+      (def result 42)
     ]))
     (outer 10)
   ])";

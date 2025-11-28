@@ -1,0 +1,7 @@
+[
+    #(import test_import "kernel_test_import_file_no_kernel.sxs")
+
+    (debug "Calling imported function")
+    (test_import/some_function 42)
+]
+

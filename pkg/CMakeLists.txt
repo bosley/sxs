@@ -99,6 +99,8 @@ add_library(pkg_core STATIC
     core/interpreter.cpp
     core/datum/datum.cpp
     core/instructions/instructions.cpp
+    core/imports/imports.cpp
+    core/kernels/kernels.cpp
 )
 
 target_include_directories(pkg_core PUBLIC

@@ -37,8 +37,8 @@ TEST_CASE("type checking - parse and execute all correct types",
 TEST_CASE("type checking - integer parameter validation",
           "[unit][core][types][int]") {
   std::string source = R"([
-    (set int-fn (fn (x :int) :int [
-      (set r 1)
+    (def int-fn (fn (x :int) :int [
+      (def r 1)
     ]))
     (int-fn 42)
   ])";
@@ -56,8 +56,8 @@ TEST_CASE("type checking - integer parameter validation",
 TEST_CASE("type checking - real parameter validation",
           "[unit][core][types][real]") {
   std::string source = R"([
-    (set real-fn (fn (x :real) :real [
-      (set r 1.0)
+    (def real-fn (fn (x :real) :real [
+      (def r 1.0)
     ]))
     (real-fn 3.14)
   ])";
@@ -75,8 +75,8 @@ TEST_CASE("type checking - real parameter validation",
 TEST_CASE("type checking - symbol parameter validation",
           "[unit][core][types][symbol]") {
   std::string source = R"([
-    (set sym-fn (fn (s :symbol) :symbol [
-      (set r test)
+    (def sym-fn (fn (s :symbol) :symbol [
+      (def r test)
     ]))
     (sym-fn my-symbol)
   ])";
@@ -94,8 +94,8 @@ TEST_CASE("type checking - symbol parameter validation",
 TEST_CASE("type checking - string parameter validation",
           "[unit][core][types][string]") {
   std::string source = R"([
-    (set str-fn (fn (s :str) :str [
-      (set r "ok")
+    (def str-fn (fn (s :str) :str [
+      (def r "ok")
     ]))
     (str-fn "hello")
   ])";
@@ -113,8 +113,8 @@ TEST_CASE("type checking - string parameter validation",
 TEST_CASE("type checking - wrong type throws error",
           "[unit][core][types][error]") {
   std::string source = R"([
-    (set int-fn (fn (x :int) :int [
-      (set r 1)
+    (def int-fn (fn (x :int) :int [
+      (def r 1)
     ]))
     (int-fn 3.14)
   ])";
@@ -132,8 +132,8 @@ TEST_CASE("type checking - wrong type throws error",
 TEST_CASE("type checking - multiple parameters with mixed types",
           "[unit][core][types][mixed]") {
   std::string source = R"([
-    (set mixed-fn (fn (i :int r :real s :symbol st :str) :int [
-      (set done 1)
+    (def mixed-fn (fn (i :int r :real s :symbol st :str) :int [
+      (def done 1)
     ]))
     (mixed-fn 42 2.718 test "string")
   ])";
@@ -151,10 +151,10 @@ TEST_CASE("type checking - multiple parameters with mixed types",
 TEST_CASE("type checking - parameter type enforced at call time",
           "[unit][core][types][enforce]") {
   std::string source = R"([
-    (set typed-fn (fn (x :int) :int [
-      (set r 1)
+    (def typed-fn (fn (x :int) :int [
+      (def r 1)
     ]))
-    (set wrong-val "not an int")
+    (def wrong-val "not an int")
     (typed-fn wrong-val)
   ])";
 

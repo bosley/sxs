@@ -1,0 +1,12 @@
+[
+    #(import mathlib "test_import_exported_lambda.sxs")
+    
+    (def result1 (mathlib/add 10 20))
+    (def result2 (mathlib/multiply 5 6))
+    
+    (debug "Add result:" result1)
+    (debug "Multiply result:" result2)
+    
+    result1
+]
+
