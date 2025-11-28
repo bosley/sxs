@@ -22,6 +22,11 @@ namespace pkg::core {
 // as-per the parameters passed and identifierd by the callable_symbol_c then we
 // execute, then pop the scope.
 
+struct callable_parameter_s {
+  std::string name;
+  slp::slp_type_e type;
+};
+
 class callable_context_if {
 public:
   virtual ~callable_context_if() = default;
@@ -38,14 +43,17 @@ public:
   virtual bool define_symbol(const std::string &symbol,
                              slp::slp_object_c &object) = 0;
 
+  // when the function gets something that it needs to determin is a valid type or not it calls this
+  // if returns true the out_type will be set tot he slp type that the symbol encodes (example: :int :real :str etc)
+  virtual bool is_symbol_enscribing_valid_type(const std::string &symbol, slp::slp_type_e &out_type) = 0;
+
   // scopes are used for symbol scopes. if we push, we will shadow on eval
   virtual bool push_scope() = 0;
   virtual bool pop_scope() = 0;
-};
-
-struct callable_parameter_s {
-  std::string name;
-  slp::slp_type_e type;
+  
+  virtual std::uint64_t allocate_lambda_id() = 0;
+  virtual bool register_lambda(std::uint64_t id, const std::vector<callable_parameter_s> &parameters,
+                                slp::slp_type_e return_type, const slp::slp_object_c &body) = 0;
 };
 
 struct callable_symbol_s {

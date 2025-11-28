@@ -5,11 +5,19 @@
 
 namespace pkg::core {
 
+struct function_definition_s {
+  std::vector<callable_parameter_s> parameters;
+  slp::slp_type_e return_type;
+  slp::slp_object_c body;
+  size_t scope_level;
+};
+
 class interpreter_c : public callable_context_if {
 public:
   interpreter_c(
       const std::map<std::string, callable_symbol_s> &callable_symbols)
-      : callable_symbols_(callable_symbols) {
+      : callable_symbols_(callable_symbols), next_lambda_id_(1), current_scope_level_(0) {
+    initialize_type_map();
     push_scope();
   }
 
@@ -38,6 +46,9 @@ public:
       return std::move(object);
     }
 
+    case slp::slp_type_e::ABERRANT:
+      return std::move(object);
+
     case slp::slp_type_e::PAREN_LIST: {
       auto list = object.as_list();
       if (list.empty()) {
@@ -51,12 +62,64 @@ public:
 
       std::string cmd = first.as_symbol();
       auto it = callable_symbols_.find(cmd);
-      if (it == callable_symbols_.end()) {
-        throw std::runtime_error(
-            fmt::format("Unknown callable symbol: {}", cmd));
+      if (it != callable_symbols_.end()) {
+        return it->second.function(*this, object);
       }
-
-      return it->second.function(*this, object);
+      
+      auto evaled_first = eval(first);
+      if (evaled_first.type() == slp::slp_type_e::ABERRANT) {
+        const std::uint8_t *base_ptr = evaled_first.get_data().data();
+        const std::uint8_t *unit_ptr = base_ptr + evaled_first.get_root_offset();
+        const slp::slp_unit_of_store_t *unit =
+            reinterpret_cast<const slp::slp_unit_of_store_t *>(unit_ptr);
+        std::uint64_t lambda_id = unit->data.uint64;
+        
+        auto lambda_it = lambda_definitions_.find(lambda_id);
+        if (lambda_it == lambda_definitions_.end()) {
+          throw std::runtime_error("Unknown function");
+        }
+        
+        const auto &func_def = lambda_it->second;
+        
+        if (list.size() - 1 != func_def.parameters.size()) {
+          throw std::runtime_error(fmt::format("Function expects {} arguments, got {}",
+                                               func_def.parameters.size(), list.size() - 1));
+        }
+        
+        std::vector<slp::slp_object_c> arg_values;
+        for (size_t i = 1; i < list.size(); i++) {
+          auto arg = list.at(i);
+          auto evaled_arg = eval(arg);
+          
+          const auto &param = func_def.parameters[i - 1];
+          if (param.type != slp::slp_type_e::NONE && evaled_arg.type() != param.type) {
+            throw std::runtime_error(fmt::format("Argument {} type mismatch: expected {}, got {}",
+                                                 i, static_cast<int>(param.type),
+                                                 static_cast<int>(evaled_arg.type())));
+          }
+          
+          arg_values.push_back(std::move(evaled_arg));
+        }
+        
+        push_scope();
+        
+        for (size_t i = 0; i < func_def.parameters.size(); i++) {
+          define_symbol(func_def.parameters[i].name, arg_values[i]);
+        }
+        
+        auto body_copy = slp::slp_object_c::from_data(
+            func_def.body.get_data(),
+            func_def.body.get_symbols(),
+            func_def.body.get_root_offset()
+        );
+        auto result = eval(body_copy);
+        
+        pop_scope();
+        
+        return result;
+      }
+      
+      throw std::runtime_error(fmt::format("Unknown callable symbol: {}", cmd));
     }
 
     case slp::slp_type_e::DATUM: {
@@ -134,8 +197,18 @@ public:
     return true;
   }
 
+  bool is_symbol_enscribing_valid_type(const std::string &symbol, slp::slp_type_e &out_type) override {
+    auto it = type_symbol_map_.find(symbol);
+    if (it != type_symbol_map_.end()) {
+      out_type = it->second;
+      return true;
+    }
+    return false;
+  }
+
   bool push_scope() override {
     scopes_.emplace_back();
+    current_scope_level_++;
     return true;
   }
 
@@ -143,13 +216,70 @@ public:
     if (scopes_.empty()) {
       return false;
     }
+    cleanup_lambdas_at_scope(current_scope_level_);
     scopes_.pop_back();
+    current_scope_level_--;
+    return true;
+  }
+  
+  std::uint64_t allocate_lambda_id() override {
+    return next_lambda_id_++;
+  }
+  
+  bool register_lambda(std::uint64_t id, const std::vector<callable_parameter_s> &parameters,
+                       slp::slp_type_e return_type, const slp::slp_object_c &body) override {
+    function_definition_s def;
+    def.parameters = parameters;
+    def.return_type = return_type;
+    def.body = slp::slp_object_c::from_data(body.get_data(), body.get_symbols(), body.get_root_offset());
+    def.scope_level = current_scope_level_;
+    lambda_definitions_[id] = std::move(def);
     return true;
   }
 
 private:
+  void initialize_type_map() {
+    std::vector<std::pair<std::string, slp::slp_type_e>> base_types = {
+      {"int", slp::slp_type_e::INTEGER},
+      {"real", slp::slp_type_e::REAL},
+      {"symbol", slp::slp_type_e::SYMBOL},
+      {"str", slp::slp_type_e::DQ_LIST},
+      {"list-p", slp::slp_type_e::PAREN_LIST},
+      {"list-c", slp::slp_type_e::BRACE_LIST},
+      {"list-b", slp::slp_type_e::BRACKET_LIST},
+      {"none", slp::slp_type_e::NONE},
+      {"some", slp::slp_type_e::SOME},
+      {"error", slp::slp_type_e::ERROR},
+      {"datum", slp::slp_type_e::DATUM},
+      {"aberrant", slp::slp_type_e::ABERRANT},
+      {"any", slp::slp_type_e::NONE}
+    };
+    
+    for (const auto &[name, type] : base_types) {
+      type_symbol_map_[":" + name] = type;
+      type_symbol_map_[":" + name + ".."] = type;
+    }
+    
+    type_symbol_map_[":list"] = slp::slp_type_e::PAREN_LIST;
+    type_symbol_map_[":list.."] = slp::slp_type_e::PAREN_LIST;
+  }
+
+  void cleanup_lambdas_at_scope(size_t level) {
+    for (auto it = lambda_definitions_.begin(); it != lambda_definitions_.end();) {
+      if (it->second.scope_level >= level) {
+        it = lambda_definitions_.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  }
+
   std::map<std::string, callable_symbol_s> callable_symbols_;
   std::vector<std::map<std::string, slp::slp_object_c>> scopes_;
+  std::map<std::uint64_t, function_definition_s> lambda_definitions_;
+  std::map<std::string, slp::slp_type_e> type_symbol_map_;
+  std::uint64_t next_lambda_id_;
+  size_t current_scope_level_;
 };
 
 std::unique_ptr<callable_context_if> create_interpreter(

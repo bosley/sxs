@@ -9,5 +9,32 @@
     (debug "Real:" 1.618)
     
     #(debug "Datum example" 777)
+
+    ; function body is square list just like the main program 
+    ; the params are to be evaluated at call site, checked for type based on
+    ; the definition of the target lambda, and then iff pass, we push scope,
+    ; set the symbols, interpret the body, then pop the scope, and return the result
+    (set x (fn (a :int b :int) :int [
+        (debug "Hello from function!" a b)
+    ]))
+
+    ;
+    ;   types are: 
+    ;    :int :real :symbol :str (dq_list in slp) :list-p :list-c :list-b :none :some :error :datum :aberrant 
+    ;    :int.. :real.. :symbol.. :str.. :list-p.. :list-c.. :list-b.. :none.. :some.. :error.. :datum.. :aberrant.. (these are one or more)
+    ;    :any :any..
+    ;    :list, and list.. will be for any of the list-p list-c list-b (and str) etc
+    ;   When the fn decalres a param as a value, thats the value it MUST be post-evaluation pre-passing to the fn
+    ;   this means if you want to pass a "symbol" you have to call with " 'symbol " syntax so the eval eats the quote,
+    ;   keeping the symbol from being resolved
+    ;
+    ;   typese are automatic based on what they parse-out to be. lambdas will be symbols mapped to artificially constructed abeerrants that 
+    ;   dictate internal lookup of the function body to execute.
+    ;
+    ;   following a function execution, no symbols internal to the function should remain accessable
+    ;
+    ;
+
+    (x 1 2)
 ]
 
