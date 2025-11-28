@@ -637,18 +637,18 @@ slp_parse_result_c parse(const std::string &source) {
 
 slp_object_c create_string_direct(const std::string &str) {
   parser_state_s state("");
-  
+
   std::vector<size_t> char_offsets;
-  
+
   for (unsigned char c : str) {
     size_t rune_offset = allocate_unit(state, slp_type_e::RUNE);
     state.get_unit(rune_offset)->data.uint32 = static_cast<std::uint32_t>(c);
     char_offsets.push_back(rune_offset);
   }
-  
+
   size_t list_offset = allocate_unit(state, slp_type_e::DQ_LIST);
   size_t offsets_array_pos = 0;
-  
+
   if (!char_offsets.empty()) {
     offsets_array_pos = state.data_buffer.size();
     for (size_t offset : char_offsets) {
@@ -657,23 +657,23 @@ slp_object_c create_string_direct(const std::string &str) {
                                sizeof(size_t));
     }
   }
-  
+
   slp_unit_of_store_t *list_unit = state.get_unit(list_offset);
   list_unit->flags = static_cast<std::uint32_t>(char_offsets.size());
   if (!char_offsets.empty()) {
     list_unit->data.uint64 = static_cast<std::uint64_t>(offsets_array_pos);
   }
-  
+
   slp_object_c obj;
   obj.data_ = std::move(state.data_buffer);
   obj.root_offset_ = list_offset;
   obj.symbols_ = std::move(state.symbols);
-  
+
   if (obj.root_offset_ < obj.data_.size()) {
     obj.view_ =
         reinterpret_cast<slp_unit_of_store_t *>(&obj.data_[obj.root_offset_]);
   }
-  
+
   return obj;
 }
 

@@ -1,6 +1,7 @@
 #include "alu.hpp"
 
-// the kernel call api ensures the length and type of the parameters are correct so we just have to do the work
+// the kernel call api ensures the length and type of the parameters are correct
+// so we just have to do the work
 
 static const struct sxs_api_table_t *g_api = nullptr;
 
