@@ -116,6 +116,145 @@ sxs_object_t create_string_callback(const char *value) {
   return new slp::slp_object_c(std::move(obj));
 }
 
+const char *as_symbol_callback(sxs_object_t obj) {
+  auto *object = static_cast<slp::slp_object_c *>(obj);
+  return object->as_symbol();
+}
+
+sxs_object_t create_symbol_callback(const char *name) {
+  if (!name) {
+    return create_none_callback();
+  }
+  auto parse_result = slp::parse(std::string(name));
+  auto obj = parse_result.take();
+  return new slp::slp_object_c(slp::slp_object_c::from_data(
+      obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+}
+
+sxs_object_t create_paren_list_callback(sxs_object_t *objects, size_t count) {
+  if (!objects || count == 0) {
+    auto parse_result = slp::parse("()");
+    auto obj = parse_result.take();
+    return new slp::slp_object_c(slp::slp_object_c::from_data(
+        obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+  }
+
+  std::string list_str = "(";
+  for (size_t i = 0; i < count; i++) {
+    auto *elem = static_cast<slp::slp_object_c *>(objects[i]);
+    if (elem->type() == slp::slp_type_e::INTEGER) {
+      list_str += std::to_string(elem->as_int());
+    } else if (elem->type() == slp::slp_type_e::REAL) {
+      list_str += std::to_string(elem->as_real());
+    } else if (elem->type() == slp::slp_type_e::DQ_LIST) {
+      list_str += "\"" + elem->as_string().to_string() + "\"";
+    } else if (elem->type() == slp::slp_type_e::SYMBOL) {
+      list_str += elem->as_symbol();
+    } else {
+      list_str += "()";
+    }
+    if (i < count - 1) {
+      list_str += " ";
+    }
+  }
+  list_str += ")";
+
+  auto parse_result = slp::parse(list_str);
+  auto obj = parse_result.take();
+  return new slp::slp_object_c(slp::slp_object_c::from_data(
+      obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+}
+
+sxs_object_t create_bracket_list_callback(sxs_object_t *objects, size_t count) {
+  if (!objects || count == 0) {
+    auto parse_result = slp::parse("[]");
+    auto obj = parse_result.take();
+    return new slp::slp_object_c(slp::slp_object_c::from_data(
+        obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+  }
+
+  std::string list_str = "[";
+  for (size_t i = 0; i < count; i++) {
+    auto *elem = static_cast<slp::slp_object_c *>(objects[i]);
+    if (elem->type() == slp::slp_type_e::INTEGER) {
+      list_str += std::to_string(elem->as_int());
+    } else if (elem->type() == slp::slp_type_e::REAL) {
+      list_str += std::to_string(elem->as_real());
+    } else if (elem->type() == slp::slp_type_e::DQ_LIST) {
+      list_str += "\"" + elem->as_string().to_string() + "\"";
+    } else if (elem->type() == slp::slp_type_e::SYMBOL) {
+      list_str += elem->as_symbol();
+    } else {
+      list_str += "()";
+    }
+    if (i < count - 1) {
+      list_str += " ";
+    }
+  }
+  list_str += "]";
+
+  auto parse_result = slp::parse(list_str);
+  auto obj = parse_result.take();
+  return new slp::slp_object_c(slp::slp_object_c::from_data(
+      obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+}
+
+sxs_object_t create_brace_list_callback(sxs_object_t *objects, size_t count) {
+  if (!objects || count == 0) {
+    auto parse_result = slp::parse("{}");
+    auto obj = parse_result.take();
+    return new slp::slp_object_c(slp::slp_object_c::from_data(
+        obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+  }
+
+  std::string list_str = "{";
+  for (size_t i = 0; i < count; i++) {
+    auto *elem = static_cast<slp::slp_object_c *>(objects[i]);
+    if (elem->type() == slp::slp_type_e::INTEGER) {
+      list_str += std::to_string(elem->as_int());
+    } else if (elem->type() == slp::slp_type_e::REAL) {
+      list_str += std::to_string(elem->as_real());
+    } else if (elem->type() == slp::slp_type_e::DQ_LIST) {
+      list_str += "\"" + elem->as_string().to_string() + "\"";
+    } else if (elem->type() == slp::slp_type_e::SYMBOL) {
+      list_str += elem->as_symbol();
+    } else {
+      list_str += "()";
+    }
+    if (i < count - 1) {
+      list_str += " ";
+    }
+  }
+  list_str += "}";
+
+  auto parse_result = slp::parse(list_str);
+  auto obj = parse_result.take();
+  return new slp::slp_object_c(slp::slp_object_c::from_data(
+      obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+}
+
+int some_has_value_callback(sxs_object_t obj) {
+  auto *object = static_cast<slp::slp_object_c *>(obj);
+  return object->has_data() ? 1 : 0;
+}
+
+sxs_object_t some_get_value_callback(sxs_object_t obj) {
+  auto *object = static_cast<slp::slp_object_c *>(obj);
+  if (!object->has_data()) {
+    return create_none_callback();
+  }
+
+  const std::uint8_t *base_ptr = object->get_data().data();
+  const std::uint8_t *unit_ptr = base_ptr + object->get_root_offset();
+  const slp::slp_unit_of_store_t *unit =
+      reinterpret_cast<const slp::slp_unit_of_store_t *>(unit_ptr);
+
+  size_t inner_offset = static_cast<size_t>(unit->data.uint64);
+  auto inner_obj = slp::slp_object_c::from_data(
+      object->get_data(), object->get_symbols(), inner_offset);
+  return new slp::slp_object_c(std::move(inner_obj));
+}
+
 } // namespace
 
 kernel_manager_c::kernel_manager_c(logger_t logger,
@@ -140,6 +279,13 @@ kernel_manager_c::kernel_manager_c(logger_t logger,
   api_table_->create_real = create_real_callback;
   api_table_->create_string = create_string_callback;
   api_table_->create_none = create_none_callback;
+  api_table_->as_symbol = as_symbol_callback;
+  api_table_->create_symbol = create_symbol_callback;
+  api_table_->create_paren_list = create_paren_list_callback;
+  api_table_->create_bracket_list = create_bracket_list_callback;
+  api_table_->create_brace_list = create_brace_list_callback;
+  api_table_->some_has_value = some_has_value_callback;
+  api_table_->some_get_value = some_get_value_callback;
 }
 
 kernel_manager_c::~kernel_manager_c() {

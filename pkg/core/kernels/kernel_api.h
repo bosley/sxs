@@ -45,6 +45,16 @@ typedef sxs_object_t (*sxs_create_int_fn_t)(long long value);
 typedef sxs_object_t (*sxs_create_real_fn_t)(double value);
 typedef sxs_object_t (*sxs_create_string_fn_t)(const char *value);
 typedef sxs_object_t (*sxs_create_none_fn_t)();
+typedef const char *(*sxs_as_symbol_fn_t)(sxs_object_t obj);
+typedef sxs_object_t (*sxs_create_symbol_fn_t)(const char *name);
+typedef sxs_object_t (*sxs_create_paren_list_fn_t)(sxs_object_t *objects,
+                                                   size_t count);
+typedef sxs_object_t (*sxs_create_bracket_list_fn_t)(sxs_object_t *objects,
+                                                     size_t count);
+typedef sxs_object_t (*sxs_create_brace_list_fn_t)(sxs_object_t *objects,
+                                                   size_t count);
+typedef int (*sxs_some_has_value_fn_t)(sxs_object_t obj);
+typedef sxs_object_t (*sxs_some_get_value_fn_t)(sxs_object_t obj);
 
 struct sxs_api_table_t {
   sxs_register_fn_t register_function;
@@ -60,6 +70,13 @@ struct sxs_api_table_t {
   sxs_create_real_fn_t create_real;
   sxs_create_string_fn_t create_string;
   sxs_create_none_fn_t create_none;
+  sxs_as_symbol_fn_t as_symbol;
+  sxs_create_symbol_fn_t create_symbol;
+  sxs_create_paren_list_fn_t create_paren_list;
+  sxs_create_bracket_list_fn_t create_bracket_list;
+  sxs_create_brace_list_fn_t create_brace_list;
+  sxs_some_has_value_fn_t some_has_value;
+  sxs_some_get_value_fn_t some_get_value;
 };
 
 void kernel_init(sxs_registry_t registry, const struct sxs_api_table_t *api);

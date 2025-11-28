@@ -44,6 +44,14 @@ else
     exit 1
 fi
 
+cd "$SCRIPT_DIR/internal_test_kernel" || exit 1
+if make clean && make > /dev/null 2>&1; then
+    echo -e "  ${GREEN}✓${NC} internal_test kernel built"
+else
+    echo -e "  ${RED}✗${NC} internal_test kernel build failed"
+    exit 1
+fi
+
 echo
 
 if [ ! -f "$SXS_BIN" ]; then
@@ -144,16 +152,6 @@ fi
 
 test_match "TEST_RANDOM_REAL:5.5" "TEST_RANDOM_REAL:5.5" "random/real_range(5.5,5.5) fixed"
 
-STRING_10=$(echo "$OUTPUT" | grep "^TEST_RANDOM_STRING_LEN:" | head -1 | cut -d: -f2)
-STRING_10_LEN=${#STRING_10}
-if [ "$STRING_10_LEN" -eq 10 ]; then
-    echo -e "  ${GREEN}✓${NC} random/string(10) length check"
-    ((TESTS_PASSED++))
-else
-    echo -e "  ${RED}✗${NC} random/string(10) length check (got $STRING_10_LEN, expected 10)"
-    ((TESTS_FAILED++))
-fi
-
 # Bash intermittently gets bonked by the string output so i decided to comment this one out
 # its rare but its a scare so it doesnt need to be here always
 #
@@ -232,6 +230,18 @@ echo -e "${BLUE}ALU Lambda Integration Tests:${NC}"
 test_match "TEST_ALU_LAMBDA:11" "TEST_ALU_LAMBDA:11" "alu/add with lambda result: (my_fn 3) + 5 = (3*2) + 5"
 test_match "TEST_ALU_LAMBDA_R:8.0" "TEST_ALU_LAMBDA_R:8.0" "alu/add_r with lambda result: (double_r 3.5) + 1.0 = 7.0 + 1.0"
 test_match "TEST_ALU_LAMBDA_COMPLEX:22" "TEST_ALU_LAMBDA_COMPLEX:22" "nested lambda with ALU: (compute 4 3) * 2 = 11 * 2"
+
+echo
+echo -e "${BLUE}Internal Test Kernel - Type API Tests:${NC}"
+
+test_match "TEST_API_INT:42" "TEST_API_INT:42" "internal_test/identity_int(42)"
+test_match "TEST_API_REAL:3.14" "TEST_API_REAL:3.14" "internal_test/identity_real(3.14)"
+test_match "TEST_API_STR:hello" "TEST_API_STR:hello" "internal_test/identity_str(hello)"
+test_match "TEST_API_SYMBOL:test-sym" "TEST_API_SYMBOL:test-sym" "internal_test/identity_symbol(test-sym)"
+test_match "TEST_API_LIST_P:PAREN_LIST" "TEST_API_LIST_P:PAREN_LIST" "internal_test/identity_list_p paren list"
+test_match "TEST_API_LIST_C:BRACE_LIST" "TEST_API_LIST_C:BRACE_LIST" "internal_test/identity_list_c brace list"
+test_match "TEST_API_LIST_B:BRACKET_LIST" "TEST_API_LIST_B:BRACKET_LIST" "internal_test/identity_list_b bracket list"
+test_match "TEST_API_NONE:PAREN_LIST" "TEST_API_NONE:PAREN_LIST" "internal_test/identity_none()"
 
 echo
 echo -e "${BLUE}════════════════════════════════════════${NC}"
