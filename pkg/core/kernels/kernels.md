@@ -91,9 +91,11 @@ Function pointer table providing the C API to kernel implementations.
 1. **Registration**: `register_function` - called during kernel_init
 2. **Evaluation**: `eval` - evaluate SXS objects in context
 3. **Type Inspection**: `get_type` - query object type
-4. **Type Extraction**: `as_int`, `as_real`, `as_string`, `as_list` - access typed data
+4. **Type Extraction**: `as_int`, `as_real`, `as_string`, `as_symbol`, `as_list` - access typed data
 5. **List Operations**: `list_size`, `list_at` - traverse list objects
-6. **Object Creation**: `create_int`, `create_real`, `create_string`, `create_none` - construct return values
+6. **Object Creation**: `create_int`, `create_real`, `create_string`, `create_symbol`, `create_none` - construct primitives
+7. **List Creation**: `create_paren_list`, `create_bracket_list`, `create_brace_list` - construct list types
+8. **SOME Operations**: `some_has_value`, `some_get_value` - handle optional/quoted values
 
 All API functions are implemented as callbacks into the C++ runtime with appropriate marshaling.
 
@@ -256,11 +258,15 @@ flowchart TD
     CreateResult -->|INT| CreateInt[api->create_int]
     CreateResult -->|REAL| CreateReal[api->create_real]
     CreateResult -->|STRING| CreateString[api->create_string]
+    CreateResult -->|SYMBOL| CreateSymbol[api->create_symbol]
+    CreateResult -->|LIST| CreateList[api->create_*_list]
     CreateResult -->|NONE| CreateNone[api->create_none]
     
     CreateInt --> ParseInt[slp::parse string representation]
     CreateReal --> ParseReal[slp::parse string representation]
     CreateString --> DirectString[slp::create_string_direct]
+    CreateSymbol --> ParseSymbol[slp::parse symbol]
+    CreateList --> ParseList[build string, slp::parse]
     CreateNone --> ParseNone[slp::parse empty list]
     
     ParseInt --> WrapObj[new slp_object_c]
@@ -280,12 +286,18 @@ flowchart TD
 | SXS Type | sxs_type_t Enum | C Representation | C++ Type |
 |----------|-----------------|------------------|----------|
 | None | SXS_TYPE_NONE | - | slp_type_e::NONE |
-| Integer | SXS_TYPE_INT | long long | slp_type_e::INT |
-| Real | SXS_TYPE_REAL | double | slp_type_e::REAL |
+| Some | SXS_TYPE_SOME | - | slp_type_e::SOME |
+| Paren List | SXS_TYPE_PAREN_LIST | void* (opaque) | slp_type_e::PAREN_LIST |
+| Brace List | SXS_TYPE_BRACE_LIST | void* (opaque) | slp_type_e::BRACE_LIST |
 | String | SXS_TYPE_STRING | const char* | slp_type_e::DQ_LIST |
-| List | SXS_TYPE_PAREN_LIST | void* (opaque) | slp_type_e::PAREN_LIST |
-| Symbol | SXS_TYPE_SYMBOL | - | slp_type_e::SYMBOL |
+| Symbol | SXS_TYPE_SYMBOL | const char* | slp_type_e::SYMBOL |
+| Rune | SXS_TYPE_RUNE | - | slp_type_e::RUNE |
+| Integer | SXS_TYPE_INT | long long | slp_type_e::INTEGER |
+| Real | SXS_TYPE_REAL | double | slp_type_e::REAL |
+| Bracket List | SXS_TYPE_BRACKET_LIST | void* (opaque) | slp_type_e::BRACKET_LIST |
+| Error | SXS_TYPE_ERROR | - | slp_type_e::ERROR |
 | Datum | SXS_TYPE_DATUM | - | slp_type_e::DATUM |
+| Aberrant | SXS_TYPE_ABERRANT | - | slp_type_e::ABERRANT |
 
 ### Memory Management
 
@@ -298,7 +310,7 @@ flowchart TD
 
 **Wrapper Lambda Behavior:**
 
-The `callable_symbol_s.function` lambda (lines 300-317 in kernels.cpp):
+The `callable_symbol_s.function` lambda (lines 446-463 in kernels.cpp):
 - Casts arguments to kernel's expected types
 - Invokes kernel function
 - Copies data from returned `sxs_object_t` 
@@ -353,6 +365,7 @@ Query the runtime type of an object.
 long long as_int(sxs_object_t obj)
 double as_real(sxs_object_t obj)
 const char* as_string(sxs_object_t obj)
+const char* as_symbol(sxs_object_t obj)
 void* as_list(sxs_object_t obj)
 ```
 
@@ -361,6 +374,7 @@ Extract typed values from objects. **No type checking** - kernel must verify wit
 - `as_int`: Extract integer value
 - `as_real`: Extract floating-point value  
 - `as_string`: Extract string (pointer valid until next call on this thread)
+- `as_symbol`: Extract symbol name (pointer to internal buffer)
 - `as_list`: Extract list as opaque handle (caller must manage lifetime)
 
 ### List Operations
@@ -381,15 +395,45 @@ Traverse list objects returned by `as_list`.
 sxs_object_t create_int(long long value)
 sxs_object_t create_real(double value)
 sxs_object_t create_string(const char *value)
+sxs_object_t create_symbol(const char *name)
 sxs_object_t create_none()
 ```
 
-Construct SXS objects to return from kernel functions. **Caller owns returned object**.
+Construct primitive SXS objects to return from kernel functions. **Caller owns returned object**.
 
 - `create_int`: Create integer object
 - `create_real`: Create real number object
 - `create_string`: Create string object (NULL creates none)
+- `create_symbol`: Create symbol object (NULL creates none)
 - `create_none`: Create empty/none object `()`
+
+### List Creation
+
+```c
+sxs_object_t create_paren_list(sxs_object_t *objects, size_t count)
+sxs_object_t create_bracket_list(sxs_object_t *objects, size_t count)
+sxs_object_t create_brace_list(sxs_object_t *objects, size_t count)
+```
+
+Construct list objects from arrays of objects. **Caller owns returned object**.
+
+- `create_paren_list`: Create `(...)` list from array of objects
+- `create_bracket_list`: Create `[...]` list from array of objects  
+- `create_brace_list`: Create `{...}` list from array of objects
+
+All functions accept `NULL` or `count=0` to create empty lists.
+
+### SOME Operations
+
+```c
+int some_has_value(sxs_object_t obj)
+sxs_object_t some_get_value(sxs_object_t obj)
+```
+
+Handle SOME type objects (quoted/optional values).
+
+- `some_has_value`: Check if SOME contains inner data (returns 1 if true, 0 if false)
+- `some_get_value`: Extract inner object from SOME (returns none if no data, caller owns returned object)
 
 ## Kernel Implementation Guide
 
@@ -438,6 +482,64 @@ extern "C" {
 **Build**
 ```bash
 g++ -shared -fPIC -o libkernel_example.dylib example.cpp
+```
+
+### Advanced Example: Symbol and List Operations
+
+**kernel.sxs**
+```scheme
+#(define-kernel advanced "libkernel_advanced.dylib" [
+    (define-function make_list (a :int b :int c :int) :list-p)
+    (define-function unwrap_quote (sym :some) :symbol)
+])
+```
+
+**advanced.cpp**
+```c
+#include "kernel_api.h"
+
+static const sxs_api_table_t *g_api = nullptr;
+
+sxs_object_t make_list(sxs_context_t ctx, sxs_object_t args) {
+    void *list = g_api->as_list(args);
+    
+    sxs_object_t objs[3];
+    objs[0] = g_api->list_at(list, 1);
+    objs[1] = g_api->list_at(list, 2);
+    objs[2] = g_api->list_at(list, 3);
+    
+    for (int i = 0; i < 3; i++) {
+        objs[i] = g_api->eval(ctx, objs[i]);
+    }
+    
+    return g_api->create_paren_list(objs, 3);
+}
+
+sxs_object_t unwrap_quote(sxs_context_t ctx, sxs_object_t args) {
+    void *list = g_api->as_list(args);
+    sxs_object_t quoted = g_api->list_at(list, 1);
+    
+    if (g_api->get_type(quoted) == SXS_TYPE_SOME) {
+        if (g_api->some_has_value(quoted)) {
+            sxs_object_t inner = g_api->some_get_value(quoted);
+            if (g_api->get_type(inner) == SXS_TYPE_SYMBOL) {
+                const char *sym = g_api->as_symbol(inner);
+                return g_api->create_symbol(sym);
+            }
+        }
+    }
+    return g_api->create_none();
+}
+
+extern "C" {
+    void kernel_init(sxs_registry_t registry, const sxs_api_table_t *api) {
+        g_api = api;
+        api->register_function(registry, "make_list", make_list, 
+                             SXS_TYPE_PAREN_LIST, 0);
+        api->register_function(registry, "unwrap_quote", unwrap_quote,
+                             SXS_TYPE_SYMBOL, 0);
+    }
+}
 ```
 
 ### Best Practices
@@ -494,13 +596,39 @@ For variable-argument functions, set `variadic = 1` and iterate full list:
 api->register_function(registry, "sum", kernel_sum, SXS_TYPE_INT, 1);
 ```
 
+**6. Handling SOME Types**
+
+SOME wraps quoted symbols and optional values. Always check before unwrapping:
+
+```c
+if (g_api->get_type(obj) == SXS_TYPE_SOME) {
+    if (g_api->some_has_value(obj)) {
+        sxs_object_t inner = g_api->some_get_value(obj);
+    }
+}
+```
+
+**7. Creating Lists**
+
+When building lists, ensure all elements are properly constructed objects:
+
+```c
+sxs_object_t elements[3];
+elements[0] = g_api->create_int(1);
+elements[1] = g_api->create_int(2);
+elements[2] = g_api->create_int(3);
+return g_api->create_paren_list(elements, 3);
+```
+
 ### Performance Considerations
 
 **Expensive Operations (per call):**
 
 - `create_int/create_real`: Converts to string, parses back (lines 96-108)
-- `create_string`: Direct creation, but copies data
-- `as_string`: Copies to thread_local buffer
+- `create_symbol`: Parses symbol string (lines 124-132)
+- `create_paren_list/create_bracket_list/create_brace_list`: Builds string representation, parses (lines 134-234)
+- `create_string`: Direct creation, but copies data (lines 110-117)
+- `as_string`: Copies to thread_local buffer (lines 50-55)
 
 **Optimization Strategy:**
 
