@@ -1,0 +1,31 @@
+[
+    ; load loads the kernel, load can take any number of strings, but they must be string type 
+    #(load "io") ; system will attempt to use this string as an absolute path to a kernel file, if not, tthen it will search all include paths for "path/io/kernel.sxs"
+
+    ; give symbol for import to load into, give absolute file path or
+    ; name that can be found include_dir/file_name.sxs
+    ; then will load symbol into main interpreter as test_import
+    #(import test_import "kernel_test_import_file.sxs")
+
+
+    ; Once the kernel is loaded, we can use the functions defined in it
+
+    ; We must restrict #(load-kernel) commands to ONLY be permitted as the first commands in the scriot.
+    ; 
+
+    ; Since we are going to add "export" command, this will take the symbol
+    ; and oject created and add to an export map. once we close out the import
+    ; interpreter we will use this map to dump symbols into the main scope
+    ; as "symbol / "exported_symbol"
+    ; so in our case "test_import / some_function"
+    ;
+    ; note: we will need a means to indicate if a symbol is mutable or not
+    ; lets start off with all symbols as immutable.
+    ; then, later we can add a special command to make mutable variables.
+    ; we can dicatete that all imported and "set" symbols are immutable.
+    ;
+    (test_import/some_function 42)
+
+
+    (io/put "Hello, World! %d" 42)
+]

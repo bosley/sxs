@@ -1,0 +1,5 @@
+#(define-kernel io [
+
+    ; print to the console with a format and a list of any types
+    (define-function put (format :str obj :any..) :int)
+])

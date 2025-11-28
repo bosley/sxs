@@ -7,11 +7,13 @@
 
 namespace pkg::core {
 
+typedef std::shared_ptr<spdlog::logger> logger_t;
+
 struct option_s {
   std::string file_path;
   std::vector<std::string> include_paths;
   std::string working_directory;
-  std::shared_ptr<spdlog::logger> logger;
+  logger_t logger;
 };
 
 class core_c {

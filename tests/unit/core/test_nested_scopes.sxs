@@ -1,0 +1,46 @@
+[
+    (set level1 100)
+    
+    (debug "Level 1:" level1)
+    
+    [
+        (set level2 200)
+        (debug "Level 2:" level1 level2)
+        
+        [
+            (set level3 300)
+            (debug "Level 3:" level1 level2 level3)
+            
+            [
+                (set level4 400)
+                (debug "Level 4:" level1 level2 level3 level4)
+                
+                (set level1 999)
+                (debug "Level 4 shadowed level1:" level1)
+            ]
+            
+            (debug "Back to level 3:" level1 level2 level3)
+        ]
+        
+        (debug "Back to level 2:" level1 level2)
+    ]
+    
+    (debug "Back to level 1:" level1)
+    
+    (set outer-fn (fn (x :int) :int [
+        (debug "Outer function:" x)
+        
+        (set inner-fn (fn (y :int) :int [
+            (debug "Inner function:" x y)
+            (set result 42)
+        ]))
+        
+        (inner-fn 20)
+        
+        (set ret 1)
+    ]))
+    
+    (debug "Calling nested function test")
+    (outer-fn 10)
+]
+

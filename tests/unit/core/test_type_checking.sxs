@@ -1,0 +1,42 @@
+[
+    (set int-only (fn (x :int) :int [
+        (debug "Int param:" x)
+        (set res 1)
+    ]))
+    
+    (debug "Calling with correct type - integer")
+    (int-only 42)
+    
+    (set real-only (fn (x :real) :real [
+        (debug "Real param:" x)
+        (set res 1.0)
+    ]))
+    
+    (debug "Calling with correct type - real")
+    (real-only 3.14)
+    
+    (set symbol-only (fn (s :symbol) :symbol [
+        (debug "Symbol param:" s)
+        (set res test)
+    ]))
+    
+    (debug "Calling with correct type - symbol")
+    (symbol-only my-symbol)
+    
+    (set str-only (fn (s :str) :str [
+        (debug "String param:" s)
+        (set res "ok")
+    ]))
+    
+    (debug "Calling with correct type - string")
+    (str-only "hello world")
+    
+    (set multi-typed (fn (i :int r :real s :symbol st :str) :int [
+        (debug "All types:" i r s st)
+        (set res 0)
+    ]))
+    
+    (debug "Calling with all correct types")
+    (multi-typed 100 2.718 test-sym "test string")
+]
+

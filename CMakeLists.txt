@@ -22,6 +22,9 @@ option(RUN_TESTS      "Run tests" ON)
 option(EXTRA_DEBUG_STMT     "Enable extra debug statements" OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 
+set(TEST_DATA_DIR "${CMAKE_BINARY_DIR}/test_data")
+add_compile_definitions(TEST_DATA_DIR="${TEST_DATA_DIR}")
+
 #
 # Options
 #
