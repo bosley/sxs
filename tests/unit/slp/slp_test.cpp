@@ -844,3 +844,148 @@ TEST_CASE("slp parse datum and aberrant objects",
     CHECK(result.object().type() == slp::slp_type_e::DATUM);
   }
 }
+
+TEST_CASE("slp datum wrapper in lists", "[unit][slp][datum][offset]") {
+  SECTION("datum in bracket list") {
+    auto result = slp::parse("[#(1 2 3)]");
+    CHECK(result.is_success());
+    CHECK(result.object().type() == slp::slp_type_e::BRACKET_LIST);
+
+    auto list = result.object().as_list();
+    CHECK(list.size() == 1);
+
+    auto datum_elem = list.at(0);
+    CHECK(datum_elem.type() == slp::slp_type_e::DATUM);
+
+    auto inner_offset = slp_test_accessor::get_view(datum_elem)->data.uint64;
+    auto inner_obj = slp::slp_object_c::from_data(
+        datum_elem.get_data(), datum_elem.get_symbols(), inner_offset);
+
+    CHECK(inner_obj.type() == slp::slp_type_e::PAREN_LIST);
+    auto inner_list = inner_obj.as_list();
+    CHECK(inner_list.size() == 3);
+    CHECK(inner_list.at(0).as_int() == 1);
+    CHECK(inner_list.at(1).as_int() == 2);
+    CHECK(inner_list.at(2).as_int() == 3);
+  }
+
+  SECTION("multiple datums in list") {
+    auto result = slp::parse("[#42 #hello #3.14]");
+    CHECK(result.is_success());
+    CHECK(result.object().type() == slp::slp_type_e::BRACKET_LIST);
+
+    auto list = result.object().as_list();
+    CHECK(list.size() == 3);
+
+    auto datum1 = list.at(0);
+    CHECK(datum1.type() == slp::slp_type_e::DATUM);
+    auto inner1_offset = slp_test_accessor::get_view(datum1)->data.uint64;
+    auto inner1 = slp::slp_object_c::from_data(
+        datum1.get_data(), datum1.get_symbols(), inner1_offset);
+    CHECK(inner1.type() == slp::slp_type_e::INTEGER);
+    CHECK(inner1.as_int() == 42);
+
+    auto datum2 = list.at(1);
+    CHECK(datum2.type() == slp::slp_type_e::DATUM);
+    auto inner2_offset = slp_test_accessor::get_view(datum2)->data.uint64;
+    auto inner2 = slp::slp_object_c::from_data(
+        datum2.get_data(), datum2.get_symbols(), inner2_offset);
+    CHECK(inner2.type() == slp::slp_type_e::SYMBOL);
+    CHECK(std::string(inner2.as_symbol()) == "hello");
+
+    auto datum3 = list.at(2);
+    CHECK(datum3.type() == slp::slp_type_e::DATUM);
+    auto inner3_offset = slp_test_accessor::get_view(datum3)->data.uint64;
+    auto inner3 = slp::slp_object_c::from_data(
+        datum3.get_data(), datum3.get_symbols(), inner3_offset);
+    CHECK(inner3.type() == slp::slp_type_e::REAL);
+    CHECK(inner3.as_real() == 3.14);
+  }
+
+  SECTION("datum with nested list") {
+    auto result = slp::parse("[#(inner (nested) list)]");
+    CHECK(result.is_success());
+
+    auto outer_list = result.object().as_list();
+    CHECK(outer_list.size() == 1);
+
+    auto datum_elem = outer_list.at(0);
+    CHECK(datum_elem.type() == slp::slp_type_e::DATUM);
+
+    auto inner_offset = slp_test_accessor::get_view(datum_elem)->data.uint64;
+    auto inner_obj = slp::slp_object_c::from_data(
+        datum_elem.get_data(), datum_elem.get_symbols(), inner_offset);
+
+    CHECK(inner_obj.type() == slp::slp_type_e::PAREN_LIST);
+    auto inner_list = inner_obj.as_list();
+    CHECK(inner_list.size() == 3);
+
+    CHECK(inner_list.at(0).type() == slp::slp_type_e::SYMBOL);
+    CHECK(std::string(inner_list.at(0).as_symbol()) == "inner");
+
+    CHECK(inner_list.at(1).type() == slp::slp_type_e::PAREN_LIST);
+    auto nested_list_obj = inner_list.at(1);
+    auto nested_list = nested_list_obj.as_list();
+    CHECK(nested_list.size() == 1);
+    CHECK(std::string(nested_list.at(0).as_symbol()) == "nested");
+
+    CHECK(inner_list.at(2).type() == slp::slp_type_e::SYMBOL);
+    CHECK(std::string(inner_list.at(2).as_symbol()) == "list");
+  }
+
+  SECTION("deeply nested datum") {
+    auto result = slp::parse("[[#test]]");
+    CHECK(result.is_success());
+
+    auto outer_list = result.object().as_list();
+    CHECK(outer_list.size() == 1);
+
+    auto middle_list_obj = outer_list.at(0);
+    CHECK(middle_list_obj.type() == slp::slp_type_e::BRACKET_LIST);
+    auto middle_list = middle_list_obj.as_list();
+    CHECK(middle_list.size() == 1);
+
+    auto datum_elem = middle_list.at(0);
+    CHECK(datum_elem.type() == slp::slp_type_e::DATUM);
+
+    auto inner_offset = slp_test_accessor::get_view(datum_elem)->data.uint64;
+    auto inner_obj = slp::slp_object_c::from_data(
+        datum_elem.get_data(), datum_elem.get_symbols(), inner_offset);
+
+    CHECK(inner_obj.type() == slp::slp_type_e::SYMBOL);
+    CHECK(std::string(inner_obj.as_symbol()) == "test");
+  }
+
+  SECTION("datum mixed with regular elements") {
+    auto result = slp::parse("[1 #2 3 #4 5]");
+    CHECK(result.is_success());
+
+    auto list = result.object().as_list();
+    CHECK(list.size() == 5);
+
+    CHECK(list.at(0).type() == slp::slp_type_e::INTEGER);
+    CHECK(list.at(0).as_int() == 1);
+
+    auto datum1 = list.at(1);
+    CHECK(datum1.type() == slp::slp_type_e::DATUM);
+    auto inner1_offset = slp_test_accessor::get_view(datum1)->data.uint64;
+    auto inner1 = slp::slp_object_c::from_data(
+        datum1.get_data(), datum1.get_symbols(), inner1_offset);
+    CHECK(inner1.type() == slp::slp_type_e::INTEGER);
+    CHECK(inner1.as_int() == 2);
+
+    CHECK(list.at(2).type() == slp::slp_type_e::INTEGER);
+    CHECK(list.at(2).as_int() == 3);
+
+    auto datum2 = list.at(3);
+    CHECK(datum2.type() == slp::slp_type_e::DATUM);
+    auto inner2_offset = slp_test_accessor::get_view(datum2)->data.uint64;
+    auto inner2 = slp::slp_object_c::from_data(
+        datum2.get_data(), datum2.get_symbols(), inner2_offset);
+    CHECK(inner2.type() == slp::slp_type_e::INTEGER);
+    CHECK(inner2.as_int() == 4);
+
+    CHECK(list.at(4).type() == slp::slp_type_e::INTEGER);
+    CHECK(list.at(4).as_int() == 5);
+  }
+}

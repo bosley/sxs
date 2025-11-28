@@ -1,0 +1,13 @@
+[
+    (debug "Hello from SXS!")
+    (debug "Regular instruction list can print:" 42 3.14)
+    
+    #(debug "Datum lists work too!" 100 2.718)
+    
+    (debug "Multiple" "arguments" "of" "different" "types")
+    (debug "Integer:" 999)
+    (debug "Real:" 1.618)
+    
+    #(debug "Datum example" 777)
+]
+

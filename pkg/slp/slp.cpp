@@ -365,8 +365,7 @@ parse_result_internal_s parse_object(parser_state_s &state) {
     }
 
     size_t unit_offset = allocate_unit(state, type);
-    state.get_unit(unit_offset)->data.data_ptr = reinterpret_cast<data_u *>(
-        state.get_unit(inner_result.unit_offset.value()));
+    state.get_unit(unit_offset)->data.uint64 = inner_result.unit_offset.value();
 
     return parse_result_internal_s{unit_offset, std::nullopt};
   }
