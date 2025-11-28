@@ -72,6 +72,13 @@ public:
         return it->second.function(*this, object);
       }
 
+      if (kernel_context_ && kernel_context_->has_function(cmd)) {
+        auto *kernel_func = kernel_context_->get_function(cmd);
+        if (kernel_func) {
+          return kernel_func->function(*this, object);
+        }
+      }
+
       auto evaled_first = eval(first);
       if (evaled_first.type() == slp::slp_type_e::ABERRANT) {
         return handle_aberrant_call(evaled_first, list);

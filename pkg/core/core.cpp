@@ -67,9 +67,15 @@ int core_c::run() {
                            &kernel_manager_->get_kernel_context());
 
     imports_manager_->set_parent_context(interpreter.get());
+    kernel_manager_->set_parent_context(interpreter.get());
 
     auto obj = parse_result.take();
     auto result = interpreter->eval(obj);
+
+    auto kernel_functions = kernel_manager_->get_registered_functions();
+    for (const auto &[name, symbol] : kernel_functions) {
+      options_.logger->debug("Kernel function available: {}", name);
+    }
 
     imports_manager_->lock_imports();
     kernel_manager_->lock_kernels();

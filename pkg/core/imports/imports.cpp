@@ -126,7 +126,8 @@ bool imports_manager_c::import_context_c::attempt_import(
   }
 
   auto import_symbols = instructions::get_standard_callable_symbols();
-  auto import_interpreter = create_interpreter(import_symbols, this, nullptr);
+  auto import_interpreter = create_interpreter(
+      import_symbols, this, manager_.parent_context_->get_kernel_context());
 
   manager_.current_exports_.clear();
 
