@@ -42,6 +42,8 @@ typedef void *(*sxs_as_list_fn_t)(sxs_object_t obj);
 typedef size_t (*sxs_list_size_fn_t)(void *list);
 typedef sxs_object_t (*sxs_list_at_fn_t)(void *list, size_t index);
 typedef sxs_object_t (*sxs_create_int_fn_t)(long long value);
+typedef sxs_object_t (*sxs_create_real_fn_t)(double value);
+typedef sxs_object_t (*sxs_create_string_fn_t)(const char *value);
 typedef sxs_object_t (*sxs_create_none_fn_t)();
 
 struct sxs_api_table_t {
@@ -55,6 +57,8 @@ struct sxs_api_table_t {
   sxs_list_size_fn_t list_size;
   sxs_list_at_fn_t list_at;
   sxs_create_int_fn_t create_int;
+  sxs_create_real_fn_t create_real;
+  sxs_create_string_fn_t create_string;
   sxs_create_none_fn_t create_none;
 };
 

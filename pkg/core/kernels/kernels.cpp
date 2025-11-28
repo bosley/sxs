@@ -70,23 +70,67 @@ sxs_object_t list_at_callback(void *list, size_t index) {
   return new slp::slp_object_c(std::move(elem));
 }
 
-sxs_object_t create_int_callback(long long value) {
-  slp::slp_buffer_c buffer;
-  buffer.resize(sizeof(slp::slp_unit_of_store_t));
-  auto *unit = reinterpret_cast<slp::slp_unit_of_store_t *>(buffer.data());
-  unit->header = static_cast<std::uint32_t>(slp::slp_type_e::INTEGER);
-  unit->flags = 0;
-  unit->data.int64 = value;
-  return new slp::slp_object_c(slp::slp_object_c::from_data(buffer, {}, 0));
-}
+/*
+  Implementations note and lament:
+
+  Here for helpers on kernel-level calls i didn't want to have to expose or
+  otherwise leverage slp directly too much in kernels and i wanted to keep the
+  api minimal
+
+  to this end, when creating slp objects from kernel implementations call back
+  to here to actually instantiate things. depending on the program and the
+  implementation of the kernel, this might be dreadfully slow. here, we are
+  casting whatever they give us to various strings and data representations and
+  then using the slp parser to ensure the form is stable. yes, this ensures the
+  most correct potential approach, but it will forever pain me to see data
+  transform primitive types at all just for the sake of c++ understandability.
+*/
 
 sxs_object_t create_none_callback() {
-  slp::slp_buffer_c buffer;
-  buffer.resize(sizeof(slp::slp_unit_of_store_t));
-  auto *unit = reinterpret_cast<slp::slp_unit_of_store_t *>(buffer.data());
-  unit->header = static_cast<std::uint32_t>(slp::slp_type_e::NONE);
-  unit->flags = 0;
-  return new slp::slp_object_c(slp::slp_object_c::from_data(buffer, {}, 0));
+  auto parse_result = slp::parse("()");
+  auto obj = parse_result.take();
+  return new slp::slp_object_c(slp::slp_object_c::from_data(
+      obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+}
+
+sxs_object_t create_int_callback(long long value) {
+  auto parse_result = slp::parse(std::to_string(value));
+  auto obj = parse_result.take();
+  return new slp::slp_object_c(slp::slp_object_c::from_data(
+      obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+}
+
+sxs_object_t create_real_callback(double value) {
+  auto parse_result = slp::parse(std::to_string(value));
+  auto obj = parse_result.take();
+  return new slp::slp_object_c(slp::slp_object_c::from_data(
+      obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+}
+
+sxs_object_t create_string_callback(const char *value) {
+  if (!value) {
+    return create_none_callback();
+  }
+
+  std::string str(value);
+  std::string escaped;
+  escaped.reserve(str.length() + 2);
+
+  for (char c : str) {
+    if (c == '"' || c == '\\') {
+      escaped += '\\';
+    }
+    escaped += c;
+  }
+
+  auto parse_result = slp::parse("\"" + escaped + "\"");
+  if (parse_result.is_error()) {
+    return create_none_callback();
+  }
+
+  auto obj = parse_result.take();
+  return new slp::slp_object_c(slp::slp_object_c::from_data(
+      obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
 }
 
 } // namespace
@@ -110,6 +154,8 @@ kernel_manager_c::kernel_manager_c(logger_t logger,
   api_table_->list_size = list_size_callback;
   api_table_->list_at = list_at_callback;
   api_table_->create_int = create_int_callback;
+  api_table_->create_real = create_real_callback;
+  api_table_->create_string = create_string_callback;
   api_table_->create_none = create_none_callback;
 }
 
@@ -167,8 +213,7 @@ kernel_manager_c::resolve_kernel_path(const std::string &kernel_name) {
 
 bool kernel_manager_c::load_kernel_dylib(const std::string &kernel_name,
                                          const std::string &kernel_dir) {
-  auto kernel_sxs_path =
-      std::filesystem::path(kernel_dir) / "kernel.sxs" ;
+  auto kernel_sxs_path = std::filesystem::path(kernel_dir) / "kernel.sxs";
 
   std::ifstream file(kernel_sxs_path);
   if (!file.is_open()) {

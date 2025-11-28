@@ -1,0 +1,40 @@
+[
+    #(load "io")
+    #(load "random")
+
+    (io/put "TEST_IO_PUT_SIMPLE:Hello World")
+    (io/put "|||")
+    (io/put "TEST_IO_PUT_INT:%d" 42)
+    (io/put "|||")
+    (io/put "TEST_IO_PUT_REAL:%f" 3.14159)
+    (io/put "|||")
+    (io/put "TEST_IO_PUT_STRING:%s" "test_string")
+    (io/put "|||")
+    (io/put "TEST_IO_PUT_MULTI:%d %f %s" 100 2.71828 "multi")
+    (io/put "|||")
+    
+    (io/put "TEST_RANDOM_INT:%d" (random/int_range 1 10))
+    (io/put "|||")
+    (io/put "TEST_RANDOM_INT:%d" (random/int_range 50 50))
+    (io/put "|||")
+    
+    (io/put "TEST_RANDOM_REAL:%f" (random/real_range 0.0 1.0))
+    (io/put "|||")
+    (io/put "TEST_RANDOM_REAL:%f" (random/real_range 5.5 5.5))
+    (io/put "|||")
+    
+    (io/put "TEST_RANDOM_STRING_LEN:%s" (random/string 10))
+    (io/put "|||")
+    (io/put "TEST_RANDOM_STRING_LEN:%s" (random/string 20))
+    (io/put "|||")
+    (io/put "TEST_RANDOM_STRING_EMPTY:%s" (random/string 0))
+    (io/put "|||")
+    
+    (io/put "TEST_RANDOM_ALPHA_LEN:%s" (random/string_alpha 15))
+    (io/put "|||")
+    (io/put "TEST_RANDOM_ALPHA_LEN:%s" (random/string_alpha 5))
+    (io/put "|||")
+    
+    (io/put "TEST_COMPLETE")
+]
+
