@@ -1,6 +1,0 @@
-[
-    (export greet (fn (name :str) :int [
-        (debug "Hello from imported library!" name)
-    ]))
-]
-

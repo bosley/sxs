@@ -13,6 +13,11 @@ set(SXS_TEST_FILES
   test_import_exported_lambda.sxs
   test_import_values.sxs
   test_import_exported_values.sxs
+  test_import_circular_a.sxs
+  test_import_circular_b.sxs
+  test_import_circular_3way_a.sxs
+  test_import_circular_3way_b.sxs
+  test_import_circular_3way_c.sxs
 )
 
 foreach(TEST_FILE ${SXS_TEST_FILES})

@@ -180,3 +180,68 @@ TEST_CASE("import - locked after first instruction",
   auto obj = parse_result.take();
   CHECK_THROWS_AS(interpreter->eval(obj), std::runtime_error);
 }
+
+TEST_CASE("import - direct circular import", "[unit][core][import][circular]") {
+  auto logger = std::make_shared<spdlog::logger>(
+      "test", std::make_shared<spdlog::sinks::null_sink_mt>());
+
+  std::vector<std::string> include_paths = {TEST_DATA_DIR};
+  std::string working_dir = TEST_DATA_DIR;
+
+  pkg::core::imports::imports_manager_c imports_manager(logger, include_paths,
+                                                        working_dir);
+  pkg::core::kernels::kernel_manager_c kernel_manager(logger, include_paths,
+                                                      working_dir);
+
+  auto source = load_test_file("test_import_circular_a.sxs");
+  auto parse_result = slp::parse(source);
+  REQUIRE(parse_result.is_success());
+
+  auto interpreter = create_test_interpreter(imports_manager, kernel_manager);
+
+  auto obj = parse_result.take();
+  bool exception_caught = false;
+  std::string exception_message;
+  try {
+    interpreter->eval(obj);
+  } catch (const std::runtime_error &e) {
+    exception_caught = true;
+    exception_message = e.what();
+  }
+
+  REQUIRE(exception_caught);
+  CHECK(exception_message.find("failed to import") != std::string::npos);
+}
+
+TEST_CASE("import - indirect circular import (3-way)",
+          "[unit][core][import][circular]") {
+  auto logger = std::make_shared<spdlog::logger>(
+      "test", std::make_shared<spdlog::sinks::null_sink_mt>());
+
+  std::vector<std::string> include_paths = {TEST_DATA_DIR};
+  std::string working_dir = TEST_DATA_DIR;
+
+  pkg::core::imports::imports_manager_c imports_manager(logger, include_paths,
+                                                        working_dir);
+  pkg::core::kernels::kernel_manager_c kernel_manager(logger, include_paths,
+                                                      working_dir);
+
+  auto source = load_test_file("test_import_circular_3way_a.sxs");
+  auto parse_result = slp::parse(source);
+  REQUIRE(parse_result.is_success());
+
+  auto interpreter = create_test_interpreter(imports_manager, kernel_manager);
+
+  auto obj = parse_result.take();
+  bool exception_caught = false;
+  std::string exception_message;
+  try {
+    interpreter->eval(obj);
+  } catch (const std::runtime_error &e) {
+    exception_caught = true;
+    exception_message = e.what();
+  }
+
+  REQUIRE(exception_caught);
+  CHECK(exception_message.find("failed to import") != std::string::npos);
+}

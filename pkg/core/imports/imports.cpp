@@ -6,6 +6,20 @@
 
 namespace pkg::core::imports {
 
+imports_manager_c::import_guard_c::import_guard_c(
+    imports_manager_c &manager, const std::string &canonical_path)
+    : manager_(manager), canonical_path_(canonical_path) {
+  manager_.currently_importing_.insert(canonical_path_);
+  manager_.import_stack_.push_back(canonical_path_);
+}
+
+imports_manager_c::import_guard_c::~import_guard_c() {
+  manager_.currently_importing_.erase(canonical_path_);
+  if (!manager_.import_stack_.empty()) {
+    manager_.import_stack_.pop_back();
+  }
+}
+
 imports_manager_c::imports_manager_c(logger_t logger,
                                      std::vector<std::string> include_paths,
                                      std::string working_directory)
@@ -77,8 +91,20 @@ bool imports_manager_c::import_context_c::attempt_import(
     return true;
   }
 
+  if (manager_.currently_importing_.count(canonical_path)) {
+    std::string error_msg = "Circular import detected:\n";
+    for (const auto &import_file : manager_.import_stack_) {
+      error_msg += "  " + import_file + " imports\n";
+    }
+    error_msg += "  " + canonical_path + " (cycle detected)";
+    manager_.logger_->error("{}", error_msg);
+    throw std::runtime_error(error_msg);
+  }
+
   manager_.logger_->info("Importing file: {} as symbol: {}", canonical_path,
                          symbol);
+
+  import_guard_c guard(manager_, canonical_path);
 
   std::ifstream file(canonical_path);
   if (!file.is_open()) {

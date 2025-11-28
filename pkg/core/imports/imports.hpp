@@ -47,6 +47,19 @@ public:
   void set_parent_context(callable_context_if *context);
 
 private:
+  class import_guard_c {
+  public:
+    import_guard_c(imports_manager_c &manager,
+                   const std::string &canonical_path);
+    ~import_guard_c();
+    import_guard_c(const import_guard_c &) = delete;
+    import_guard_c &operator=(const import_guard_c &) = delete;
+
+  private:
+    imports_manager_c &manager_;
+    std::string canonical_path_;
+  };
+
   std::string resolve_file_path(const std::string &file_path);
 
   logger_t logger_;
@@ -54,6 +67,8 @@ private:
   std::string working_directory_;
   bool imports_locked_;
   std::set<std::string> imported_files_;
+  std::set<std::string> currently_importing_;
+  std::vector<std::string> import_stack_;
   std::map<std::string, slp::slp_object_c> current_exports_;
   callable_context_if *parent_context_;
 

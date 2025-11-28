@@ -1,0 +1,8 @@
+[
+    #(import lib_a "test_import_circular_3way_a.sxs")
+    
+    (export func_c (fn () :int [
+        (debug "From C")
+    ]))
+]
+

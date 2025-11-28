@@ -1,6 +1,0 @@
-[
-    (export some_function (fn (argument :int) :any [
-        (debug "You called me with!" argument)
-    ]))
-]
-

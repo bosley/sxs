@@ -1,7 +1,0 @@
-[
-    #(import test_lib "test_import_lib.sxs")
-    
-    (debug "Calling imported function")
-    (test_lib/greet "World")
-]
-
