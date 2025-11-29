@@ -4,6 +4,7 @@
 #include "core/interpreter.hpp"
 #include <map>
 #include <set>
+#include <shared_mutex>
 #include <string>
 
 namespace pkg::core::imports {
@@ -36,10 +37,12 @@ public:
 
 class imports_manager_c {
 public:
-  imports_manager_c(logger_t logger, std::vector<std::string> include_paths,
-                    std::string working_directory,
-                    std::map<std::string, std::unique_ptr<callable_context_if>>
-                        *import_interpreters);
+  imports_manager_c(
+      logger_t logger, std::vector<std::string> include_paths,
+      std::string working_directory,
+      std::map<std::string, std::unique_ptr<callable_context_if>>
+          *import_interpreters,
+      std::map<std::string, std::shared_mutex> *import_interpreter_locks);
   ~imports_manager_c();
 
   import_context_if &get_import_context();
@@ -75,6 +78,7 @@ private:
   callable_context_if *parent_context_;
   std::map<std::string, std::unique_ptr<callable_context_if>>
       *import_interpreters_;
+  std::map<std::string, std::shared_mutex> *import_interpreter_locks_;
 
   class import_context_c : public import_context_if {
   public:

@@ -21,10 +21,13 @@ public:
       imports::import_context_if *import_context,
       kernels::kernel_context_if *kernel_context,
       std::map<std::string, std::unique_ptr<callable_context_if>>
-          *import_interpreters = nullptr)
+          *import_interpreters = nullptr,
+      std::map<std::string, std::shared_mutex> *import_interpreter_locks =
+          nullptr)
       : callable_symbols_(callable_symbols), import_context_(import_context),
         kernel_context_(kernel_context),
-        import_interpreters_(import_interpreters), next_lambda_id_(1),
+        import_interpreters_(import_interpreters),
+        import_interpreter_locks_(import_interpreter_locks), next_lambda_id_(1),
         current_scope_level_(0), imports_locks_triggered_(false) {
     initialize_type_map();
     push_scope();
@@ -106,7 +109,7 @@ public:
 
         auto *import_interp = get_import_interpreter(prefix);
         if (import_interp) {
-          return call_in_import_context(import_interp, suffix, list);
+          return call_in_import_context(import_interp, prefix, suffix, list);
         }
       }
 
@@ -332,6 +335,7 @@ private:
   }
 
   slp::slp_object_c call_in_import_context(callable_context_if *import_interp,
+                                           const std::string &import_prefix,
                                            const std::string &function_name,
                                            slp::slp_object_c::list_c list) {
     std::string call_str = "(" + function_name;
@@ -367,6 +371,14 @@ private:
     }
 
     auto call_obj = parse_result.take();
+
+    std::unique_lock<std::shared_mutex> lock;
+    if (import_interpreter_locks_ &&
+        import_interpreter_locks_->count(import_prefix)) {
+      lock = std::unique_lock<std::shared_mutex>(
+          (*import_interpreter_locks_)[import_prefix]);
+    }
+
     return import_interp->eval(call_obj);
   }
 
@@ -442,6 +454,7 @@ private:
   kernels::kernel_context_if *kernel_context_;
   std::map<std::string, std::unique_ptr<callable_context_if>>
       *import_interpreters_;
+  std::map<std::string, std::shared_mutex> *import_interpreter_locks_;
   bool imports_locks_triggered_;
 };
 
@@ -450,9 +463,11 @@ std::unique_ptr<callable_context_if> create_interpreter(
     imports::import_context_if *import_context,
     kernels::kernel_context_if *kernel_context,
     std::map<std::string, std::unique_ptr<callable_context_if>>
-        *import_interpreters) {
+        *import_interpreters,
+    std::map<std::string, std::shared_mutex> *import_interpreter_locks) {
   return std::make_unique<interpreter_c>(callable_symbols, import_context,
-                                         kernel_context, import_interpreters);
+                                         kernel_context, import_interpreters,
+                                         import_interpreter_locks);
 }
 
 } // namespace pkg::core

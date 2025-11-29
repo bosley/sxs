@@ -2,6 +2,7 @@
 
 #include <map>
 #include <memory>
+#include <shared_mutex>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <vector>
@@ -40,6 +41,7 @@ private:
   std::unique_ptr<kernels::kernel_manager_c> kernel_manager_;
   std::map<std::string, std::unique_ptr<callable_context_if>>
       import_interpreters_;
+  std::map<std::string, std::shared_mutex> import_interpreter_locks_;
 };
 
 } // namespace pkg::core

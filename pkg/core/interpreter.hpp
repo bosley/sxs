@@ -4,6 +4,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <shared_mutex>
 #include <string>
 #include <vector>
 
@@ -90,6 +91,8 @@ std::unique_ptr<callable_context_if> create_interpreter(
     imports::import_context_if *import_context = nullptr,
     kernels::kernel_context_if *kernel_context = nullptr,
     std::map<std::string, std::unique_ptr<callable_context_if>>
-        *import_interpreters = nullptr);
+        *import_interpreters = nullptr,
+    std::map<std::string, std::shared_mutex> *import_interpreter_locks =
+        nullptr);
 
 } // namespace pkg::core

@@ -28,11 +28,13 @@ std::unique_ptr<pkg::core::callable_context_if> create_test_interpreter(
     pkg::core::imports::imports_manager_c &imports_manager,
     pkg::core::kernels::kernel_manager_c &kernel_manager,
     std::map<std::string, std::unique_ptr<pkg::core::callable_context_if>>
-        *import_interpreters) {
+        *import_interpreters,
+    std::map<std::string, std::shared_mutex> *import_interpreter_locks) {
   auto symbols = pkg::core::instructions::get_standard_callable_symbols();
   auto interpreter = pkg::core::create_interpreter(
       symbols, &imports_manager.get_import_context(),
-      &kernel_manager.get_kernel_context(), import_interpreters);
+      &kernel_manager.get_kernel_context(), import_interpreters,
+      import_interpreter_locks);
   imports_manager.set_parent_context(interpreter.get());
   return interpreter;
 }
@@ -49,8 +51,10 @@ TEST_CASE("import - basic import and function call",
 
   std::map<std::string, std::unique_ptr<pkg::core::callable_context_if>>
       import_interpreters;
+  std::map<std::string, std::shared_mutex> import_interpreter_locks;
   pkg::core::imports::imports_manager_c imports_manager(
-      logger, include_paths, working_dir, &import_interpreters);
+      logger, include_paths, working_dir, &import_interpreters,
+      &import_interpreter_locks);
   pkg::core::kernels::kernel_manager_c kernel_manager(logger, include_paths,
                                                       working_dir);
 
@@ -58,8 +62,9 @@ TEST_CASE("import - basic import and function call",
   auto parse_result = slp::parse(source);
   REQUIRE(parse_result.is_success());
 
-  auto interpreter = create_test_interpreter(imports_manager, kernel_manager,
-                                             &import_interpreters);
+  auto interpreter =
+      create_test_interpreter(imports_manager, kernel_manager,
+                              &import_interpreters, &import_interpreter_locks);
 
   auto obj = parse_result.take();
   CHECK_NOTHROW(interpreter->eval(obj));
@@ -74,8 +79,10 @@ TEST_CASE("import - lambda export", "[unit][core][import][lambda]") {
 
   std::map<std::string, std::unique_ptr<pkg::core::callable_context_if>>
       import_interpreters;
+  std::map<std::string, std::shared_mutex> import_interpreter_locks;
   pkg::core::imports::imports_manager_c imports_manager(
-      logger, include_paths, working_dir, &import_interpreters);
+      logger, include_paths, working_dir, &import_interpreters,
+      &import_interpreter_locks);
   pkg::core::kernels::kernel_manager_c kernel_manager(logger, include_paths,
                                                       working_dir);
 
@@ -83,8 +90,9 @@ TEST_CASE("import - lambda export", "[unit][core][import][lambda]") {
   auto parse_result = slp::parse(source);
   REQUIRE(parse_result.is_success());
 
-  auto interpreter = create_test_interpreter(imports_manager, kernel_manager,
-                                             &import_interpreters);
+  auto interpreter =
+      create_test_interpreter(imports_manager, kernel_manager,
+                              &import_interpreters, &import_interpreter_locks);
 
   auto obj = parse_result.take();
   auto result = interpreter->eval(obj);
@@ -102,8 +110,10 @@ TEST_CASE("import - value exports", "[unit][core][import][values]") {
 
   std::map<std::string, std::unique_ptr<pkg::core::callable_context_if>>
       import_interpreters;
+  std::map<std::string, std::shared_mutex> import_interpreter_locks;
   pkg::core::imports::imports_manager_c imports_manager(
-      logger, include_paths, working_dir, &import_interpreters);
+      logger, include_paths, working_dir, &import_interpreters,
+      &import_interpreter_locks);
   pkg::core::kernels::kernel_manager_c kernel_manager(logger, include_paths,
                                                       working_dir);
 
@@ -111,8 +121,9 @@ TEST_CASE("import - value exports", "[unit][core][import][values]") {
   auto parse_result = slp::parse(source);
   REQUIRE(parse_result.is_success());
 
-  auto interpreter = create_test_interpreter(imports_manager, kernel_manager,
-                                             &import_interpreters);
+  auto interpreter =
+      create_test_interpreter(imports_manager, kernel_manager,
+                              &import_interpreters, &import_interpreter_locks);
 
   auto obj = parse_result.take();
   CHECK_NOTHROW(interpreter->eval(obj));
@@ -127,8 +138,10 @@ TEST_CASE("import - multiple exports", "[unit][core][import][multiple]") {
 
   std::map<std::string, std::unique_ptr<pkg::core::callable_context_if>>
       import_interpreters;
+  std::map<std::string, std::shared_mutex> import_interpreter_locks;
   pkg::core::imports::imports_manager_c imports_manager(
-      logger, include_paths, working_dir, &import_interpreters);
+      logger, include_paths, working_dir, &import_interpreters,
+      &import_interpreter_locks);
   pkg::core::kernels::kernel_manager_c kernel_manager(logger, include_paths,
                                                       working_dir);
 
@@ -136,8 +149,9 @@ TEST_CASE("import - multiple exports", "[unit][core][import][multiple]") {
   auto parse_result = slp::parse(source);
   REQUIRE(parse_result.is_success());
 
-  auto interpreter = create_test_interpreter(imports_manager, kernel_manager,
-                                             &import_interpreters);
+  auto interpreter =
+      create_test_interpreter(imports_manager, kernel_manager,
+                              &import_interpreters, &import_interpreter_locks);
 
   auto obj = parse_result.take();
   interpreter->eval(obj);
@@ -161,8 +175,10 @@ TEST_CASE("import - locked after first instruction",
 
   std::map<std::string, std::unique_ptr<pkg::core::callable_context_if>>
       import_interpreters;
+  std::map<std::string, std::shared_mutex> import_interpreter_locks;
   pkg::core::imports::imports_manager_c imports_manager(
-      logger, include_paths, working_dir, &import_interpreters);
+      logger, include_paths, working_dir, &import_interpreters,
+      &import_interpreter_locks);
   pkg::core::kernels::kernel_manager_c kernel_manager(logger, include_paths,
                                                       working_dir);
 
@@ -174,8 +190,9 @@ TEST_CASE("import - locked after first instruction",
   auto parse_result = slp::parse(source);
   REQUIRE(parse_result.is_success());
 
-  auto interpreter = create_test_interpreter(imports_manager, kernel_manager,
-                                             &import_interpreters);
+  auto interpreter =
+      create_test_interpreter(imports_manager, kernel_manager,
+                              &import_interpreters, &import_interpreter_locks);
 
   auto obj = parse_result.take();
   CHECK_THROWS_AS(interpreter->eval(obj), std::runtime_error);
@@ -190,8 +207,10 @@ TEST_CASE("import - direct circular import", "[unit][core][import][circular]") {
 
   std::map<std::string, std::unique_ptr<pkg::core::callable_context_if>>
       import_interpreters;
+  std::map<std::string, std::shared_mutex> import_interpreter_locks;
   pkg::core::imports::imports_manager_c imports_manager(
-      logger, include_paths, working_dir, &import_interpreters);
+      logger, include_paths, working_dir, &import_interpreters,
+      &import_interpreter_locks);
   pkg::core::kernels::kernel_manager_c kernel_manager(logger, include_paths,
                                                       working_dir);
 
@@ -199,8 +218,9 @@ TEST_CASE("import - direct circular import", "[unit][core][import][circular]") {
   auto parse_result = slp::parse(source);
   REQUIRE(parse_result.is_success());
 
-  auto interpreter = create_test_interpreter(imports_manager, kernel_manager,
-                                             &import_interpreters);
+  auto interpreter =
+      create_test_interpreter(imports_manager, kernel_manager,
+                              &import_interpreters, &import_interpreter_locks);
 
   auto obj = parse_result.take();
   bool exception_caught = false;
@@ -226,8 +246,10 @@ TEST_CASE("import - indirect circular import (3-way)",
 
   std::map<std::string, std::unique_ptr<pkg::core::callable_context_if>>
       import_interpreters;
+  std::map<std::string, std::shared_mutex> import_interpreter_locks;
   pkg::core::imports::imports_manager_c imports_manager(
-      logger, include_paths, working_dir, &import_interpreters);
+      logger, include_paths, working_dir, &import_interpreters,
+      &import_interpreter_locks);
   pkg::core::kernels::kernel_manager_c kernel_manager(logger, include_paths,
                                                       working_dir);
 
@@ -235,8 +257,9 @@ TEST_CASE("import - indirect circular import (3-way)",
   auto parse_result = slp::parse(source);
   REQUIRE(parse_result.is_success());
 
-  auto interpreter = create_test_interpreter(imports_manager, kernel_manager,
-                                             &import_interpreters);
+  auto interpreter =
+      create_test_interpreter(imports_manager, kernel_manager,
+                              &import_interpreters, &import_interpreter_locks);
 
   auto obj = parse_result.take();
   bool exception_caught = false;

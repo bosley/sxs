@@ -24,10 +24,12 @@ imports_manager_c::imports_manager_c(
     logger_t logger, std::vector<std::string> include_paths,
     std::string working_directory,
     std::map<std::string, std::unique_ptr<callable_context_if>>
-        *import_interpreters)
+        *import_interpreters,
+    std::map<std::string, std::shared_mutex> *import_interpreter_locks)
     : logger_(logger), include_paths_(std::move(include_paths)),
       working_directory_(std::move(working_directory)), imports_locked_(false),
-      parent_context_(nullptr), import_interpreters_(import_interpreters) {
+      parent_context_(nullptr), import_interpreters_(import_interpreters),
+      import_interpreter_locks_(import_interpreter_locks) {
   context_ = std::make_unique<import_context_c>(*this);
 }
 
@@ -154,6 +156,11 @@ bool imports_manager_c::import_context_c::attempt_import(
 
   (*manager_.import_interpreters_)[symbol] = std::move(import_interpreter);
   manager_.logger_->info("Stored import interpreter for symbol: {}", symbol);
+
+  if (manager_.import_interpreter_locks_) {
+    (*manager_.import_interpreter_locks_)[symbol];
+    manager_.logger_->debug("Registered interpreter lock for: {}", symbol);
+  }
 
   manager_.imported_files_.insert(canonical_path);
   manager_.current_exports_.clear();
