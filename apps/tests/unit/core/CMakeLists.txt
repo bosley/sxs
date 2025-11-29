@@ -8,6 +8,7 @@ set(SXS_TEST_FILES
   test_nested_scopes.sxs
   test_lambda_cleanup.sxs
   test_if.sxs
+  test_reflect.sxs
   test_import_basic.sxs
   test_import_exported_basic.sxs
   test_import_lambda.sxs
@@ -133,4 +134,17 @@ target_link_libraries(import_tests PRIVATE
 
 add_dependencies(build_tests import_tests)
 add_test(NAME import_tests COMMAND import_tests)
+
+add_executable(reflect_tests
+  reflect_test.cpp
+)
+
+target_link_libraries(reflect_tests PRIVATE 
+  extern::snitch
+  pkg::core
+  ${SXS_SLP_LIB}
+)
+
+add_dependencies(build_tests reflect_tests)
+add_test(NAME reflect_tests COMMAND reflect_tests)
 

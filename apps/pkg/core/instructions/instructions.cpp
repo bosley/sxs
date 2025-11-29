@@ -236,6 +236,62 @@ get_standard_callable_symbols() {
         }
       }};
 
+  symbols["reflect"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() < 3) {
+          throw std::runtime_error(
+              "reflect requires at least 2 arguments: value and one handler");
+        }
+
+        auto value_obj = list.at(1);
+        auto evaluated_value = context.eval(value_obj);
+        auto actual_type = evaluated_value.type();
+
+        for (size_t i = 2; i < list.size(); i++) {
+          auto handler = list.at(i);
+
+          if (handler.type() != slp::slp_type_e::PAREN_LIST) {
+            throw std::runtime_error(
+                "reflect: handlers must be paren lists like (:type body)");
+          }
+
+          auto handler_list = handler.as_list();
+          if (handler_list.size() != 2) {
+            throw std::runtime_error(
+                "reflect: handler must have exactly 2 elements: (:type body)");
+          }
+
+          auto type_symbol_obj = handler_list.at(0);
+          if (type_symbol_obj.type() != slp::slp_type_e::SYMBOL) {
+            throw std::runtime_error(
+                "reflect: handler type must be a symbol like :int");
+          }
+
+          std::string type_symbol = type_symbol_obj.as_symbol();
+          slp::slp_type_e handler_type;
+
+          if (!context.is_symbol_enscribing_valid_type(type_symbol,
+                                                       handler_type)) {
+            throw std::runtime_error(
+                fmt::format("reflect: invalid type symbol: {}", type_symbol));
+          }
+
+          if (handler_type == actual_type) {
+            auto body = handler_list.at(1);
+            return context.eval(body);
+          }
+        }
+
+        std::string error_msg = "@(handler not supplied for given type)";
+        auto error_parse = slp::parse(error_msg);
+        return error_parse.take();
+      }};
+
   return symbols;
 }
 

@@ -1,0 +1,45 @@
+[
+  (def int_val 42)
+  (def real_val 3.14)
+  (def symbol_val my-symbol)
+  (def string_val "hello")
+  (def paren_list_val (fn (x :int) :int [x]))
+
+  (def int_result (reflect int_val
+    (:int 100)
+    (:real 200)
+  ))
+
+  (def real_result (reflect real_val
+    (:int 100)
+    (:real 300)
+  ))
+
+  (def symbol_result (reflect symbol_val
+    (:symbol 400)
+    (:int 500)
+  ))
+
+  (def string_result (reflect string_val
+    (:str 600)
+    (:int 700)
+  ))
+
+  (def aberrant_result (reflect paren_list_val
+    (:aberrant 800)
+    (:int 900)
+  ))
+
+  (def error_missing_handler (reflect int_val
+    (:real 1000)
+    (:str 1100)
+  ))
+
+  (debug "int_result:" int_result)
+  (debug "real_result:" real_result)
+  (debug "symbol_result:" symbol_result)
+  (debug "string_result:" string_result)
+  (debug "aberrant_result:" aberrant_result)
+  (debug "error_missing_handler type:" error_missing_handler)
+]
+
