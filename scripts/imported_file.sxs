@@ -1,0 +1,14 @@
+[
+    (def my_secret_value 1337)
+
+    (export get_secret (fn () :int [
+        my_secret_value
+    ]))
+
+    (export add_to_secret (fn (amount :int) :int [
+        (debug "my_secret_value is:" my_secret_value)
+        (debug "amount is:" amount)
+        my_secret_value
+    ]))
+]
+

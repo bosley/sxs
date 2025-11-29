@@ -1,3 +1,2 @@
 add_subdirectory(app)
-add_subdirectory(oserv)
-add_subdirectory(sxsd)
+add_subdirectory(sxs)

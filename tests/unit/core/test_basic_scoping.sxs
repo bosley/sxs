@@ -1,0 +1,21 @@
+[
+    (def outer-var 100)
+    (def another-outer 200)
+    
+    (debug "Outer scope:" outer-var another-outer)
+    
+    (def shadow-fn (fn () :int [
+        (def inner-var 42)
+        (def outer-var 999)
+        (debug "Inner scope - shadowed:" outer-var)
+        (debug "Inner scope - inner var:" inner-var)
+        (debug "Inner scope - outer accessible:" another-outer)
+    ]))
+    (shadow-fn)
+    
+    (debug "After inner scope - outer restored:" outer-var)
+    (debug "After inner scope - another-outer:" another-outer)
+    
+    outer-var
+]
+

@@ -1,0 +1,8 @@
+[
+    #(import circular_a "test_import_circular_a.sxs")
+    
+    (export another_func (fn () :int [
+        (debug "From B")
+    ]))
+]
+

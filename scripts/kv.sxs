@@ -1,0 +1,21 @@
+[
+    #(load "kv")
+
+    ; We dont eval x, we just use it as a symbol so kv can map it to
+    ; a managed 
+    (kv/open-memory x) 
+    (kv/open-disk y "/tmp/some_dir") ; .disk opens a disk backed store 
+
+    (kv/set x:aaa "some_value") ; symbol passed, split by : and then the rest is the key
+
+    (def AA "hello there!")
+
+    (kv/set x:aab 42)
+    (kv/set x:aac 3.14)
+    (kv/set x:aad AA)
+
+    (debug "got: " (kv/get x:aaa))
+    (debug "got: " (kv/get x:aab))
+    (debug "got: " (kv/get x:aad))
+    (debug "got: " (kv/get no-exist)) ; should return slp error object
+]

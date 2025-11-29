@@ -1,5 +1,0 @@
-add_subdirectory(random)
-add_subdirectory(full)
-add_subdirectory(http)
-add_subdirectory(json)
-add_subdirectory(slp)

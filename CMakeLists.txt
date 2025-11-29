@@ -12,6 +12,23 @@ find_package(RocksDB REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(zstd REQUIRED IMPORTED_TARGET libzstd)
 
+if(DEFINED ENV{SXS_HOME})
+    set(SXS_STD_ROOT "$ENV{SXS_HOME}" CACHE PATH "sxs-std installation directory")
+else()
+    set(SXS_STD_ROOT "$ENV{HOME}/.sxs" CACHE PATH "sxs-std installation directory")
+endif()
+
+include_directories(${SXS_STD_ROOT}/include)
+
+find_library(SXS_SLP_LIB
+    NAMES pkg_slp libpkg_slp
+    PATHS ${SXS_STD_ROOT}/lib
+    NO_DEFAULT_PATH
+    REQUIRED
+)
+
+set(SXS_KERNEL_PATH "${SXS_STD_ROOT}/lib/kernels" CACHE PATH "Kernel modules directory")
+
 # Create the zstd::libzstd target that cpp-httplib expects
 if(TARGET PkgConfig::zstd)
     add_library(zstd::libzstd ALIAS PkgConfig::zstd)
@@ -21,6 +38,9 @@ endif()
 option(RUN_TESTS      "Run tests" ON)
 option(EXTRA_DEBUG_STMT     "Enable extra debug statements" OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
+
+set(TEST_DATA_DIR "${CMAKE_BINARY_DIR}/test_data")
+add_compile_definitions(TEST_DATA_DIR="${TEST_DATA_DIR}")
 
 #
 # Options
@@ -77,7 +97,6 @@ include(${PROJECT_SOURCE_DIR}/cmake/Platform.cmake)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern)
 add_subdirectory(${PROJECT_SOURCE_DIR}/pkg)
 add_subdirectory(${PROJECT_SOURCE_DIR}/cmd)
-add_subdirectory(${PROJECT_SOURCE_DIR}/examples)
 
 #
 # Custom target for release builds

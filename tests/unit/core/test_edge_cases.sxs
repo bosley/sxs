@@ -1,0 +1,29 @@
+[
+    (def valid-fn (fn (x :int) :int [
+        (debug "Valid function")
+        (def r 1)
+    ]))
+    
+    (debug "Test 1: Valid call")
+    (valid-fn 42)
+    
+    (def test-var 100)
+    (debug "Test 2: Accessing defined symbol")
+    (debug test-var)
+    
+    (def shadow-test (fn (x :int) :int [
+        (debug "Shadowed param:" x)
+        (def r 1)
+    ]))
+    
+    (debug "Test 3: Parameter shadowing in function")
+    (shadow-test 1)
+    
+    (def empty-body (fn () :int [
+        (def dummy 0)
+    ]))
+    
+    (debug "Test 4: Empty-ish function body")
+    (empty-body)
+]
+
