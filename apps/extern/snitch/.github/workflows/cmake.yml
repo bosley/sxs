@@ -1,0 +1,202 @@
+name: cmake
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+env:
+  EM_VERSION: 3.1.35
+  EM_CACHE_FOLDER: 'emsdk-cache'
+  CODECOV_TOKEN: 'f8197851-e753-4291-a835-2d76090f2c92'
+  CMAKE_INSTALL_VERSION: 3.14.7
+
+jobs:
+  install:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+        - { name: Install Ubuntu GCC static,      flags: "", test-flags: ""}
+        - { name: Install Ubuntu GCC header-only, flags: "-DSNITCH_HEADER_ONLY=1", test-flags: "-DHEADER_ONLY=yes"}
+        - { name: Install Ubuntu GCC shared,      flags: "-DBUILD_SHARED_LIBS=1", test-flags: ""}
+        build-type:
+        - Release
+
+    name: ${{matrix.platform.name}} ${{matrix.build-type}}
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+
+    - name: Setup GCC
+      shell: bash
+      run: |
+        sudo apt install g++-11
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 100 --slave /usr/bin/g++ g++ /usr/bin/g++-11 --slave /usr/bin/gcov gcov /usr/bin/gcov-11
+        sudo update-alternatives --set gcc /usr/bin/gcc-11
+
+    - name: Setup CMake
+      shell: bash
+      run: |
+        wget -q https://github.com/Kitware/CMake/releases/download/v${CMAKE_INSTALL_VERSION}/cmake-${CMAKE_INSTALL_VERSION}-Linux-x86_64.tar.gz
+        tar -xvzf cmake-${CMAKE_INSTALL_VERSION}-Linux-x86_64.tar.gz -C "${{github.workspace}}"
+        echo "${{github.workspace}}/cmake-${CMAKE_INSTALL_VERSION}-Linux-x86_64/bin" >> ${GITHUB_PATH}
+
+    - name: Create Build Environment
+      shell: bash
+      run: |
+        cmake --version
+        cmake -E make_directory ${{github.workspace}}/build
+
+    - name: Configure CMake
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install ${{matrix.platform.flags}}
+
+    - name: Build
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: cmake --build . --parallel 2
+
+    - name: Install
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: make install
+
+    - name: Build test
+      shell: bash
+      working-directory: ${{github.workspace}}/tests/install_tests
+      run: |
+        cmake -E make_directory build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=${{github.workspace}}/install ${{matrix.platform.test-flags}}
+        cmake --build .
+
+    - name: Run test
+      shell: bash
+      working-directory: ${{github.workspace}}/tests/install_tests
+      run: ./build/standalone
+
+  build:
+    needs: install
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+        - { name: Ubuntu GCC,             os: ubuntu-latest,  publish: true,  compiler: g++,     arch: "64", build: "ubuntu64-libstdc++-static",          cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_FLAGS='--coverage' --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Ubuntu GCC disabled,    os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++-static-disabled", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev -DSNITCH_ENABLE=OFF"}
+        - { name: Ubuntu GCC noexcept,    os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++-static-noexcept", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_FLAGS='-fno-exceptions' --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Ubuntu GCC notime,      os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++-static-notime",   cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DSNITCH_WITH_TIMINGS=0 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Ubuntu GCC nounity,     os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++-static-nounity",  cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DSNITCH_UNITY_BUILD=0 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Ubuntu GCC header-only, os: ubuntu-latest,  publish: true,  compiler: g++,     arch: "64", build: "header-only",                        cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DSNITCH_HEADER_ONLY=1 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Ubuntu GCC shared,      os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++-shared",          cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DBUILD_SHARED_LIBS=1 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Ubuntu Clang,           os: ubuntu-latest,  publish: true,  compiler: clang++, arch: "64", build: "ubuntu64-libc++-static",             cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS='-stdlib=libc++' --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Ubuntu Clang noexcept,  os: ubuntu-latest,  publish: false, compiler: clang++, arch: "64", build: "ubuntu64-libc++-static-noexcept",    cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS='-stdlib=libc++ -fno-exceptions' --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Windows 32,             os: windows-latest, publish: true,  compiler: vs2019,  arch: "32", build: "win32-vs2019-static",                cmakepp: "",        flags: "-A Win32 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Windows 64,             os: windows-latest, publish: true,  compiler: vs2019,  arch: "64", build: "win64-vs2019-static",                cmakepp: "",        flags: "-A x64 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Windows 64 noexcept,    os: windows-latest, publish: false, compiler: vs2019,  arch: "64", build: "win64-vs2019-static-noexcept",       cmakepp: "",        flags: "-A x64 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Windows 64 shared,      os: windows-latest, publish: false, compiler: vs2019,  arch: "64", build: "win64-vs2019-shared",                cmakepp: "",        flags: "-A x64 -DBUILD_SHARED_LIBS=1 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: MacOS,                  os: macos-latest,   publish: true,  compiler: clang++, arch: "64", build: "osx-libc++-static",                  cmakepp: "",        flags: "--warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: MacOS noexcept,         os: macos-latest,   publish: false, compiler: clang++, arch: "64", build: "osx-libc++-static-noexcept",         cmakepp: "",        flags: "-DCMAKE_CXX_FLAGS='-fno-exceptions' --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: WebAssembly,            os: ubuntu-latest,  publish: true,  compiler: em++,    arch: "32", build: "wasm32",                             cmakepp: "emcmake", flags: "-DCMAKE_CXX_FLAGS='-s DISABLE_EXCEPTION_CATCHING=0' -DCMAKE_CROSSCOMPILING_EMULATOR=node"}
+        - { name: WebAssembly noexcept,   os: ubuntu-latest,  publish: false, compiler: em++,    arch: "32", build: "wasm32-noexcept",                    cmakepp: "emcmake", flags: "-DCMAKE_CXX_FLAGS='-fno-exceptions' -DCMAKE_CROSSCOMPILING_EMULATOR=node"}
+        build-type:
+        - Release
+        - Debug
+
+    name: ${{matrix.platform.name}} ${{matrix.build-type}}
+    runs-on: ${{matrix.platform.os}}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2 # necessary for codecov bash uploader
+        submodules: 'recursive'
+
+    - name: Setup Clang
+      if: matrix.platform.compiler == 'clang++' && matrix.platform.os == 'ubuntu-latest'
+      run: sudo apt install clang libc++-dev libc++abi-dev
+
+    - name: Setup Emscripten cache
+      if: matrix.platform.compiler == 'em++'
+      id: cache-system-libraries
+      uses: actions/cache@v4
+      with:
+        path: ${{env.EM_CACHE_FOLDER}}
+        key: ${{env.EM_VERSION}}-${{matrix.platform.name}}-${{matrix.build-type}}
+
+    - name: Setup Emscripten
+      if: matrix.platform.compiler == 'em++'
+      uses: mymindstorm/setup-emsdk@v14
+      with:
+        version: ${{env.EM_VERSION}}
+        actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
+
+    - name: Setup GCC
+      if: matrix.platform.compiler == 'g++'
+      run: |
+        sudo apt install g++-11
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 100 --slave /usr/bin/g++ g++ /usr/bin/g++-11 --slave /usr/bin/gcov gcov /usr/bin/gcov-11
+        sudo update-alternatives --set gcc /usr/bin/gcc-11
+
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{github.workspace}}/build
+
+    - name: Configure CMake
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: ${{matrix.platform.cmakepp}} cmake .. -DCMAKE_BUILD_TYPE=${{matrix.build-type}} ${{matrix.platform.flags}} -DSNITCH_DO_TEST=1 -DCMAKE_INSTALL_PREFIX=../install
+
+    - name: Build
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: cmake --build . --config ${{matrix.build-type}} --parallel 2
+
+    - name: Test (with doctest)
+      # A bug in Node.js/V8 prevents these tests from running in Debug config for WebAssembly.
+      # https://bugs.chromium.org/p/v8/issues/detail?id=13961
+      if: ${{!(matrix.platform.compiler == 'em++' && matrix.build-type == 'Debug') && !contains(matrix.platform.flags, '-DSNITCH_ENABLE=OFF')}}
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: cmake --build . --config ${{matrix.build-type}} --target snitch_runtime_tests_run
+
+    - name: Test (with snitch)
+      if: ${{!contains(matrix.platform.flags, '-DSNITCH_ENABLE=OFF')}}
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: cmake --build . --config ${{matrix.build-type}} --target snitch_runtime_tests_self_run
+
+    - name: Approval tests (with doctest)
+      # Approval tests only run on "default" library configuration, which happens to be the published one
+      if: ${{matrix.platform.publish && !contains(matrix.platform.flags, '-DSNITCH_ENABLE=OFF')}}
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: cmake --build . --config ${{matrix.build-type}} --target snitch_approval_tests_run
+
+    - name: Compute code coverage
+      if: runner.os == 'Linux' && matrix.platform.compiler == 'g++' && matrix.build-type == 'Debug' && matrix.platform.name == 'Ubuntu GCC'
+      run: |
+        gcov ${{github.workspace}}/build/tests/CMakeFiles/snitch_runtime_tests.dir/runtime_tests/*.gcda ${{github.workspace}}/build/tests/CMakeFiles/snitch_runtime_tests_self.dir/runtime_tests/*.gcda
+        ls | grep '.gcov' | grep -v snitch | xargs -d"\n" rm
+        bash <(curl -s https://codecov.io/bash)
+
+    - name: Install
+      if: matrix.build-type == 'Release' && matrix.platform.publish && github.ref == 'refs/heads/main'
+      working-directory: ${{github.workspace}}/build
+      shell: bash
+      run: cmake --build . --config ${{matrix.build-type}} --target install
+
+    - name: Upload build as an artifact
+      if: matrix.build-type == 'Release' && matrix.platform.publish && github.ref == 'refs/heads/main'
+      uses: actions/upload-artifact@v4
+      with:
+        name: snitch-${{matrix.platform.build}}
+        path: ${{github.workspace}}/install
+

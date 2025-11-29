@@ -1,0 +1,16 @@
+=== REAL Type Round-Trip Test ===
+
+--- Simple Reals ---
+pi: 3.141590
+negative: -2.500000
+zero: 0.000000
+
+--- Edge Case Reals ---
+large: 12345678900.000000
+small: 0.000000
+precise: 123.456789
+
+--- Reals in List ---
+Real list stored and retrieved
+
+=== All real tests complete ===

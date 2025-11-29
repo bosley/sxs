@@ -1,0 +1,45 @@
+[
+    #(load "kv" "io")
+
+    (io/put "=== STRING Type Round-Trip Test ===\n")
+    (kv/open-memory store)
+
+    (io/put "\n--- Simple Strings ---\n")
+    (kv/set store:str1 "hello")
+    (kv/set store:str2 "bosley")
+    (kv/set store:str3 "world")
+    
+    (def retrieved1 (kv/get store:str1))
+    (def retrieved2 (kv/get store:str2))
+    (def retrieved3 (kv/get store:str3))
+    
+    (io/put "hello: %s\n" retrieved1)
+    (io/put "bosley: %s\n" retrieved2)
+    (io/put "world: %s\n" retrieved3)
+
+    (io/put "\n--- Edge Case Strings ---\n")
+    (kv/set store:empty "")
+    (kv/set store:escaped "line1\nline2\ttabbed")
+    (kv/set store:special "special!@#$%^&*()")
+    
+    (def retrieved_empty (kv/get store:empty))
+    (def retrieved_escaped (kv/get store:escaped))
+    (def retrieved_special (kv/get store:special))
+    
+    (io/put "empty: '%s'\n" retrieved_empty)
+    (io/put "escaped: %s\n" retrieved_escaped)
+    (io/put "special: %s\n" retrieved_special)
+
+    (io/put "\n--- Long String ---\n")
+    (kv/set store:long "This is a much longer string that contains many words and characters to test the serialization and deserialization of longer text content")
+    (def retrieved_long (kv/get store:long))
+    (io/put "Long string: %s\n" retrieved_long)
+
+    (io/put "\n--- Strings in List ---\n")
+    (kv/set store:list '("apple" "banana" "cherry"))
+    (def retrieved_list (kv/get store:list))
+    (io/put "String list stored and retrieved\n")
+
+    (io/put "\n=== All string tests complete ===\n")
+]
+

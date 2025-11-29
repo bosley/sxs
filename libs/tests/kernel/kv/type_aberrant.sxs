@@ -1,0 +1,52 @@
+[
+    #(load "kv" "io")
+
+    (io/put "=== ABERRANT Type Round-Trip Test ===\n")
+    (kv/open-memory store)
+
+    (io/put "\n--- Simple Aberrant Values ---\n")
+    (kv/set store:ab1 ?42)
+    (kv/set store:ab2 ?"aberrant string")
+    (kv/set store:ab3 ?symbol)
+    
+    (def retrieved1 (kv/get store:ab1))
+    (def retrieved2 (kv/get store:ab2))
+    (def retrieved3 (kv/get store:ab3))
+    
+    (io/put "Aberrant integer stored and retrieved\n")
+    (io/put "Aberrant string stored and retrieved\n")
+    (io/put "Aberrant symbol stored and retrieved\n")
+
+    (io/put "\n--- Nested Aberrant Values ---\n")
+    (kv/set store:double ??42)
+    (kv/set store:triple ???100)
+    
+    (def retrieved_double (kv/get store:double))
+    (def retrieved_triple (kv/get store:triple))
+    
+    (io/put "Double-aberrant value stored and retrieved\n")
+    (io/put "Triple-aberrant value stored and retrieved\n")
+
+    (io/put "\n--- Aberrant with Lists ---\n")
+    (kv/set store:ablist ?(1 2 3))
+    (kv/set store:abnested ?(1 (2 3) 4))
+    
+    (def retrieved_ablist (kv/get store:ablist))
+    (def retrieved_abnested (kv/get store:abnested))
+    
+    (io/put "Aberrant list stored and retrieved\n")
+    (io/put "Aberrant nested list stored and retrieved\n")
+
+    (io/put "\n--- Aberrant in Lists ---\n")
+    (kv/set store:list '(?1 ?2 ?3))
+    (def retrieved_list (kv/get store:list))
+    (io/put "List of aberrant values stored and retrieved\n")
+
+    (io/put "\n--- Complex Aberrant Structure ---\n")
+    (kv/set store:complex ?((status "unknown") (reason "invalid") (data (x y z))))
+    (def retrieved_complex (kv/get store:complex))
+    (io/put "Complex aberrant structure stored and retrieved\n")
+
+    (io/put "\n=== All aberrant tests complete ===\n")
+]
+

@@ -1,0 +1,40 @@
+[
+    #(load "kv" "io")
+
+    (io/put "=== REAL Type Round-Trip Test ===\n")
+    (kv/open-memory store)
+
+    (io/put "\n--- Simple Reals ---\n")
+    (kv/set store:pi 3.14159)
+    (kv/set store:neg -2.5)
+    (kv/set store:zero 0.0)
+    
+    (def retrieved_pi (kv/get store:pi))
+    (def retrieved_neg (kv/get store:neg))
+    (def retrieved_zero (kv/get store:zero))
+    
+    (io/put "pi: %f\n" retrieved_pi)
+    (io/put "negative: %f\n" retrieved_neg)
+    (io/put "zero: %f\n" retrieved_zero)
+
+    (io/put "\n--- Edge Case Reals ---\n")
+    (kv/set store:large 1.23456789e10)
+    (kv/set store:small 1.23456789e-10)
+    (kv/set store:precise 123.456789012345)
+    
+    (def retrieved_large (kv/get store:large))
+    (def retrieved_small (kv/get store:small))
+    (def retrieved_precise (kv/get store:precise))
+    
+    (io/put "large: %f\n" retrieved_large)
+    (io/put "small: %f\n" retrieved_small)
+    (io/put "precise: %f\n" retrieved_precise)
+
+    (io/put "\n--- Reals in List ---\n")
+    (kv/set store:list '(1.1 2.2 3.3 4.4))
+    (def retrieved_list (kv/get store:list))
+    (io/put "Real list stored and retrieved\n")
+
+    (io/put "\n=== All real tests complete ===\n")
+]
+

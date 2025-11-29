@@ -1,0 +1,64 @@
+[
+    #(load "kv" "io")
+
+    (io/put "=== KV Kernel Full Test ===\n")
+
+    (io/put "\n--- Testing memory store ---\n")
+    (kv/open-memory mem)
+    (io/put "Memory store opened\n")
+
+    (io/put "\n--- Testing basic set/get ---\n")
+    (kv/set mem:x 42)
+    (kv/set mem:name "bosley")
+    (kv/set mem:pi 3.14159)
+
+    (def x (kv/get mem:x))
+    (def name (kv/get mem:name))
+    (def pi (kv/get mem:pi))
+
+    (io/put "x: %d\n" x)
+    (io/put "name: %s\n" name)
+    (io/put "pi: %f\n" pi)
+
+    (io/put "\n--- Testing snx (set-if-not-exists) ---\n")
+    (kv/snx mem:new_key 100)
+    (def new_val (kv/get mem:new_key))
+    (io/put "snx new_key: %d\n" new_val)
+
+    (io/put "snx on existing key (should fail): ")
+    (kv/snx mem:x 999)
+    (def x_unchanged (kv/get mem:x))
+    (io/put "%d\n" x_unchanged)
+
+    (io/put "\n--- Testing cas (compare-and-swap) ---\n")
+    (def current_x (kv/get mem:x))
+    (kv/cas mem:x current_x 100)
+    (def x_after_cas (kv/get mem:x))
+    (io/put "cas x using stored value to 100: %d\n" x_after_cas)
+
+    (def current_x2 (kv/get mem:x))
+    (io/put "cas with wrong expected (should fail): ")
+    (kv/cas mem:x 999 200)
+    (def x_after_failed_cas (kv/get mem:x))
+    (io/put "%d\n" x_after_failed_cas)
+
+    (io/put "\n--- Testing del ---\n")
+    (kv/del mem:pi)
+    (io/put "Deleted pi\n")
+
+    (io/put "\n--- Testing disk store ---\n")
+    (kv/open-disk disk "/tmp/sxs_kv_test")
+    (io/put "Disk store opened\n")
+
+    (kv/set disk:test "disk_value")
+    (def disk_val (kv/get disk:test))
+    (io/put "disk test: %s\n" disk_val)
+
+    (io/put "\n--- Testing complex values ---\n")
+    (kv/set mem:mylist '(1 2 3 4 5))
+    (def stored_list (kv/get mem:mylist))
+    (io/put "Stored and retrieved list\n")
+
+    (io/put "\n=== All tests complete ===\n")
+]
+

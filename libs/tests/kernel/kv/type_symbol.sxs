@@ -1,0 +1,40 @@
+[
+    #(load "kv" "io")
+
+    (io/put "=== SYMBOL Type Round-Trip Test ===\n")
+    (kv/open-memory store)
+
+    (io/put "\n--- Simple Symbols ---\n")
+    (kv/set store:sym1 'hello)
+    (kv/set store:sym2 'world)
+    (kv/set store:sym3 'test-symbol)
+    
+    (def retrieved1 (kv/get store:sym1))
+    (def retrieved2 (kv/get store:sym2))
+    (def retrieved3 (kv/get store:sym3))
+    
+    (io/put "Symbol stored and retrieved: hello\n")
+    (io/put "Symbol stored and retrieved: world\n")
+    (io/put "Symbol stored and retrieved: test-symbol\n")
+
+    (io/put "\n--- Various Symbol Names ---\n")
+    (kv/set store:sym_underscore 'with_underscore)
+    (kv/set store:sym_dash 'with-dash)
+    (kv/set store:sym_plus 'symbol+plus)
+    
+    (def retrieved_underscore (kv/get store:sym_underscore))
+    (def retrieved_dash (kv/get store:sym_dash))
+    (def retrieved_plus (kv/get store:sym_plus))
+    
+    (io/put "Symbol with underscore stored and retrieved\n")
+    (io/put "Symbol with dash stored and retrieved\n")
+    (io/put "Symbol with plus stored and retrieved\n")
+
+    (io/put "\n--- Symbols in List ---\n")
+    (kv/set store:list '(first second third))
+    (def retrieved_list (kv/get store:list))
+    (io/put "Symbol list stored and retrieved\n")
+
+    (io/put "\n=== All symbol tests complete ===\n")
+]
+

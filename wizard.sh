@@ -8,9 +8,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-SXS_STD_REPO="https://github.com/bosley/sxs-std.git"
 SXS_HOME="${SXS_HOME:-$HOME/.sxs}"
-SXS_REPO_DIR="$SXS_HOME/.repo"
 
 print_header() {
     echo -e "${BLUE}════════════════════════════════════════${NC}"
@@ -23,12 +21,12 @@ print_usage() {
     echo "Usage: $0 [COMMAND]"
     echo
     echo "Commands:"
-    echo "  --install      Install sxs-std to ~/.sxs"
+    echo "  --install      Build and install libs and apps to ~/.sxs"
     echo "  --reinstall    Force reinstall (removes existing installation)"
-    echo "  --uninstall    Remove sxs-std installation"
+    echo "  --uninstall    Remove sxs installation"
     echo "  --check        Check installation status and show directory tree"
-    echo "  --build        Build the main sxs project"
-    echo "  --test         Build and run all tests (unit + kernel)"
+    echo "  --build        Build the apps project"
+    echo "  --test         Build and run all tests (libs + apps)"
     echo
     exit 1
 }
@@ -37,14 +35,14 @@ check_installation() {
     print_header
     
     if [ ! -d "$SXS_HOME" ]; then
-        echo -e "${RED}✗ sxs-std is not installed${NC}"
+        echo -e "${RED}✗ sxs is not installed${NC}"
         echo -e "  Directory ~/.sxs does not exist"
         echo
         echo -e "${YELLOW}Run: $0 --install${NC}"
         exit 1
     fi
     
-    echo -e "${GREEN}✓ sxs-std installation found${NC}"
+    echo -e "${GREEN}✓ sxs installation found${NC}"
     echo
     
     if command -v tree &> /dev/null; then
@@ -69,17 +67,6 @@ check_installation() {
             echo -e "${YELLOW}Kernels:${NC}"
             ls -l "$SXS_HOME/lib/kernels" 2>/dev/null || echo "  (none)"
         fi
-        if [ -d "$SXS_REPO_DIR" ]; then
-            echo -e "${YELLOW}Source Repository:${NC}"
-            echo "  $SXS_REPO_DIR"
-            if [ -d "$SXS_REPO_DIR/.git" ]; then
-                cd "$SXS_REPO_DIR"
-                COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-                BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
-                echo "  Branch: $BRANCH"
-                echo "  Commit: $COMMIT"
-            fi
-        fi
     fi
     echo
 }
@@ -92,7 +79,7 @@ install_sxs_std() {
     print_header
     
     if [ -d "$SXS_HOME" ] && [ "$force_reinstall" != "true" ]; then
-        echo -e "${YELLOW}⚠ sxs-std appears to be already installed at ~/.sxs${NC}"
+        echo -e "${YELLOW}⚠ sxs installation appears to exist at ~/.sxs${NC}"
         echo
         read -p "Do you want to remove and reinstall? (y/N): " -n 1 -r
         echo
@@ -111,67 +98,75 @@ install_sxs_std() {
     echo -e "${YELLOW}Creating ~/.sxs directory...${NC}"
     mkdir -p "$SXS_HOME"
     
-    if [ -d "$SXS_REPO_DIR" ]; then
-        echo -e "${YELLOW}Updating existing sxs-std repository...${NC}"
-        cd "$SXS_REPO_DIR"
-        git pull
-    else
-        echo -e "${YELLOW}Cloning sxs-std to ~/.sxs/.repo...${NC}"
-        git clone "$SXS_STD_REPO" "$SXS_REPO_DIR"
-        cd "$SXS_REPO_DIR"
-    fi
+    echo -e "${YELLOW}Building libs...${NC}"
+    echo
+    
+    LIBS_BUILD_DIR="$SCRIPT_DIR/libs/build"
+    
+    cd "$SCRIPT_DIR/libs"
     
     if [ -d "build" ]; then
-        echo -e "${YELLOW}Cleaning previous build...${NC}"
+        echo -e "${YELLOW}Cleaning previous libs build...${NC}"
         rm -rf build
     fi
     
     mkdir build
     cd build
     
-    echo -e "${YELLOW}Configuring sxs-std...${NC}"
-    cmake ..
-    
-    echo -e "${YELLOW}Building sxs-std...${NC}"
-    make -j8
-    
-    echo -e "${YELLOW}Installing sxs-std to ~/.sxs...${NC}"
-    make install
-    
-    echo
-    echo -e "${GREEN}✓ sxs-std installed successfully!${NC}"
-    echo
-    
-    echo -e "${YELLOW}Building main sxs project...${NC}"
-    echo
-    
-    BUILD_DIR="$SCRIPT_DIR/build"
-    
-    cd "$SCRIPT_DIR"
-    
-    if [ ! -d "$BUILD_DIR" ]; then
-        mkdir -p "$BUILD_DIR"
-    fi
-    
-    cd "$BUILD_DIR"
-    
-    echo -e "${YELLOW}Configuring with CMake...${NC}"
+    echo -e "${YELLOW}Configuring libs with CMake...${NC}"
     if ! cmake ..; then
-        echo -e "${RED}✗ CMake configuration failed${NC}"
+        echo -e "${RED}✗ Libs CMake configuration failed${NC}"
         exit 1
     fi
     
-    echo -e "${YELLOW}Building with make -j8...${NC}"
+    echo -e "${YELLOW}Building libs with make -j8...${NC}"
     if ! make -j8; then
-        echo -e "${RED}✗ Build failed${NC}"
+        echo -e "${RED}✗ Libs build failed${NC}"
+        exit 1
+    fi
+    
+    echo -e "${YELLOW}Installing libs to ~/.sxs...${NC}"
+    if ! make install; then
+        echo -e "${RED}✗ Libs installation failed${NC}"
         exit 1
     fi
     
     echo
-    echo -e "${GREEN}✓ Build completed successfully!${NC}"
+    echo -e "${GREEN}✓ Libs installed successfully!${NC}"
     echo
     
-    SXS_BINARY="$BUILD_DIR/cmd/sxs/sxs"
+    echo -e "${YELLOW}Building apps...${NC}"
+    echo
+    
+    APPS_BUILD_DIR="$SCRIPT_DIR/apps/build"
+    
+    cd "$SCRIPT_DIR/apps"
+    
+    if [ -d "build" ]; then
+        echo -e "${YELLOW}Cleaning previous apps build...${NC}"
+        rm -rf build
+    fi
+    
+    mkdir build
+    cd build
+    
+    echo -e "${YELLOW}Configuring apps with CMake...${NC}"
+    if ! cmake ..; then
+        echo -e "${RED}✗ Apps CMake configuration failed${NC}"
+        exit 1
+    fi
+    
+    echo -e "${YELLOW}Building apps with make -j8...${NC}"
+    if ! make -j8; then
+        echo -e "${RED}✗ Apps build failed${NC}"
+        exit 1
+    fi
+    
+    echo
+    echo -e "${GREEN}✓ Apps build completed successfully!${NC}"
+    echo
+    
+    SXS_BINARY="$APPS_BUILD_DIR/cmd/sxs/sxs"
     if [ -f "$SXS_BINARY" ]; then
         echo -e "${YELLOW}Installing sxs binary to $SXS_HOME/bin...${NC}"
         mkdir -p "$SXS_HOME/bin"
@@ -185,7 +180,6 @@ install_sxs_std() {
     echo
     echo -e "${BLUE}Installation Details:${NC}"
     echo -e "  Binary:  $SXS_HOME/bin/sxs"
-    echo -e "  Source:  $SXS_HOME/.repo/"
     echo -e "  Libs:    $SXS_HOME/lib/"
     echo -e "  Headers: $SXS_HOME/include/sxs/"
     echo -e "  Kernels: $SXS_HOME/lib/kernels/"
@@ -200,23 +194,25 @@ build_project() {
     print_header
     
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    BUILD_DIR="$SCRIPT_DIR/build"
+    BUILD_DIR="$SCRIPT_DIR/apps/build"
     
     if [ ! -d "$SXS_HOME" ]; then
-        echo -e "${RED}✗ sxs-std is not installed${NC}"
+        echo -e "${RED}✗ libs not installed to ~/.sxs${NC}"
         echo -e "${YELLOW}Run: $0 --install${NC}"
         exit 1
     fi
     
-    echo -e "${YELLOW}Building sxs project...${NC}"
+    echo -e "${YELLOW}Building apps...${NC}"
     echo
     
-    if [ ! -d "$BUILD_DIR" ]; then
+    cd "$SCRIPT_DIR/apps"
+    
+    if [ ! -d "build" ]; then
         echo -e "${YELLOW}Creating build directory...${NC}"
-        mkdir -p "$BUILD_DIR"
+        mkdir -p build
     fi
     
-    cd "$BUILD_DIR"
+    cd build
     
     echo -e "${YELLOW}Configuring with CMake...${NC}"
     if ! cmake ..; then
@@ -245,23 +241,20 @@ uninstall_sxs_std() {
     print_header
     
     if [ ! -d "$SXS_HOME" ]; then
-        echo -e "${YELLOW}⚠ sxs-std is not installed${NC}"
+        echo -e "${YELLOW}⚠ sxs is not installed${NC}"
         echo -e "  Directory $SXS_HOME does not exist"
         exit 0
     fi
     
-    echo -e "${YELLOW}⚠ This will remove the sxs-std installation at:${NC}"
+    echo -e "${YELLOW}⚠ This will remove the sxs installation at:${NC}"
     echo -e "  $SXS_HOME"
     echo
     
-    if [ -d "$SXS_REPO_DIR" ]; then
-        echo -e "${BLUE}Contents to be removed:${NC}"
-        echo -e "  - Binary (bin/)"
-        echo -e "  - Source repository (.repo/)"
-        echo -e "  - Libraries (lib/)"
-        echo -e "  - Headers (include/)"
-        echo -e "  - Kernels (lib/kernels/)"
-    fi
+    echo -e "${BLUE}Contents to be removed:${NC}"
+    echo -e "  - Binary (bin/)"
+    echo -e "  - Libraries (lib/)"
+    echo -e "  - Headers (include/)"
+    echo -e "  - Kernels (lib/kernels/)"
     
     echo
     read -p "Are you sure you want to uninstall? (y/N): " -n 1 -r
@@ -272,11 +265,11 @@ uninstall_sxs_std() {
         exit 0
     fi
     
-    echo -e "${YELLOW}Removing sxs-std installation...${NC}"
+    echo -e "${YELLOW}Removing sxs installation...${NC}"
     rm -rf "$SXS_HOME"
     
     echo
-    echo -e "${GREEN}✓ sxs-std uninstalled successfully${NC}"
+    echo -e "${GREEN}✓ sxs uninstalled successfully${NC}"
     echo -e "  Removed: $SXS_HOME"
     echo
 }
@@ -285,42 +278,112 @@ run_tests() {
     print_header
     
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    BUILD_DIR="$SCRIPT_DIR/build"
-    KERNEL_DIR="$SCRIPT_DIR/kernels"
+    LIBS_BUILD_DIR="$SCRIPT_DIR/libs/build"
+    APPS_BUILD_DIR="$SCRIPT_DIR/apps/build"
     
-    echo -e "${YELLOW}Building project first...${NC}"
+    echo -e "${YELLOW}Building libs first...${NC}"
     echo
-    build_project
     
-    echo -e "${YELLOW}Running unit tests...${NC}"
+    cd "$SCRIPT_DIR/libs"
+    
+    if [ ! -d "build" ]; then
+        mkdir -p build
+    fi
+    
+    cd build
+    
+    if ! cmake ..; then
+        echo -e "${RED}✗ Libs CMake configuration failed${NC}"
+        exit 1
+    fi
+    
+    if ! make -j8; then
+        echo -e "${RED}✗ Libs build failed${NC}"
+        exit 1
+    fi
+    
     echo
-    cd "$BUILD_DIR"
+    echo -e "${GREEN}✓ Libs built successfully!${NC}"
+    echo
+    
+    echo -e "${YELLOW}Running libs unit tests...${NC}"
+    echo
+    cd "$LIBS_BUILD_DIR"
     if ! ctest --output-on-failure; then
-        echo -e "${RED}✗ Unit tests failed${NC}"
+        echo -e "${RED}✗ Libs unit tests failed${NC}"
         exit 1
     fi
     
     echo
-    echo -e "${GREEN}✓ Unit tests passed!${NC}"
+    echo -e "${GREEN}✓ Libs unit tests passed!${NC}"
     echo
     
-    echo -e "${YELLOW}Running kernel tests...${NC}"
+    echo -e "${YELLOW}Running libs kernel tests...${NC}"
     echo
-    cd "$KERNEL_DIR"
-    if ! ./test.sh; then
-        echo -e "${RED}✗ Kernel tests failed${NC}"
+    cd "$SCRIPT_DIR/libs/tests/kernel"
+    if ! ./run.sh; then
+        echo -e "${RED}✗ Libs kernel tests failed${NC}"
         exit 1
     fi
     
     echo
-    echo -e "${GREEN}✓ Kernel tests passed!${NC}"
+    echo -e "${GREEN}✓ Libs kernel tests passed!${NC}"
     echo
     
-    echo -e "${YELLOW}Running integration tests...${NC}"
+    echo -e "${YELLOW}Building apps...${NC}"
     echo
-    cd "$SCRIPT_DIR/tests/integration/app"
+    
+    cd "$SCRIPT_DIR/apps"
+    
+    if [ ! -d "build" ]; then
+        mkdir -p build
+    fi
+    
+    cd build
+    
+    if ! cmake ..; then
+        echo -e "${RED}✗ Apps CMake configuration failed${NC}"
+        exit 1
+    fi
+    
+    if ! make -j8; then
+        echo -e "${RED}✗ Apps build failed${NC}"
+        exit 1
+    fi
+    
+    echo
+    echo -e "${GREEN}✓ Apps built successfully!${NC}"
+    echo
+    
+    echo -e "${YELLOW}Running apps unit tests...${NC}"
+    echo
+    cd "$APPS_BUILD_DIR"
+    if ! ctest --output-on-failure; then
+        echo -e "${RED}✗ Apps unit tests failed${NC}"
+        exit 1
+    fi
+    
+    echo
+    echo -e "${GREEN}✓ Apps unit tests passed!${NC}"
+    echo
+    
+    echo -e "${YELLOW}Running apps kernel tests...${NC}"
+    echo
+    cd "$SCRIPT_DIR/apps/kernels"
     if ! ./test.sh; then
-        echo -e "${RED}✗ Integration tests failed${NC}"
+        echo -e "${RED}✗ Apps kernel tests failed${NC}"
+        exit 1
+    fi
+    
+    echo
+    echo -e "${GREEN}✓ Apps kernel tests passed!${NC}"
+    echo
+    
+    echo -e "${YELLOW}Running apps integration tests...${NC}"
+    echo
+    cd "$SCRIPT_DIR/apps/tests/integration/app"
+    if ! ./test.sh; then
+        echo -e "${RED}✗ Apps integration tests failed${NC}"
         exit 1
     fi
     
