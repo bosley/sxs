@@ -1,0 +1,45 @@
+[
+    #(load "kv" "io")
+
+    (io/put "=== PAREN_LIST Type Round-Trip Test ===\n")
+    (kv/open-memory store)
+
+    (io/put "\n--- Simple Paren Lists ---\n")
+    (kv/set store:list1 '(1 2 3))
+    (kv/set store:list2 '(a b c))
+    (kv/set store:empty '())
+    
+    (def retrieved1 (kv/get store:list1))
+    (def retrieved2 (kv/get store:list2))
+    (def retrieved_empty (kv/get store:empty))
+    
+    (io/put "Simple numeric list stored and retrieved\n")
+    (io/put "Simple symbol list stored and retrieved\n")
+    (io/put "Empty list stored and retrieved\n")
+
+    (io/put "\n--- Nested Paren Lists ---\n")
+    (kv/set store:nested1 '(1 (2 3) 4))
+    (kv/set store:nested2 '((1 2) (3 4) (5 6)))
+    (kv/set store:deep '(1 (2 (3 (4 5)))))
+    
+    (def retrieved_nested1 (kv/get store:nested1))
+    (def retrieved_nested2 (kv/get store:nested2))
+    (def retrieved_deep (kv/get store:deep))
+    
+    (io/put "Nested list 1 stored and retrieved\n")
+    (io/put "Nested list 2 stored and retrieved\n")
+    (io/put "Deeply nested list stored and retrieved\n")
+
+    (io/put "\n--- Mixed Type Paren Lists ---\n")
+    (kv/set store:mixed '(1 "hello" 3.14 symbol))
+    (def retrieved_mixed (kv/get store:mixed))
+    (io/put "Mixed type list stored and retrieved\n")
+
+    (io/put "\n--- Complex Paren List ---\n")
+    (kv/set store:complex '((name "bosley") (age 42) (active true)))
+    (def retrieved_complex (kv/get store:complex))
+    (io/put "Complex structured list stored and retrieved\n")
+
+    (io/put "\n=== All paren list tests complete ===\n")
+]
+

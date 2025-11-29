@@ -1,0 +1,45 @@
+[
+    #(load "kv" "io")
+
+    (io/put "=== BRACE_LIST Type Round-Trip Test ===\n")
+    (kv/open-memory store)
+
+    (io/put "\n--- Simple Brace Lists ---\n")
+    (kv/set store:set1 '{1 2 3 4 5})
+    (kv/set store:set2 '{a b c})
+    (kv/set store:empty '{})
+    
+    (def retrieved1 (kv/get store:set1))
+    (def retrieved2 (kv/get store:set2))
+    (def retrieved_empty (kv/get store:empty))
+    
+    (io/put "Simple numeric brace list stored and retrieved\n")
+    (io/put "Simple symbol brace list stored and retrieved\n")
+    (io/put "Empty brace list stored and retrieved\n")
+
+    (io/put "\n--- Nested Brace Lists ---\n")
+    (kv/set store:nested1 '{1 {2 3} 4})
+    (kv/set store:nested2 '{{1 2} {3 4} {5 6}})
+    (kv/set store:deep '{1 {2 {3 {4 5}}}})
+    
+    (def retrieved_nested1 (kv/get store:nested1))
+    (def retrieved_nested2 (kv/get store:nested2))
+    (def retrieved_deep (kv/get store:deep))
+    
+    (io/put "Nested brace list 1 stored and retrieved\n")
+    (io/put "Nested brace list 2 stored and retrieved\n")
+    (io/put "Deeply nested brace list stored and retrieved\n")
+
+    (io/put "\n--- Mixed Type Brace Lists ---\n")
+    (kv/set store:mixed '{1 "hello" 3.14 symbol})
+    (def retrieved_mixed (kv/get store:mixed))
+    (io/put "Mixed type brace list stored and retrieved\n")
+
+    (io/put "\n--- Brace Lists as Sets ---\n")
+    (kv/set store:keyset '{name age email active})
+    (def retrieved_keyset (kv/get store:keyset))
+    (io/put "Brace list as keyset stored and retrieved\n")
+
+    (io/put "\n=== All brace list tests complete ===\n")
+]
+

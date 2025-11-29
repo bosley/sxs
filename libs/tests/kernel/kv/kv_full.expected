@@ -1,0 +1,29 @@
+=== KV Kernel Full Test ===
+
+--- Testing memory store ---
+Memory store opened
+
+--- Testing basic set/get ---
+x: 42
+name: bosley
+pi: 3.141590
+
+--- Testing snx (set-if-not-exists) ---
+snx new_key: 100
+snx on existing key (should fail): 42
+
+--- Testing cas (compare-and-swap) ---
+cas x using stored value to 100: 100
+cas with wrong expected (should fail): 100
+
+--- Testing del ---
+Deleted pi
+
+--- Testing disk store ---
+Disk store opened
+disk test: disk_value
+
+--- Testing complex values ---
+Stored and retrieved list
+
+=== All tests complete ===

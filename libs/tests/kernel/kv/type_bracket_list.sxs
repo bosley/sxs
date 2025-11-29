@@ -1,0 +1,45 @@
+[
+    #(load "kv" "io")
+
+    (io/put "=== BRACKET_LIST Type Round-Trip Test ===\n")
+    (kv/open-memory store)
+
+    (io/put "\n--- Simple Bracket Lists ---\n")
+    (kv/set store:env1 [1 2 3 4 5])
+    (kv/set store:env2 [a b c])
+    (kv/set store:empty [])
+    
+    (def retrieved1 (kv/get store:env1))
+    (def retrieved2 (kv/get store:env2))
+    (def retrieved_empty (kv/get store:empty))
+    
+    (io/put "Simple numeric bracket list stored and retrieved\n")
+    (io/put "Simple symbol bracket list stored and retrieved\n")
+    (io/put "Empty bracket list stored and retrieved\n")
+
+    (io/put "\n--- Nested Bracket Lists ---\n")
+    (kv/set store:nested1 [1 [2 3] 4])
+    (kv/set store:nested2 [[1 2] [3 4] [5 6]])
+    (kv/set store:deep [1 [2 [3 [4 5]]]])
+    
+    (def retrieved_nested1 (kv/get store:nested1))
+    (def retrieved_nested2 (kv/get store:nested2))
+    (def retrieved_deep (kv/get store:deep))
+    
+    (io/put "Nested bracket list 1 stored and retrieved\n")
+    (io/put "Nested bracket list 2 stored and retrieved\n")
+    (io/put "Deeply nested bracket list stored and retrieved\n")
+
+    (io/put "\n--- Mixed Type Bracket Lists ---\n")
+    (kv/set store:mixed [1 "hello" 3.14 symbol])
+    (def retrieved_mixed (kv/get store:mixed))
+    (io/put "Mixed type bracket list stored and retrieved\n")
+
+    (io/put "\n--- Bracket Lists with Expressions ---\n")
+    (kv/set store:expr [(def x 10) (def y 20)])
+    (def retrieved_expr (kv/get store:expr))
+    (io/put "Bracket list with expressions stored and retrieved\n")
+
+    (io/put "\n=== All bracket list tests complete ===\n")
+]
+

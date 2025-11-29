@@ -1,0 +1,3 @@
+#(define-kernel io "libkernel_io.dylib" [
+    (define-function put (format :str obj :any..) :int)
+])

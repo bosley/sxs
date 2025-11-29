@@ -1,0 +1,16 @@
+=== INTEGER Type Round-Trip Test ===
+
+--- Simple Integers ---
+42: 42
+-100: -100
+0: 0
+
+--- Edge Case Integers ---
+MAX_INT64: 9223372036854775807
+MIN_INT64: -9223372036854775808
+Large: 1000000000
+
+--- Integer in List ---
+List stored and retrieved
+
+=== All integer tests complete ===

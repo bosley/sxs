@@ -1,0 +1,21 @@
+=== ERROR Type Round-Trip Test ===
+
+--- Simple Errors ---
+Error 1 stored and retrieved
+Error 2 stored and retrieved
+Error 3 stored and retrieved
+
+--- Error with Numeric Values ---
+Numeric error stored and retrieved
+Error code stored and retrieved
+
+--- Nested Errors ---
+Nested error stored and retrieved
+
+--- Errors in Lists ---
+List of errors stored and retrieved
+
+--- Complex Error Structure ---
+Complex error structure stored and retrieved
+
+=== All error tests complete ===
