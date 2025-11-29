@@ -7,8 +7,17 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SXS_BIN="$SCRIPT_DIR/../build/cmd/sxs/sxs"
+SXS_BIN="$SCRIPT_DIR/../../../build/cmd/sxs/sxs"
 TEST_FILE="$SCRIPT_DIR/test.sxs"
+
+if [ ! -f "$SXS_BIN" ]; then
+    echo -e "${RED}Error: SXS binary not found at $SXS_BIN${NC}"
+    echo -e "${YELLOW}Please build the project first:${NC}"
+    echo -e "  cd $SCRIPT_DIR/../../.. && mkdir -p build && cd build && cmake .. && make -j8"
+    echo -e "${YELLOW}Or use the wizard:${NC}"
+    echo -e "  ./wizard.sh --build"
+    exit 1
+fi
 
 TESTS_PASSED=0
 TESTS_FAILED=0
@@ -41,11 +50,6 @@ else
 fi
 
 echo
-
-if [ ! -f "$SXS_BIN" ]; then
-    echo -e "${RED}Error: SXS binary not found at $SXS_BIN${NC}"
-    exit 1
-fi
 
 echo -e "${YELLOW}Running tests...${NC}"
 echo
