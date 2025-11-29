@@ -19,9 +19,12 @@ public:
   interpreter_c(
       const std::map<std::string, callable_symbol_s> &callable_symbols,
       imports::import_context_if *import_context,
-      kernels::kernel_context_if *kernel_context)
+      kernels::kernel_context_if *kernel_context,
+      std::map<std::string, std::unique_ptr<callable_context_if>>
+          *import_interpreters = nullptr)
       : callable_symbols_(callable_symbols), import_context_(import_context),
-        kernel_context_(kernel_context), next_lambda_id_(1),
+        kernel_context_(kernel_context),
+        import_interpreters_(import_interpreters), next_lambda_id_(1),
         current_scope_level_(0), imports_locks_triggered_(false) {
     initialize_type_map();
     push_scope();
@@ -49,6 +52,23 @@ public:
                                               found->second.get_root_offset());
         }
       }
+
+      auto slash_pos = sym.find('/');
+      if (slash_pos != std::string::npos) {
+        std::string prefix = sym.substr(0, slash_pos);
+        std::string suffix = sym.substr(slash_pos + 1);
+
+        auto *import_interp = get_import_interpreter(prefix);
+        if (import_interp) {
+          auto parse_result = slp::parse(suffix);
+          if (parse_result.is_error()) {
+            throw std::runtime_error("Failed to parse import symbol suffix");
+          }
+          auto suffix_obj = parse_result.take();
+          return import_interp->eval(suffix_obj);
+        }
+      }
+
       return std::move(object);
     }
 
@@ -76,6 +96,17 @@ public:
         auto *kernel_func = kernel_context_->get_function(cmd);
         if (kernel_func) {
           return kernel_func->function(*this, object);
+        }
+      }
+
+      auto slash_pos = cmd.find('/');
+      if (slash_pos != std::string::npos) {
+        std::string prefix = cmd.substr(0, slash_pos);
+        std::string suffix = cmd.substr(slash_pos + 1);
+
+        auto *import_interp = get_import_interpreter(prefix);
+        if (import_interp) {
+          return call_in_import_context(import_interp, suffix, list);
         }
       }
 
@@ -243,6 +274,18 @@ public:
     return true;
   }
 
+  callable_context_if *
+  get_import_interpreter(const std::string &symbol_prefix) override {
+    if (!import_interpreters_) {
+      return nullptr;
+    }
+    auto it = import_interpreters_->find(symbol_prefix);
+    if (it == import_interpreters_->end()) {
+      return nullptr;
+    }
+    return it->second.get();
+  }
+
 private:
   void trigger_import_locks() {
     if (import_context_) {
@@ -286,6 +329,45 @@ private:
         ++it;
       }
     }
+  }
+
+  slp::slp_object_c call_in_import_context(callable_context_if *import_interp,
+                                           const std::string &function_name,
+                                           slp::slp_object_c::list_c list) {
+    std::string call_str = "(" + function_name;
+
+    std::vector<slp::slp_object_c> evaled_args;
+    for (size_t i = 1; i < list.size(); i++) {
+      auto arg = list.at(i);
+      evaled_args.push_back(eval(arg));
+    }
+
+    for (const auto &arg : evaled_args) {
+      call_str += " ";
+      auto arg_type = arg.type();
+      if (arg_type == slp::slp_type_e::INTEGER) {
+        call_str += std::to_string(arg.as_int());
+      } else if (arg_type == slp::slp_type_e::REAL) {
+        call_str += std::to_string(arg.as_real());
+      } else if (arg_type == slp::slp_type_e::SYMBOL) {
+        call_str += arg.as_symbol();
+      } else if (arg_type == slp::slp_type_e::DQ_LIST) {
+        call_str += "\"" + arg.as_string().to_string() + "\"";
+      } else {
+        throw std::runtime_error(
+            "Unsupported argument type for cross-context call");
+      }
+    }
+
+    call_str += ")";
+
+    auto parse_result = slp::parse(call_str);
+    if (parse_result.is_error()) {
+      throw std::runtime_error("Failed to construct call for import context");
+    }
+
+    auto call_obj = parse_result.take();
+    return import_interp->eval(call_obj);
   }
 
   slp::slp_object_c handle_aberrant_call(slp::slp_object_c &aberrant_obj,
@@ -358,15 +440,19 @@ private:
   size_t current_scope_level_;
   imports::import_context_if *import_context_;
   kernels::kernel_context_if *kernel_context_;
+  std::map<std::string, std::unique_ptr<callable_context_if>>
+      *import_interpreters_;
   bool imports_locks_triggered_;
 };
 
 std::unique_ptr<callable_context_if> create_interpreter(
     const std::map<std::string, callable_symbol_s> &callable_symbols,
     imports::import_context_if *import_context,
-    kernels::kernel_context_if *kernel_context) {
+    kernels::kernel_context_if *kernel_context,
+    std::map<std::string, std::unique_ptr<callable_context_if>>
+        *import_interpreters) {
   return std::make_unique<interpreter_c>(callable_symbols, import_context,
-                                         kernel_context);
+                                         kernel_context, import_interpreters);
 }
 
 } // namespace pkg::core

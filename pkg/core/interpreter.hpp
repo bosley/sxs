@@ -71,6 +71,9 @@ public:
 
   virtual bool copy_lambda_from(callable_context_if *source,
                                 std::uint64_t lambda_id) = 0;
+
+  virtual callable_context_if *
+  get_import_interpreter(const std::string &symbol_prefix) = 0;
 };
 
 struct callable_symbol_s {
@@ -85,6 +88,8 @@ struct callable_symbol_s {
 std::unique_ptr<callable_context_if> create_interpreter(
     const std::map<std::string, callable_symbol_s> &callable_symbols,
     imports::import_context_if *import_context = nullptr,
-    kernels::kernel_context_if *kernel_context = nullptr);
+    kernels::kernel_context_if *kernel_context = nullptr,
+    std::map<std::string, std::unique_ptr<callable_context_if>>
+        *import_interpreters = nullptr);
 
 } // namespace pkg::core

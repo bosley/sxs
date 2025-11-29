@@ -24,7 +24,7 @@ core_c::core_c(const option_s &options) : options_(options) {
 
   imports_manager_ = std::make_unique<imports::imports_manager_c>(
       options_.logger->clone("imports"), options_.include_paths,
-      options_.working_directory);
+      options_.working_directory, &import_interpreters_);
 
   kernel_manager_ = std::make_unique<kernels::kernel_manager_c>(
       options_.logger->clone("kernels"), options_.include_paths,
@@ -62,9 +62,9 @@ int core_c::run() {
     options_.logger->info("Parse successful");
 
     auto symbols = instructions::get_standard_callable_symbols();
-    auto interpreter =
-        create_interpreter(symbols, &imports_manager_->get_import_context(),
-                           &kernel_manager_->get_kernel_context());
+    auto interpreter = create_interpreter(
+        symbols, &imports_manager_->get_import_context(),
+        &kernel_manager_->get_kernel_context(), &import_interpreters_);
 
     imports_manager_->set_parent_context(interpreter.get());
     kernel_manager_->set_parent_context(interpreter.get());

@@ -187,6 +187,8 @@ get_standard_callable_symbols() {
         auto value_obj = list.at(2);
         auto evaluated_value = context.eval(value_obj);
 
+        context.define_symbol(export_name, evaluated_value);
+
         auto import_context = context.get_import_context();
         if (!import_context) {
           throw std::runtime_error("export: no import context available");

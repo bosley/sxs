@@ -37,7 +37,9 @@ public:
 class imports_manager_c {
 public:
   imports_manager_c(logger_t logger, std::vector<std::string> include_paths,
-                    std::string working_directory);
+                    std::string working_directory,
+                    std::map<std::string, std::unique_ptr<callable_context_if>>
+                        *import_interpreters);
   ~imports_manager_c();
 
   import_context_if &get_import_context();
@@ -71,6 +73,8 @@ private:
   std::vector<std::string> import_stack_;
   std::map<std::string, slp::slp_object_c> current_exports_;
   callable_context_if *parent_context_;
+  std::map<std::string, std::unique_ptr<callable_context_if>>
+      *import_interpreters_;
 
   class import_context_c : public import_context_if {
   public:

@@ -20,12 +20,14 @@ imports_manager_c::import_guard_c::~import_guard_c() {
   }
 }
 
-imports_manager_c::imports_manager_c(logger_t logger,
-                                     std::vector<std::string> include_paths,
-                                     std::string working_directory)
+imports_manager_c::imports_manager_c(
+    logger_t logger, std::vector<std::string> include_paths,
+    std::string working_directory,
+    std::map<std::string, std::unique_ptr<callable_context_if>>
+        *import_interpreters)
     : logger_(logger), include_paths_(std::move(include_paths)),
       working_directory_(std::move(working_directory)), imports_locked_(false),
-      parent_context_(nullptr) {
+      parent_context_(nullptr), import_interpreters_(import_interpreters) {
   context_ = std::make_unique<import_context_c>(*this);
 }
 
@@ -145,36 +147,13 @@ bool imports_manager_c::import_context_c::attempt_import(
     return false;
   }
 
-  for (const auto &[export_name, export_value] : manager_.current_exports_) {
-    std::string prefixed_name = symbol + "/" + export_name;
-    auto value_copy = slp::slp_object_c::from_data(
-        export_value.get_data(), export_value.get_symbols(),
-        export_value.get_root_offset());
-
-    if (export_value.type() == slp::slp_type_e::ABERRANT) {
-      const std::uint8_t *base_ptr = export_value.get_data().data();
-      const std::uint8_t *unit_ptr = base_ptr + export_value.get_root_offset();
-      const slp::slp_unit_of_store_t *unit =
-          reinterpret_cast<const slp::slp_unit_of_store_t *>(unit_ptr);
-      std::uint64_t lambda_id = unit->data.uint64;
-
-      if (!manager_.parent_context_->copy_lambda_from(import_interpreter.get(),
-                                                      lambda_id)) {
-        manager_.logger_->error("Failed to copy lambda definition for: {}",
-                                prefixed_name);
-        continue;
-      }
-      manager_.logger_->debug("Copied lambda {} for exported symbol: {}",
-                              lambda_id, prefixed_name);
-    }
-
-    if (!manager_.parent_context_->define_symbol(prefixed_name, value_copy)) {
-      manager_.logger_->error("Failed to define exported symbol: {}",
-                              prefixed_name);
-    } else {
-      manager_.logger_->debug("Exported symbol: {}", prefixed_name);
-    }
+  if (!manager_.import_interpreters_) {
+    manager_.logger_->error("No import interpreters storage available");
+    return false;
   }
+
+  (*manager_.import_interpreters_)[symbol] = std::move(import_interpreter);
+  manager_.logger_->info("Stored import interpreter for symbol: {}", symbol);
 
   manager_.imported_files_.insert(canonical_path);
   manager_.current_exports_.clear();

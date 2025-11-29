@@ -1,11 +1,14 @@
 #pragma once
 
+#include <map>
 #include <memory>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <vector>
 
 namespace pkg::core {
+
+class callable_context_if;
 
 namespace imports {
 class imports_manager_c;
@@ -35,6 +38,8 @@ private:
   option_s options_;
   std::unique_ptr<imports::imports_manager_c> imports_manager_;
   std::unique_ptr<kernels::kernel_manager_c> kernel_manager_;
+  std::map<std::string, std::unique_ptr<callable_context_if>>
+      import_interpreters_;
 };
 
 } // namespace pkg::core
