@@ -62,8 +62,8 @@ get_standard_callable_symbols() {
         }
 
         if ((list.size() - 1) % 2 != 0) {
-          throw std::runtime_error(
-              "import requires pairs of arguments: symbol file_path [symbol file_path ...]");
+          throw std::runtime_error("import requires pairs of arguments: symbol "
+                                   "file_path [symbol file_path ...]");
         }
 
         auto import_context = context.get_import_context();
@@ -81,7 +81,8 @@ get_standard_callable_symbols() {
           auto file_path_obj = list.at(i + 1);
 
           if (symbol_obj.type() != slp::slp_type_e::SYMBOL) {
-            throw std::runtime_error("import: symbol arguments must be symbols");
+            throw std::runtime_error(
+                "import: symbol arguments must be symbols");
           }
 
           if (file_path_obj.type() != slp::slp_type_e::DQ_LIST) {

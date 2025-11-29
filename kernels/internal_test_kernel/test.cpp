@@ -1,6 +1,6 @@
+#include <cstdio>
 #include <sxs/kernel_api.h>
 #include <sxs/slp/slp.hpp>
-#include <cstdio>
 
 static const struct sxs_api_table_t *g_api = nullptr;
 

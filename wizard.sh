@@ -9,7 +9,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 SXS_STD_REPO="https://github.com/bosley/sxs-std.git"
-SXS_HOME="$HOME/.sxs"
+SXS_HOME="${SXS_HOME:-$HOME/.sxs}"
 SXS_REPO_DIR="$SXS_HOME/.repo"
 
 print_header() {
@@ -25,6 +25,7 @@ print_usage() {
     echo "Commands:"
     echo "  --install      Install sxs-std to ~/.sxs"
     echo "  --reinstall    Force reinstall (removes existing installation)"
+    echo "  --uninstall    Remove sxs-std installation"
     echo "  --check        Check installation status and show directory tree"
     echo "  --build        Build the main sxs project"
     echo "  --test         Build and run all tests (unit + kernel)"
@@ -52,6 +53,10 @@ check_installation() {
     else
         echo -e "${BLUE}Installation Contents:${NC}"
         echo
+        if [ -d "$SXS_HOME/bin" ]; then
+            echo -e "${YELLOW}Binary:${NC}"
+            ls -lh "$SXS_HOME/bin" 2>/dev/null || echo "  (none)"
+        fi
         if [ -d "$SXS_HOME/lib" ]; then
             echo -e "${YELLOW}Libraries:${NC}"
             ls -lh "$SXS_HOME/lib" 2>/dev/null || echo "  (none)"
@@ -81,6 +86,8 @@ check_installation() {
 
 install_sxs_std() {
     local force_reinstall=$1
+    
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     
     print_header
     
@@ -134,11 +141,58 @@ install_sxs_std() {
     echo
     echo -e "${GREEN}✓ sxs-std installed successfully!${NC}"
     echo
+    
+    echo -e "${YELLOW}Building main sxs project...${NC}"
+    echo
+    
+    BUILD_DIR="$SCRIPT_DIR/build"
+    
+    cd "$SCRIPT_DIR"
+    
+    if [ ! -d "$BUILD_DIR" ]; then
+        mkdir -p "$BUILD_DIR"
+    fi
+    
+    cd "$BUILD_DIR"
+    
+    echo -e "${YELLOW}Configuring with CMake...${NC}"
+    if ! cmake ..; then
+        echo -e "${RED}✗ CMake configuration failed${NC}"
+        exit 1
+    fi
+    
+    echo -e "${YELLOW}Building with make -j8...${NC}"
+    if ! make -j8; then
+        echo -e "${RED}✗ Build failed${NC}"
+        exit 1
+    fi
+    
+    echo
+    echo -e "${GREEN}✓ Build completed successfully!${NC}"
+    echo
+    
+    SXS_BINARY="$BUILD_DIR/cmd/sxs/sxs"
+    if [ -f "$SXS_BINARY" ]; then
+        echo -e "${YELLOW}Installing sxs binary to $SXS_HOME/bin...${NC}"
+        mkdir -p "$SXS_HOME/bin"
+        cp "$SXS_BINARY" "$SXS_HOME/bin/sxs"
+        chmod +x "$SXS_HOME/bin/sxs"
+        echo -e "  ${GREEN}✓${NC} sxs binary installed"
+    fi
+    
+    echo
+    echo -e "${GREEN}✓ Installation complete!${NC}"
+    echo
     echo -e "${BLUE}Installation Details:${NC}"
-    echo -e "  Source:  ~/.sxs/.repo/"
-    echo -e "  Libs:    ~/.sxs/lib/"
-    echo -e "  Headers: ~/.sxs/include/sxs/"
-    echo -e "  Kernels: ~/.sxs/lib/kernels/"
+    echo -e "  Binary:  $SXS_HOME/bin/sxs"
+    echo -e "  Source:  $SXS_HOME/.repo/"
+    echo -e "  Libs:    $SXS_HOME/lib/"
+    echo -e "  Headers: $SXS_HOME/include/sxs/"
+    echo -e "  Kernels: $SXS_HOME/lib/kernels/"
+    echo
+    echo -e "${YELLOW}Tip: Add these to your shell rc file:${NC}"
+    echo -e "  export SXS_HOME=$SXS_HOME"
+    echo -e "  export PATH=\$SXS_HOME/bin:\$PATH"
     echo
 }
 
@@ -184,6 +238,46 @@ build_project() {
     
     echo
     echo -e "${GREEN}✓ Build completed successfully!${NC}"
+    echo
+}
+
+uninstall_sxs_std() {
+    print_header
+    
+    if [ ! -d "$SXS_HOME" ]; then
+        echo -e "${YELLOW}⚠ sxs-std is not installed${NC}"
+        echo -e "  Directory $SXS_HOME does not exist"
+        exit 0
+    fi
+    
+    echo -e "${YELLOW}⚠ This will remove the sxs-std installation at:${NC}"
+    echo -e "  $SXS_HOME"
+    echo
+    
+    if [ -d "$SXS_REPO_DIR" ]; then
+        echo -e "${BLUE}Contents to be removed:${NC}"
+        echo -e "  - Binary (bin/)"
+        echo -e "  - Source repository (.repo/)"
+        echo -e "  - Libraries (lib/)"
+        echo -e "  - Headers (include/)"
+        echo -e "  - Kernels (lib/kernels/)"
+    fi
+    
+    echo
+    read -p "Are you sure you want to uninstall? (y/N): " -n 1 -r
+    echo
+    
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "${BLUE}Uninstall cancelled${NC}"
+        exit 0
+    fi
+    
+    echo -e "${YELLOW}Removing sxs-std installation...${NC}"
+    rm -rf "$SXS_HOME"
+    
+    echo
+    echo -e "${GREEN}✓ sxs-std uninstalled successfully${NC}"
+    echo -e "  Removed: $SXS_HOME"
     echo
 }
 
@@ -233,6 +327,9 @@ case "$1" in
         ;;
     --reinstall)
         install_sxs_std true
+        ;;
+    --uninstall)
+        uninstall_sxs_std
         ;;
     --check)
         check_installation

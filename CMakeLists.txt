@@ -12,7 +12,11 @@ find_package(RocksDB REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(zstd REQUIRED IMPORTED_TARGET libzstd)
 
-set(SXS_STD_ROOT "$ENV{HOME}/.sxs" CACHE PATH "sxs-std installation directory")
+if(DEFINED ENV{SXS_HOME})
+    set(SXS_STD_ROOT "$ENV{SXS_HOME}" CACHE PATH "sxs-std installation directory")
+else()
+    set(SXS_STD_ROOT "$ENV{HOME}/.sxs" CACHE PATH "sxs-std installation directory")
+endif()
 
 include_directories(${SXS_STD_ROOT}/include)
 

@@ -5,11 +5,11 @@
 #include <core/kernels/kernels.hpp>
 #include <filesystem>
 #include <fstream>
-#include <sxs/slp/slp.hpp>
 #include <snitch/snitch.hpp>
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/spdlog.h>
 #include <sstream>
+#include <sxs/slp/slp.hpp>
 
 namespace {
 

@@ -1,10 +1,10 @@
 #include "kernels.hpp"
-#include <sxs/kernel_api.h>
-#include <sxs/slp/slp.hpp>
 #include <dlfcn.h>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <sxs/kernel_api.h>
+#include <sxs/slp/slp.hpp>
 
 namespace pkg::core::kernels {
 

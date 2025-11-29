@@ -28,11 +28,14 @@ else
     exit 1
 fi
 
-echo -e "${YELLOW}Using installed kernels from ~/.sxs/lib/kernels${NC}"
-if [ -d "$HOME/.sxs/lib/kernels" ]; then
+SXS_HOME="${SXS_HOME:-$HOME/.sxs}"
+KERNEL_PATH="$SXS_HOME/lib/kernels"
+
+echo -e "${YELLOW}Using installed kernels from $KERNEL_PATH${NC}"
+if [ -d "$KERNEL_PATH" ]; then
     echo -e "  ${GREEN}✓${NC} sxs-std kernels directory found"
 else
-    echo -e "  ${RED}✗${NC} sxs-std kernels not found at ~/.sxs/lib/kernels"
+    echo -e "  ${RED}✗${NC} sxs-std kernels not found at $KERNEL_PATH"
     echo -e "  ${RED}Please install sxs-std first${NC}"
     exit 1
 fi
@@ -47,7 +50,7 @@ fi
 echo -e "${YELLOW}Running tests...${NC}"
 echo
 
-OUTPUT=$("$SXS_BIN" "$TEST_FILE" -i "$HOME/.sxs/lib/kernels" -i "$SCRIPT_DIR" 2>&1 | grep "TEST_" | sed 's/|||/\n/g')
+OUTPUT=$(SXS_HOME="$SXS_HOME" "$SXS_BIN" "$TEST_FILE" -i "$KERNEL_PATH" -i "$SCRIPT_DIR" 2>&1 | grep "TEST_" | sed 's/|||/\n/g')
 
 test_match() {
     local test_name=$1

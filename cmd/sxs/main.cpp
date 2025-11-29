@@ -36,6 +36,25 @@ int main(int argc, char **argv) {
     file_path = std::filesystem::absolute(file_path).string();
   }
 
+  const char *sxs_home = std::getenv("SXS_HOME");
+  if (sxs_home) {
+    std::filesystem::path kernel_path =
+        std::filesystem::path(sxs_home) / "lib" / "kernels";
+    if (std::filesystem::exists(kernel_path)) {
+      std::string kernel_path_str = kernel_path.string();
+      bool already_added = false;
+      for (const auto &path : include_paths) {
+        if (std::filesystem::equivalent(path, kernel_path_str)) {
+          already_added = true;
+          break;
+        }
+      }
+      if (!already_added) {
+        include_paths.push_back(kernel_path_str);
+      }
+    }
+  }
+
   auto logger = spdlog::stdout_color_mt("sxs");
   logger->set_level(spdlog::level::info);
 
