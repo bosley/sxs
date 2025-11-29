@@ -2,6 +2,12 @@
 
 A dynamic extensible runtime based on the "simple list programs" slp.
 
+Right now this is basically a "build a bear" of diy lisp projects. With the main libs installed to build the apps you'll have the ability
+to add any set of keywords to the sxs interpreter environment and extend the instruction set.
+
+Im getting this ironed out with the goal of making a particular system, not a language, but its in such a meta state right now that its basically
+just a primordial lisp.
+
 ## Prerequisites
 
 - CMake 3.15+
@@ -46,7 +52,7 @@ git submodule update --init --recursive
 This will:
 - Build and install the standard library (`libs/`) to `~/.sxs`
 - Build the applications (`apps/`)
-- Install the `sxs` binary to `~/.sxs/bin/sxs`
+- Install the `sxs` and `sup` binaries to `~/.sxs/bin/`
 - Set up kernels and libraries in `~/.sxs/lib/kernels/`
 
 The base language handled is extraordinarily minimal. Kernels are language extensions written in c++ that extend the language.
@@ -57,7 +63,8 @@ The install directory will look something like:
 ```
 /Users/bosley/.sxs
 ├── bin
-│   └── sxs
+│   ├── sxs
+│   └── sup
 ├── include
 │   └── sxs
 │       ├── kernel_api.h
@@ -83,7 +90,12 @@ The install directory will look something like:
 
 The slp package is the "simple list parser" that parses our sources, the kernel_api.h is the C header for interop with the runtime from a dylib (see kernels/.)
 
-We install `sxs` into the same dir, and key off of `SXS_HOME` to find `kernels` at runtime so things like `#(load "io" "kv")` will work. 
+We install `sxs` and `sup` into the same dir, and key off of `SXS_HOME` to find `kernels` at runtime so things like `#(load "io" "kv")` will work.
+
+### Two Runtimes: `sxs` and `sup`
+
+- **`sxs`**: Script runner for standalone `.sxs` files
+- **`sup`**: Project runtime for structured applications with custom kernels and modules 
 
 ### 3. Configure Environment
 
@@ -114,20 +126,67 @@ The `wizard.sh` script provides several commands:
 
 ## Usage
 
-After installation:
+### Running Scripts with `sxs`
+
+For standalone scripts:
 
 ```bash
 sxs script.sxs
 ```
 
-### Example Scripts
-
-See the `apps/scripts/` directory for example SXS programs:
+Example scripts are in `apps/scripts/`:
 
 ```bash
 sxs apps/scripts/example.sxs
 sxs apps/scripts/test_kv_comprehensive.sxs
 ```
+
+### Managing Projects with `sup`
+
+The `sup` runtime is for structured applications with custom kernels and modules.
+
+#### Project Structure
+
+```
+my_project/
+├── init.sxs              # Entry point
+├── kernels/              # Custom C++ kernels
+│   └── my_kernel/
+│       ├── kernel.cpp
+│       ├── kernel.hpp
+│       └── Makefile
+└── modules/              # SXS module libraries
+    └── my_module/
+        ├── my_module.sxs
+        └── helper.sxs
+```
+
+#### `sup` Commands
+
+```bash
+sup new <project_name> [dir]    # Create a new project
+sup build [project_dir]          # Build project kernels
+sup run [project_dir]            # Build (if needed) and run project
+sup deps [project_dir]           # Show project dependencies and cache status
+sup clean [project_dir]          # Clean project cache
+```
+
+#### Workflow Example
+
+```bash
+sup new my_app
+cd my_app
+
+sup build
+
+sup run
+
+sup deps
+
+sup clean
+```
+
+Projects automatically manage kernel building and caching. Custom kernels in `kernels/` override system kernels, allowing project-specific language extensions.
 
 ## SXS Language Features
 
@@ -199,7 +258,9 @@ cmake ..
 make -j8
 ```
 
-The main binary will be at `apps/build/cmd/sxs/sxs`
+The binaries will be at:
+- `apps/build/cmd/sxs/sxs`
+- `apps/build/cmd/sup/sup`
 
 ### Running Tests
 
@@ -264,6 +325,24 @@ sxs/
 │
 └── wizard.sh            # Build and installation script
 ```
+
+## AI Usage
+
+Warning: The documentation in this code base is almost entirely just me chatting with a claude and spinning up markdown docs.
+I do NOT give a shit about the _synthetic feel_ that happens when ai generates text when its about docs. all i care about is
+correctness. i review all the docs it makes as i'm making it with the thing but of course errors will always be present. this way
+though i guarantee there will be fewer errors than if i, a single dude, maintained all the docs myself without the assist. 
+
+you can see this in the docs of software i've written before that are similar to this software in nature (sauros, nibi, nabla, umbra, etc.)
+
+Warning: Shell scripts are mostly maintained by ai now. after i got the ball rolling on testing i started having a claude generate the `wizard`
+script and a few of the test shell scripts. i am actively using and reviewing these and i wouldn't consider them vibe coded at all.
+
+Claude and other ai are notoriously bad at c++. It's also horrendous at sxs (slp) generation.
+If you do decide to contribute to this application please don't use AI on code other than to refactor or
+tab complete. Don't make sweeping changes with agents.
+
+Please just use your head and leverage the tools you have in a considerate and thoughtful manner. 
 
 ## License
 
