@@ -55,7 +55,8 @@
     (io/put "TEST_RANDOM_ALPHA_LEN:%s" (random/string_alpha 5))
     (io/put "|||")
     
-    (io/put "TEST_ALU_ADD:%d" (alu/add 5 3))
+    (def TT 5)
+    (io/put "TEST_ALU_ADD:%d" (alu/add TT 3))
     (io/put "|||")
     (io/put "TEST_ALU_SUB:%d" (alu/sub 10 4))
     (io/put "|||")
@@ -140,6 +141,14 @@
     (internal_test_kernel/identity_list_p (kv/get testmem:list))
     (io/put "|||")
     
+    (kv/set testmem:del_test 123)
+    (io/put "TEST_KV_MEM_BEFORE_DEL:%d" (kv/get testmem:del_test))
+    (io/put "|||")
+    (kv/del testmem:del_test)
+    (io/put "TEST_KV_MEM_AFTER_DEL:")
+    (io/put (kv/get testmem:del_test))
+    (io/put "|||")
+    
     (kv/open-disk testdisk "/tmp/sxs_kv_test")
     (kv/set testdisk:int 777)
     (io/put "TEST_KV_DISK_SET_INT:%d" (kv/get testdisk:int))
@@ -155,6 +164,14 @@
     
     (kv/set testdisk:nested '((x 1) (y 2)))
     (internal_test_kernel/identity_list_p (kv/get testdisk:nested))
+    (io/put "|||")
+    
+    (kv/set testdisk:del_test 456)
+    (io/put "TEST_KV_DISK_BEFORE_DEL:%d" (kv/get testdisk:del_test))
+    (io/put "|||")
+    (kv/del testdisk:del_test)
+    (io/put "TEST_KV_DISK_AFTER_DEL:")
+    (io/put (kv/get testdisk:del_test))
     (io/put "|||")
     
     (io/put "TEST_COMPLETE")

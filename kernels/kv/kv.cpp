@@ -293,6 +293,40 @@ static sxs_object_t kv_get(sxs_context_t ctx, sxs_object_t args) {
   return deserialize_slp_object(serialized);
 }
 
+static sxs_object_t kv_del(sxs_context_t ctx, sxs_object_t args) {
+  void *list = g_api->as_list(args);
+  size_t size = g_api->list_size(list);
+
+  if (size < 2) {
+    return create_error("del requires 1 argument");
+  }
+
+  sxs_object_t source_obj = g_api->list_at(list, 1);
+
+  if (g_api->get_type(source_obj) != SXS_TYPE_SYMBOL) {
+    return create_error("del requires symbol:key format");
+  }
+
+  const char *source_symbol = g_api->as_symbol(source_obj);
+  if (!source_symbol) {
+    return create_error("del: invalid symbol");
+  }
+
+  auto [store_name, key] = parse_symbol_key(source_symbol);
+  if (store_name.empty() || key.empty()) {
+    return create_error("del requires symbol:key format");
+  }
+
+  auto store_it = g_stores.find(store_name);
+  if (store_it == g_stores.end()) {
+    return create_error("del: store not found");
+  }
+
+  bool success = store_it->second->del(key);
+  return success ? g_api->create_int(0)
+                 : create_error("del: failed to delete key");
+}
+
 extern "C" void kernel_init(sxs_registry_t registry,
                             const struct sxs_api_table_t *api) {
   g_api = api;
@@ -301,4 +335,5 @@ extern "C" void kernel_init(sxs_registry_t registry,
   api->register_function(registry, "open-disk", kv_open_disk, SXS_TYPE_INT, 0);
   api->register_function(registry, "set", kv_set, SXS_TYPE_INT, 0);
   api->register_function(registry, "get", kv_get, SXS_TYPE_NONE, 0);
+  api->register_function(registry, "del", kv_del, SXS_TYPE_INT, 0);
 }

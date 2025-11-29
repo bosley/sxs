@@ -258,6 +258,8 @@ test_match "TEST_KV_MEM_SET_INT:999" "TEST_KV_MEM_SET_INT:999" "kv/set and get i
 test_match "TEST_KV_MEM_SET_STR:kv_test_string" "TEST_KV_MEM_SET_STR:kv_test_string" "kv/set and get string from memory store"
 test_match "TEST_KV_MEM_SET_REAL:88.88" "TEST_KV_MEM_SET_REAL:88.88" "kv/set and get real from memory store"
 test_match "TEST_API_LIST_P:PAREN_LIST" "TEST_API_LIST_P:PAREN_LIST" "kv/set and get list from memory store"
+test_match "TEST_KV_MEM_BEFORE_DEL:123" "TEST_KV_MEM_BEFORE_DEL:123" "kv/get before del from memory store"
+test_match "TEST_KV_MEM_AFTER_DEL:" "TEST_KV_MEM_AFTER_DEL:" "kv/del from memory store succeeds"
 
 echo
 echo -e "${BLUE}KV Kernel Tests - Disk Store:${NC}"
@@ -266,6 +268,8 @@ test_match "TEST_KV_DISK_SET_INT:777" "TEST_KV_DISK_SET_INT:777" "kv/set and get
 test_match "TEST_KV_DISK_SET_STR:disk_test_string" "TEST_KV_DISK_SET_STR:disk_test_string" "kv/set and get string from disk store"
 test_match "TEST_KV_DISK_SET_REAL:22.22" "TEST_KV_DISK_SET_REAL:22.22" "kv/set and get real from disk store"
 test_match "TEST_API_LIST_P:PAREN_LIST" "TEST_API_LIST_P:PAREN_LIST" "kv/set and get nested list from disk store"
+test_match "TEST_KV_DISK_BEFORE_DEL:456" "TEST_KV_DISK_BEFORE_DEL:456" "kv/get before del from disk store"
+test_match "TEST_KV_DISK_AFTER_DEL:" "TEST_KV_DISK_AFTER_DEL:" "kv/del from disk store succeeds"
 
 echo
 echo -e "${BLUE}════════════════════════════════════════${NC}"
