@@ -52,6 +52,14 @@ else
     exit 1
 fi
 
+cd "$SCRIPT_DIR/kv" || exit 1
+if make clean && make > /dev/null 2>&1; then
+    echo -e "  ${GREEN}✓${NC} kv kernel built"
+else
+    echo -e "  ${RED}✗${NC} kv kernel build failed"
+    exit 1
+fi
+
 echo
 
 if [ ! -f "$SXS_BIN" ]; then
@@ -242,6 +250,22 @@ test_match "TEST_API_LIST_P:PAREN_LIST" "TEST_API_LIST_P:PAREN_LIST" "internal_t
 test_match "TEST_API_LIST_C:BRACE_LIST" "TEST_API_LIST_C:BRACE_LIST" "internal_test/identity_list_c brace list"
 test_match "TEST_API_LIST_B:BRACKET_LIST" "TEST_API_LIST_B:BRACKET_LIST" "internal_test/identity_list_b bracket list"
 test_match "TEST_API_NONE:PAREN_LIST" "TEST_API_NONE:PAREN_LIST" "internal_test/identity_none()"
+
+echo
+echo -e "${BLUE}KV Kernel Tests - Memory Store:${NC}"
+
+test_match "TEST_KV_MEM_SET_INT:999" "TEST_KV_MEM_SET_INT:999" "kv/set and get integer from memory store"
+test_match "TEST_KV_MEM_SET_STR:kv_test_string" "TEST_KV_MEM_SET_STR:kv_test_string" "kv/set and get string from memory store"
+test_match "TEST_KV_MEM_SET_REAL:88.88" "TEST_KV_MEM_SET_REAL:88.88" "kv/set and get real from memory store"
+test_match "TEST_API_LIST_P:PAREN_LIST" "TEST_API_LIST_P:PAREN_LIST" "kv/set and get list from memory store"
+
+echo
+echo -e "${BLUE}KV Kernel Tests - Disk Store:${NC}"
+
+test_match "TEST_KV_DISK_SET_INT:777" "TEST_KV_DISK_SET_INT:777" "kv/set and get integer from disk store"
+test_match "TEST_KV_DISK_SET_STR:disk_test_string" "TEST_KV_DISK_SET_STR:disk_test_string" "kv/set and get string from disk store"
+test_match "TEST_KV_DISK_SET_REAL:22.22" "TEST_KV_DISK_SET_REAL:22.22" "kv/set and get real from disk store"
+test_match "TEST_API_LIST_P:PAREN_LIST" "TEST_API_LIST_P:PAREN_LIST" "kv/set and get nested list from disk store"
 
 echo
 echo -e "${BLUE}════════════════════════════════════════${NC}"

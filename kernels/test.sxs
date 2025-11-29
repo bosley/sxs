@@ -2,6 +2,7 @@
     #(load "io")
     #(load "random")
     #(load "alu")
+    #(load "kv")
     #(load "internal_test_kernel")
 
     (internal_test_kernel/identity_int 42)
@@ -120,6 +121,40 @@
     ]))
     
     (io/put "TEST_ALU_LAMBDA_COMPLEX:%d" (alu/mul (compute 4 3) 2))
+    (io/put "|||")
+    
+    (kv/open-memory testmem)
+    (kv/set testmem:int 999)
+    (io/put "TEST_KV_MEM_SET_INT:%d" (kv/get testmem:int))
+    (io/put "|||")
+    
+    (kv/set testmem:str "kv_test_string")
+    (io/put "TEST_KV_MEM_SET_STR:%s" (kv/get testmem:str))
+    (io/put "|||")
+    
+    (kv/set testmem:real 88.88)
+    (io/put "TEST_KV_MEM_SET_REAL:%f" (kv/get testmem:real))
+    (io/put "|||")
+    
+    (kv/set testmem:list '(a b c))
+    (internal_test_kernel/identity_list_p (kv/get testmem:list))
+    (io/put "|||")
+    
+    (kv/open-disk testdisk "/tmp/sxs_kv_test")
+    (kv/set testdisk:int 777)
+    (io/put "TEST_KV_DISK_SET_INT:%d" (kv/get testdisk:int))
+    (io/put "|||")
+    
+    (kv/set testdisk:str "disk_test_string")
+    (io/put "TEST_KV_DISK_SET_STR:%s" (kv/get testdisk:str))
+    (io/put "|||")
+    
+    (kv/set testdisk:real 22.22)
+    (io/put "TEST_KV_DISK_SET_REAL:%f" (kv/get testdisk:real))
+    (io/put "|||")
+    
+    (kv/set testdisk:nested '((x 1) (y 2)))
+    (internal_test_kernel/identity_list_p (kv/get testdisk:nested))
     (io/put "|||")
     
     (io/put "TEST_COMPLETE")
