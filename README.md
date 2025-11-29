@@ -1,98 +1,136 @@
-# SXS - Runtime & SLP Script Executor
+# SXS
 
-A runtime system for executing SLP (S-expression Like Programming) scripts with built-in event system, key-value storage, and session management.
+A dynamic extensible runtime based on the "simple list programs" slp.
 
-## Building the Project
-
-### Prerequisites
+## Prerequisites
 
 - CMake 3.15+
 - C++20 compatible compiler
-- fmt library
-- spdlog library
-- RocksDB
-- zstd (via pkg-config)
+- Git
 
-### Build Instructions
+### System Dependencies
+
+Install the following dependencies on your system:
+
+**macOS (Homebrew):**
+```bash
+brew install rocksdb spdlog fmt zstd
+```
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get install librocksdb-dev libspdlog-dev libfmt-dev libzstd-dev
+```
+
+**Fedora/RHEL:**
+```bash
+sudo dnf install rocksdb-devel spdlog-devel fmt-devel libzstd-devel
+```
+
+## Installation
+
+### 1. Clone and Initialize
 
 ```bash
-# Clone the repository
+git clone <repository-url> sxs
 cd sxs
-
-# Create build directory
-mkdir -p build
-cd build
-
-# Configure and build (Debug with ASAN off by default)
-cmake ..
-make -j8
-
-# Or build release version (optimized, no ASAN)
-make release
+git submodule update --init --recursive
 ```
 
-The binaries will be in `build/bin/`:
-- `sxsd` - SLP script executor daemon
-- Example programs in `build/bin/examples/`
-
-## Running SLP Scripts
-
-### Basic Usage
+### 2. Install Using Wizard
 
 ```bash
-./build/bin/sxsd <script.slp> [options]
+./wizard.sh --install
 ```
 
-### Options
+This will:
+- Clone and build `sxs-std` to `~/.sxs`
+- Build the main SXS project
+- Install the `sxs` binary to `~/.sxs/bin/sxs`
+- Set up kernels and libraries
 
-- `--help, -h` - Print help message
-- `--runtime-root-path, -r PATH` - Set runtime root path (default: ~/.sxdd)
-- `--include-path, -i PATH` - Add include path (repeatable)
-- `--event-system-max-threads, -t NUM` - Max event system threads (default: 4)
-- `--event-system-max-queue-size, -q NUM` - Max event queue size (default: 1000)
-- `--max-sessions-per-entity, -s NUM` - Max sessions per entity (default: 10)
+### 3. Configure Environment
+
+Add these lines to your shell configuration file (`~/.bashrc`, `~/.zshrc`, etc.):
+
+```bash
+export SXS_HOME=~/.sxs
+export PATH=$SXS_HOME/bin:$PATH
+```
+
+Then reload your shell:
+```bash
+source ~/.bashrc
+```
+
+## Wizard Commands
+
+The `wizard.sh` script provides several commands:
+
+```bash
+./wizard.sh --install      # Install sxs-std and build project
+./wizard.sh --reinstall    # Force reinstall (removes existing)
+./wizard.sh --uninstall    # Remove sxs-std installation
+./wizard.sh --check        # Check installation status
+./wizard.sh --build        # Build the main sxs project
+./wizard.sh --test         # Build and run all tests
+```
+
+## Usage
+
+After installation:
+
+```bash
+sxs script.sxs
+```
 
 ### Example Scripts
 
+See the `scripts/` directory for example SXS programs:
+
 ```bash
-# Run KV storage demo
-./build/bin/sxsd sxs_slp/kv.slp -r /tmp/sxs_demo
-
-# Run event system demo
-./build/bin/sxsd sxs_slp/events.slp -r /tmp/sxs_demo
+sxs scripts/example.sxs
+sxs scripts/test_kv_comprehensive.sxs
 ```
 
-### Example SLP Script
+## SXS Language Features
 
-```lisp
-{
-  (core/util/log "Hello from SLP!")
-  
-  (core/kv/set username "alice")
-  (core/kv/set age 30)
-  
-  (core/util/log "User:" (core/kv/get username))
-  (core/util/log "Age:" (core/kv/get age))
-}
+- S-expression syntax
+- Import system with circular dependency detection
+- Dynamic scope management
+- Lambda functions
+- Type system (integers, reals, strings, symbols, lists, brace expressions)
+- Kernel loading for native extensions
+
+## Development
+
+### Manual Build
+
+If you need to build without the wizard:
+
+```bash
+mkdir -p build
+cd build
+cmake ..
+make -j8
 ```
 
-## SLP Language Features
+The main binary will be at `build/cmd/sxs/sxs`
 
-- **KV Operations**: `core/kv/set`, `core/kv/get`, `core/kv/del`, `core/kv/exists`
-- **Event System**: `core/event/pub`, `core/event/sub` with type-safe handlers
-- **Utilities**: `core/util/log`, `core/expr/eval`
-- **Sequential Execution**: Brace lists `{}` execute statements sequentially
-- **Type System**: Strong typing with `:int`, `:real`, `:str`, `:symbol`, etc.
+### Running Tests
 
-See `pkg/runtime/fns/COMMANDS.md` for complete function reference.
+```bash
+./wizard.sh --test
+```
 
----
+Or manually:
 
-## Development Notes
+```bash
+cd build
+ctest --output-on-failure
+```
 
-### ASAN Debugging
-
-If you need to enable AddressSanitizer for debugging:
+### Debugging with ASAN
 
 ```bash
 cd build
@@ -100,10 +138,22 @@ cmake -DWITH_ASAN=ON ..
 make -j8
 ```
 
-#### Linux ASLR Issue
+## Project Structure
 
-If you get `AddressSanitizer:DEADLYSIGNAL` errors on Linux, you may need to disable ASLR:
-
-```bash
-echo 0 | sudo tee /proc/sys/kernel/randomize_va_space
 ```
+sxs/
+├── cmd/              # Entry points (sxs binary)
+├── pkg/              # Core runtime libraries
+│   ├── core/         # Interpreter, VM, datum types
+│   ├── bytes/        # Byte utilities
+│   └── types/        # Type system helpers
+├── tests/            # Unit tests
+├── scripts/          # Example SXS scripts
+├── kernels/          # Native kernel extensions
+└── extern/           # External dependencies (submodules)
+```
+
+## License
+
+MIT
+
