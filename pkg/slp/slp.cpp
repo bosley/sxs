@@ -93,7 +93,30 @@ parse_result_internal_s parse_string(parser_state_s &state) {
     char c = state.current();
     if (c == '\\' && state.peek() != '\0') {
       state.advance();
-      c = state.current();
+      char escaped = state.current();
+      switch (escaped) {
+      case 'n':
+        c = '\n';
+        break;
+      case 't':
+        c = '\t';
+        break;
+      case 'r':
+        c = '\r';
+        break;
+      case '\\':
+        c = '\\';
+        break;
+      case '"':
+        c = '"';
+        break;
+      case '0':
+        c = '\0';
+        break;
+      default:
+        c = escaped;
+        break;
+      }
     }
     size_t rune_offset = allocate_unit(state, slp_type_e::RUNE);
     state.get_unit(rune_offset)->data.uint32 = static_cast<std::uint32_t>(c);

@@ -9,8 +9,9 @@
 
     (def x (kv/get mem:x))
     (def y (kv/get mem:y))
-    (def z (kv/get mem:z))
 
-    (io/put "x: %d y: %d z: %d\n" x y z)
+    (io/put "x:\t%d\ny:\t%d\nz:\t%d\n" x (kv/get mem:y) (kv/get mem:z))
+
+    (io/put "x + y:\t%d\n" (alu/mul (alu/add x y) 2))
 
 ]
