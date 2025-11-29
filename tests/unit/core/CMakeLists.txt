@@ -35,7 +35,7 @@ add_executable(basic_scoping_tests
 target_link_libraries(basic_scoping_tests PRIVATE 
   extern::snitch
   pkg::core
-  pkg::slp
+  ${SXS_SLP_LIB}
 )
 
 add_dependencies(build_tests basic_scoping_tests)
@@ -48,7 +48,7 @@ add_executable(functions_tests
 target_link_libraries(functions_tests PRIVATE 
   extern::snitch
   pkg::core
-  pkg::slp
+  ${SXS_SLP_LIB}
 )
 
 add_dependencies(build_tests functions_tests)
@@ -61,7 +61,7 @@ add_executable(type_checking_tests
 target_link_libraries(type_checking_tests PRIVATE 
   extern::snitch
   pkg::core
-  pkg::slp
+  ${SXS_SLP_LIB}
 )
 
 add_dependencies(build_tests type_checking_tests)
@@ -74,7 +74,7 @@ add_executable(edge_cases_tests
 target_link_libraries(edge_cases_tests PRIVATE 
   extern::snitch
   pkg::core
-  pkg::slp
+  ${SXS_SLP_LIB}
 )
 
 add_dependencies(build_tests edge_cases_tests)
@@ -87,7 +87,7 @@ add_executable(nested_scopes_tests
 target_link_libraries(nested_scopes_tests PRIVATE 
   extern::snitch
   pkg::core
-  pkg::slp
+  ${SXS_SLP_LIB}
 )
 
 add_dependencies(build_tests nested_scopes_tests)
@@ -100,7 +100,7 @@ add_executable(lambda_cleanup_tests
 target_link_libraries(lambda_cleanup_tests PRIVATE 
   extern::snitch
   pkg::core
-  pkg::slp
+  ${SXS_SLP_LIB}
 )
 
 add_dependencies(build_tests lambda_cleanup_tests)
@@ -113,7 +113,7 @@ add_executable(import_tests
 target_link_libraries(import_tests PRIVATE 
   extern::snitch
   pkg::core
-  pkg::slp
+  ${SXS_SLP_LIB}
   spdlog::spdlog
 )
 

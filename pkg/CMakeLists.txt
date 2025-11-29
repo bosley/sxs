@@ -48,21 +48,6 @@ target_link_libraries(pkg_kvds PUBLIC
 
 add_library(pkg::kvds ALIAS pkg_kvds)
 
-add_library(pkg_slp STATIC
-    slp/slp.cpp
-    slp/buffer.cpp
-)
-
-target_include_directories(pkg_slp PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-target_link_libraries(pkg_slp PUBLIC
-    fmt::fmt
-)
-
-add_library(pkg::slp ALIAS pkg_slp)
-
 add_library(pkg_sconf STATIC
     sconf/sconf.cpp
 )
@@ -72,7 +57,7 @@ target_include_directories(pkg_sconf PUBLIC
 )
 
 target_link_libraries(pkg_sconf PUBLIC
-    pkg::slp
+    ${SXS_SLP_LIB}
     fmt::fmt
 )
 
@@ -108,7 +93,7 @@ target_include_directories(pkg_core PUBLIC
 )
 
 target_link_libraries(pkg_core PUBLIC
-    pkg::slp
+    ${SXS_SLP_LIB}
     spdlog::spdlog
     fmt::fmt
 )

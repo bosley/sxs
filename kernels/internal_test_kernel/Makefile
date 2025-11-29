@@ -1,5 +1,5 @@
 CXX = clang++
-CXXFLAGS = -std=c++20 -fPIC -I../../pkg
+CXXFLAGS = -std=c++20 -fPIC -I$(HOME)/.sxs/include
 LDFLAGS = -shared
 
 UNAME_S := $(shell uname -s)

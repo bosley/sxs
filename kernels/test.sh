@@ -18,31 +18,7 @@ echo -e "${BLUE}  SXS Kernel Regression Test Suite${NC}"
 echo -e "${BLUE}════════════════════════════════════════${NC}"
 echo
 
-echo -e "${YELLOW}Building kernels...${NC}"
-
-cd "$SCRIPT_DIR/io" || exit 1
-if make clean && make > /dev/null 2>&1; then
-    echo -e "  ${GREEN}✓${NC} io kernel built"
-else
-    echo -e "  ${RED}✗${NC} io kernel build failed"
-    exit 1
-fi
-
-cd "$SCRIPT_DIR/random" || exit 1
-if make clean && make > /dev/null 2>&1; then
-    echo -e "  ${GREEN}✓${NC} random kernel built"
-else
-    echo -e "  ${RED}✗${NC} random kernel build failed"
-    exit 1
-fi
-
-cd "$SCRIPT_DIR/alu" || exit 1
-if make clean && make > /dev/null 2>&1; then
-    echo -e "  ${GREEN}✓${NC} alu kernel built"
-else
-    echo -e "  ${RED}✗${NC} alu kernel build failed"
-    exit 1
-fi
+echo -e "${YELLOW}Building local kernels...${NC}"
 
 cd "$SCRIPT_DIR/internal_test_kernel" || exit 1
 if make clean && make > /dev/null 2>&1; then
@@ -52,11 +28,12 @@ else
     exit 1
 fi
 
-cd "$SCRIPT_DIR/kv" || exit 1
-if make clean && make > /dev/null 2>&1; then
-    echo -e "  ${GREEN}✓${NC} kv kernel built"
+echo -e "${YELLOW}Using installed kernels from ~/.sxs/lib/kernels${NC}"
+if [ -d "$HOME/.sxs/lib/kernels" ]; then
+    echo -e "  ${GREEN}✓${NC} sxs-std kernels directory found"
 else
-    echo -e "  ${RED}✗${NC} kv kernel build failed"
+    echo -e "  ${RED}✗${NC} sxs-std kernels not found at ~/.sxs/lib/kernels"
+    echo -e "  ${RED}Please install sxs-std first${NC}"
     exit 1
 fi
 
@@ -70,7 +47,7 @@ fi
 echo -e "${YELLOW}Running tests...${NC}"
 echo
 
-OUTPUT=$("$SXS_BIN" "$TEST_FILE" -i "$SCRIPT_DIR" 2>&1 | grep "TEST_" | sed 's/|||/\n/g')
+OUTPUT=$("$SXS_BIN" "$TEST_FILE" -i "$HOME/.sxs/lib/kernels" -i "$SCRIPT_DIR" 2>&1 | grep "TEST_" | sed 's/|||/\n/g')
 
 test_match() {
     local test_name=$1

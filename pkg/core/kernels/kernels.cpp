@@ -1,6 +1,6 @@
 #include "kernels.hpp"
-#include "kernel_api.h"
-#include "slp/slp.hpp"
+#include <sxs/kernel_api.h>
+#include <sxs/slp/slp.hpp>
 #include <dlfcn.h>
 #include <filesystem>
 #include <fstream>

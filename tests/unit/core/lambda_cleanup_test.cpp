@@ -1,7 +1,7 @@
 #include <core/instructions/instructions.hpp>
 #include <core/interpreter.hpp>
 #include <fstream>
-#include <slp/slp.hpp>
+#include <sxs/slp/slp.hpp>
 #include <snitch/snitch.hpp>
 #include <sstream>
 

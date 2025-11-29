@@ -1,7 +1,0 @@
-#(define-kernel random "libkernel_random.dylib" [
-    (define-function int_range (min :int max :int) :int)
-    (define-function real_range (min :real max :real) :real)
-    (define-function string (length :int) :str)
-    (define-function string_alpha (length :int) :str)
-])
-

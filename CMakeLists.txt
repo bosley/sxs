@@ -12,6 +12,19 @@ find_package(RocksDB REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(zstd REQUIRED IMPORTED_TARGET libzstd)
 
+set(SXS_STD_ROOT "$ENV{HOME}/.sxs" CACHE PATH "sxs-std installation directory")
+
+include_directories(${SXS_STD_ROOT}/include)
+
+find_library(SXS_SLP_LIB
+    NAMES pkg_slp libpkg_slp
+    PATHS ${SXS_STD_ROOT}/lib
+    NO_DEFAULT_PATH
+    REQUIRED
+)
+
+set(SXS_KERNEL_PATH "${SXS_STD_ROOT}/lib/kernels" CACHE PATH "Kernel modules directory")
+
 # Create the zstd::libzstd target that cpp-httplib expects
 if(TARGET PkgConfig::zstd)
     add_library(zstd::libzstd ALIAS PkgConfig::zstd)

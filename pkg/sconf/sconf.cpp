@@ -1,5 +1,5 @@
 #include "sconf/sconf.hpp"
-#include <slp/slp.hpp>
+#include <sxs/slp/slp.hpp>
 
 namespace sconf {
 

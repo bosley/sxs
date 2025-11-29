@@ -1,8 +1,0 @@
-#(define-kernel kv "libkernel_kv.dylib" [
-    (define-function open-memory (name :symbol))
-    (define-function open-disk (name :symbol path :str))
-    (define-function set (dest :symbol value :any))
-    (define-function get (source :symbol) :any)
-    (define-function del (source :symbol))
-])
-

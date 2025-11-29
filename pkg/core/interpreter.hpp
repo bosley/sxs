@@ -1,6 +1,6 @@
 #pragma once
 
-#include "slp/slp.hpp"
+#include <sxs/slp/slp.hpp>
 #include <functional>
 #include <map>
 #include <memory>

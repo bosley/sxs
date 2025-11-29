@@ -2,7 +2,7 @@
 
 #include <map>
 #include <optional>
-#include <slp/slp.hpp>
+#include <sxs/slp/slp.hpp>
 #include <string>
 
 namespace sconf {

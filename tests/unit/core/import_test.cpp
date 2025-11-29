@@ -5,7 +5,7 @@
 #include <core/kernels/kernels.hpp>
 #include <filesystem>
 #include <fstream>
-#include <slp/slp.hpp>
+#include <sxs/slp/slp.hpp>
 #include <snitch/snitch.hpp>
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/spdlog.h>
