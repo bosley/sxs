@@ -12,6 +12,7 @@ set(SXS_TEST_FILES
   test_try.sxs
   test_assert.sxs
   test_recover.sxs
+  test_eval.sxs
   test_import_basic.sxs
   test_import_exported_basic.sxs
   test_import_lambda.sxs
@@ -189,4 +190,17 @@ target_link_libraries(recover_tests PRIVATE
 
 add_dependencies(build_tests recover_tests)
 add_test(NAME recover_tests COMMAND recover_tests)
+
+add_executable(eval_tests
+  eval_test.cpp
+)
+
+target_link_libraries(eval_tests PRIVATE 
+  extern::snitch
+  pkg::core
+  ${SXS_SLP_LIB}
+)
+
+add_dependencies(build_tests eval_tests)
+add_test(NAME eval_tests COMMAND eval_tests)
 

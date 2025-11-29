@@ -412,6 +412,43 @@ get_standard_callable_symbols() {
         }
       }};
 
+  symbols["eval"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 2) {
+          throw std::runtime_error(
+              "eval requires exactly 1 argument: code string");
+        }
+
+        auto code_obj = list.at(1);
+        auto evaluated_code = context.eval(code_obj);
+
+        if (evaluated_code.type() != slp::slp_type_e::DQ_LIST) {
+          throw std::runtime_error("eval: argument must be a string");
+        }
+
+        std::string code_string = evaluated_code.as_string().to_string();
+
+        auto parse_result = slp::parse(code_string);
+        if (parse_result.is_error()) {
+          const auto &error = parse_result.error();
+          throw std::runtime_error(
+              fmt::format("eval: parse error: {}", error.message));
+        }
+
+        auto parsed_obj = parse_result.take();
+
+        context.push_scope();
+        auto result = context.eval(parsed_obj);
+        context.pop_scope();
+
+        return result;
+      }};
+
   return symbols;
 }
 
