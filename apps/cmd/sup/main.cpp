@@ -1,16 +1,17 @@
 // this is the main runtime server of sxs. this should be installed and running
-// on a target machine to get a full-featured instance of the sxs-rt and full
+// on a target machine to get a full-featured instance of the sup and full
 // app execution sxs runs either scripts OR applications. The applications
-// _require_ the sxs-rt to be present and running
+// _require_ the sup to be present and running
 
 #include "manager.hpp"
 #include <fmt/core.h>
 #include <vector>
 
 void usage() {
-  fmt::print("Usage: sxs-rt <command> [options]\n");
+  fmt::print("Usage: sup <command> [options]\n");
   fmt::print("Commands:\n");
   fmt::print("  build-info          Show the build information\n");
+  fmt::print("  build <project dir> Build project kernels (default './')\n");
   fmt::print("  run <project dir>   Run a project (default './')\n");
   fmt::print(
       "  new <project name> <dir> (default './')   Create a new project\n");
@@ -41,6 +42,7 @@ void build_info() { fmt::print("Build hash > {}\n", BUILD_HASH); }
 
 void new_project(std::vector<std::string> args);
 void deps(std::vector<std::string> args);
+void build(std::vector<std::string> args);
 void run(std::vector<std::string> args);
 void clean(std::vector<std::string> args);
 
@@ -54,6 +56,8 @@ int main(int argc, char **argv) {
   COMMAND_IS("new", { new_project(args); });
 
   COMMAND_IS("deps", { deps(args); });
+
+  COMMAND_IS("build", { build(args); });
 
   COMMAND_IS("run", { run(args); });
 
@@ -96,6 +100,16 @@ void clean(std::vector<std::string> args) {
     project_dir = "./";
   }
   cmd::sxs::clean(project_dir);
+}
+
+void build(std::vector<std::string> args) {
+  cmd::sxs::runtime_setup_data_s data;
+  if (args.size() > 2) {
+    data.project_dir = args[2];
+  } else {
+    data.project_dir = "./";
+  }
+  cmd::sxs::build(data);
 }
 
 void run(std::vector<std::string> args) {

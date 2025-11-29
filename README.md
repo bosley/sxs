@@ -239,7 +239,7 @@ This is a monorepo with two main directories:
 ```
 sxs/
 ├── apps/                # Main application code
-│   ├── cmd/             # Entry points (sxs, sxs-rt binaries)
+│   ├── cmd/             # Entry points (sxs, sup binaries)
 │   ├── pkg/             # Core runtime libraries
 │   │   ├── core/        # Interpreter, VM, datum types
 │   │   └── bytes/       # Byte utilities

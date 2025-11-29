@@ -1,4 +1,4 @@
-add_executable(sxs-rt
+add_executable(sup
     main.cpp
     project.cpp
     dep.cpp
@@ -6,11 +6,11 @@ add_executable(sxs-rt
     clean.cpp
 )
 
-target_link_libraries(sxs-rt PRIVATE
+target_link_libraries(sup PRIVATE
     pkg::core
     fmt::fmt
     spdlog::spdlog
 )
 
-install(TARGETS sxs-rt DESTINATION bin)
+install(TARGETS sup DESTINATION bin)
 

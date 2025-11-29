@@ -209,14 +209,28 @@ install_sxs_std() {
     chmod +x "$SXS_HOME/bin/sxs"
     echo -e "  ${GREEN}✓${NC} sxs binary installed"
     
+    SUP_BINARY="$APPS_BUILD_DIR/cmd/sup/sup"
+    if [ ! -f "$SUP_BINARY" ]; then
+        echo -e "${RED}✗ SUP binary not found at $SUP_BINARY${NC}"
+        exit 1
+    fi
+    
+    echo -e "${YELLOW}Installing sup binary to $SXS_HOME/bin...${NC}"
+    if ! cp "$SUP_BINARY" "$SXS_HOME/bin/sup"; then
+        echo -e "${RED}✗ Failed to copy sup binary${NC}"
+        exit 1
+    fi
+    chmod +x "$SXS_HOME/bin/sup"
+    echo -e "  ${GREEN}✓${NC} sup binary installed"
+    
     echo
     echo -e "${GREEN}✓ Installation complete!${NC}"
     echo
     echo -e "${BLUE}Installation Details:${NC}"
-    echo -e "  Binary:  $SXS_HOME/bin/sxs"
-    echo -e "  Libs:    $SXS_HOME/lib/"
-    echo -e "  Headers: $SXS_HOME/include/sxs/"
-    echo -e "  Kernels: $SXS_HOME/lib/kernels/"
+    echo -e "  Binaries: $SXS_HOME/bin/sxs, $SXS_HOME/bin/sup"
+    echo -e "  Libs:     $SXS_HOME/lib/"
+    echo -e "  Headers:  $SXS_HOME/include/sxs/"
+    echo -e "  Kernels:  $SXS_HOME/lib/kernels/"
     echo
     echo -e "${YELLOW}Tip: Add these to your shell rc file:${NC}"
     echo -e "  export SXS_HOME=$SXS_HOME"

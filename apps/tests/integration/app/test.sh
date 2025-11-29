@@ -10,7 +10,7 @@ NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-SXS_RT_BINARY="$WORKSPACE_ROOT/build/cmd/sxs-rt/sxs-rt"
+SXS_RT_BINARY="$WORKSPACE_ROOT/build/cmd/sup/sup"
 
 PASSED=0
 FAILED=0
@@ -43,7 +43,7 @@ cleanup_temp() {
 trap cleanup_temp EXIT
 
 echo -e "${BLUE}════════════════════════════════════════════════════════════${NC}"
-echo -e "${BLUE}           SXS-RT Integration Test Suite${NC}"
+echo -e "${BLUE}           SUP Integration Test Suite${NC}"
 echo -e "${BLUE}════════════════════════════════════════════════════════════${NC}"
 echo
 
@@ -65,13 +65,13 @@ else
     exit 1
 fi
 
-log_info "Locating sxs-rt binary..."
+log_info "Locating sup binary..."
 if [ ! -f "$SXS_RT_BINARY" ]; then
-    log_fail "sxs-rt binary not found at: $SXS_RT_BINARY"
+    log_fail "sup binary not found at: $SXS_RT_BINARY"
     echo "  Please build the project first: cd build && make"
     exit 1
 fi
-log_pass "Found sxs-rt binary: $SXS_RT_BINARY"
+log_pass "Found sup binary: $SXS_RT_BINARY"
 
 TEST_DIR=$(mktemp -d /tmp/sxs-test-XXXXXX)
 log_info "Created test directory: $TEST_DIR"

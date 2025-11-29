@@ -19,6 +19,7 @@ struct runtime_setup_data_s {
 
 void new_project(project_mgmt_data_s data);
 void deps(dependency_mgmt_data_s data);
+void build(runtime_setup_data_s data);
 void run(runtime_setup_data_s data);
 void clean(std::string project_dir);
 

@@ -158,6 +158,69 @@ static bool process_kernel(const fs::path &kernel_src_dir,
   return false;
 }
 
+static bool build_project_kernels(const fs::path &project_path) {
+  fs::path cache_dir = project_path / ".sxs-cache" / "kernels";
+  fs::create_directories(cache_dir);
+
+  fs::path project_kernels_src = project_path / "kernels";
+  if (!fs::exists(project_kernels_src) ||
+      !fs::is_directory(project_kernels_src)) {
+    fmt::print("No kernels directory found in project\n");
+    return true;
+  }
+
+  fmt::print("\n=== Processing Project Kernels ===\n");
+  bool all_success = true;
+
+  for (const auto &entry : fs::directory_iterator(project_kernels_src)) {
+    if (entry.is_directory()) {
+      std::string kernel_name = entry.path().filename().string();
+
+      if (!process_kernel(entry.path(), cache_dir, kernel_name)) {
+        fmt::print("Warning: Kernel '{}' could not be built or cached\n",
+                   kernel_name);
+        all_success = false;
+      }
+    }
+  }
+  fmt::print("\n");
+  return all_success;
+}
+
+void build(runtime_setup_data_s data) {
+  fs::path project_path = data.project_dir;
+
+  if (!project_path.is_absolute()) {
+    project_path = fs::absolute(project_path);
+  }
+
+  if (!fs::exists(project_path)) {
+    fmt::print("Error: Project directory '{}' does not exist\n",
+               project_path.string());
+    return;
+  }
+
+  if (!fs::is_directory(project_path)) {
+    fmt::print("Error: '{}' is not a directory\n", project_path.string());
+    return;
+  }
+
+  fs::path init_file = project_path / "init.sxs";
+  if (!fs::exists(init_file)) {
+    fmt::print("Error: init.sxs not found in project directory '{}'\n",
+               project_path.string());
+    return;
+  }
+
+  bool success = build_project_kernels(project_path);
+
+  if (success) {
+    fmt::print("\033[32m✓\033[0m Build completed successfully\n");
+  } else {
+    fmt::print("\033[33m⚠\033[0m Build completed with warnings\n");
+  }
+}
+
 void run(runtime_setup_data_s data) {
   fs::path project_path = data.project_dir;
 
@@ -183,27 +246,9 @@ void run(runtime_setup_data_s data) {
     return;
   }
 
+  build_project_kernels(project_path);
+
   fs::path cache_dir = project_path / ".sxs-cache" / "kernels";
-  fs::create_directories(cache_dir);
-
-  fs::path project_kernels_src = project_path / "kernels";
-  if (fs::exists(project_kernels_src) &&
-      fs::is_directory(project_kernels_src)) {
-    fmt::print("\n=== Processing Project Kernels ===\n");
-
-    for (const auto &entry : fs::directory_iterator(project_kernels_src)) {
-      if (entry.is_directory()) {
-        std::string kernel_name = entry.path().filename().string();
-
-        if (!process_kernel(entry.path(), cache_dir, kernel_name)) {
-          fmt::print("Warning: Kernel '{}' could not be built or cached\n",
-                     kernel_name);
-        }
-      }
-    }
-    fmt::print("\n");
-  }
-
   std::vector<std::string> include_paths;
 
   if (fs::exists(cache_dir) && fs::is_directory(cache_dir)) {
@@ -218,7 +263,7 @@ void run(runtime_setup_data_s data) {
     }
   }
 
-  auto logger = spdlog::stdout_color_mt("sxs-rt");
+  auto logger = spdlog::stdout_color_mt("sup");
   logger->set_level(spdlog::level::info);
 
   pkg::core::option_s options{.file_path = init_file.string(),
