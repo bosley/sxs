@@ -114,6 +114,11 @@ static sxs_object_t identity_none(sxs_context_t ctx, sxs_object_t args) {
   sxs_object_t evaled = g_api->eval(ctx, arg_obj);
 
   sxs_type_t type = g_api->get_type(evaled);
+  if (type == SXS_TYPE_SOME && g_api->some_has_value(evaled)) {
+    evaled = g_api->some_get_value(evaled);
+    type = g_api->get_type(evaled);
+  }
+
   printf("TEST_API_NONE:%s\n", type_name(type));
 
   return evaled;
@@ -164,6 +169,11 @@ static sxs_object_t identity_list_p(sxs_context_t ctx, sxs_object_t args) {
   sxs_object_t evaled = g_api->eval(ctx, arg_obj);
 
   sxs_type_t type = g_api->get_type(evaled);
+  if (type == SXS_TYPE_SOME && g_api->some_has_value(evaled)) {
+    evaled = g_api->some_get_value(evaled);
+    type = g_api->get_type(evaled);
+  }
+
   if (type != SXS_TYPE_PAREN_LIST) {
     printf("TEST_API_LIST_P:ERROR_WRONG_TYPE:%s\n", type_name(type));
     return g_api->create_none();
@@ -171,7 +181,7 @@ static sxs_object_t identity_list_p(sxs_context_t ctx, sxs_object_t args) {
 
   void *paren_list = g_api->as_list(evaled);
   size_t size = g_api->list_size(paren_list);
-  printf("TEST_API_LIST_P:%s:SIZE_%zu\n", type_name(type), size);
+  printf("TEST_API_LIST_P:%s\n", type_name(type));
 
   return evaled;
 }
@@ -187,6 +197,11 @@ static sxs_object_t identity_list_c(sxs_context_t ctx, sxs_object_t args) {
   sxs_object_t evaled = g_api->eval(ctx, arg_obj);
 
   sxs_type_t type = g_api->get_type(evaled);
+  if (type == SXS_TYPE_SOME && g_api->some_has_value(evaled)) {
+    evaled = g_api->some_get_value(evaled);
+    type = g_api->get_type(evaled);
+  }
+
   if (type != SXS_TYPE_BRACE_LIST) {
     printf("TEST_API_LIST_C:ERROR_WRONG_TYPE:%s\n", type_name(type));
     return g_api->create_none();
@@ -194,7 +209,7 @@ static sxs_object_t identity_list_c(sxs_context_t ctx, sxs_object_t args) {
 
   void *brace_list = g_api->as_list(evaled);
   size_t size = g_api->list_size(brace_list);
-  printf("TEST_API_LIST_C:%s:SIZE_%zu\n", type_name(type), size);
+  printf("TEST_API_LIST_C:%s\n", type_name(type));
 
   return evaled;
 }
@@ -207,18 +222,24 @@ static sxs_object_t identity_list_b(sxs_context_t ctx, sxs_object_t args) {
   }
 
   sxs_object_t arg_obj = g_api->list_at(list, 1);
+  sxs_object_t evaled = g_api->eval(ctx, arg_obj);
 
-  sxs_type_t type = g_api->get_type(arg_obj);
+  sxs_type_t type = g_api->get_type(evaled);
+  if (type == SXS_TYPE_SOME && g_api->some_has_value(evaled)) {
+    evaled = g_api->some_get_value(evaled);
+    type = g_api->get_type(evaled);
+  }
+
   if (type != SXS_TYPE_BRACKET_LIST) {
     printf("TEST_API_LIST_B:ERROR_WRONG_TYPE:%s\n", type_name(type));
     return g_api->create_none();
   }
 
-  void *bracket_list = g_api->as_list(arg_obj);
+  void *bracket_list = g_api->as_list(evaled);
   size_t size = g_api->list_size(bracket_list);
-  printf("TEST_API_LIST_B:%s:SIZE_%zu\n", type_name(type), size);
+  printf("TEST_API_LIST_B:%s\n", type_name(type));
 
-  return arg_obj;
+  return evaled;
 }
 
 static sxs_object_t identity_some(sxs_context_t ctx, sxs_object_t args) {

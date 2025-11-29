@@ -32,47 +32,96 @@ parse_symbol_key(const char *symbol_str) {
   return {s.substr(0, colon_pos), s.substr(colon_pos + 1)};
 }
 
-static std::string value_to_string(sxs_object_t obj) {
-  sxs_type_t type = g_api->get_type(obj);
+static std::string serialize_slp_object(sxs_object_t obj) {
+  auto *object = static_cast<slp::slp_object_c *>(obj);
 
-  switch (type) {
-  case SXS_TYPE_INT: {
-    long long val = g_api->as_int(obj);
-    return std::to_string(val);
+  const auto &buffer = object->get_data();
+  const auto &symbols = object->get_symbols();
+  size_t root_offset = object->get_root_offset();
+
+  std::string result;
+
+  size_t buffer_size = buffer.size();
+  result.append(reinterpret_cast<const char *>(&buffer_size), sizeof(size_t));
+  result.append(reinterpret_cast<const char *>(buffer.data()), buffer_size);
+
+  size_t symbols_count = symbols.size();
+  result.append(reinterpret_cast<const char *>(&symbols_count), sizeof(size_t));
+
+  for (const auto &[key, value] : symbols) {
+    result.append(reinterpret_cast<const char *>(&key), sizeof(uint64_t));
+    size_t value_len = value.size();
+    result.append(reinterpret_cast<const char *>(&value_len), sizeof(size_t));
+    result.append(value);
   }
-  case SXS_TYPE_REAL: {
-    double val = g_api->as_real(obj);
-    return std::to_string(val);
-  }
-  case SXS_TYPE_STRING: {
-    const char *str = g_api->as_string(obj);
-    return str ? str : "";
-  }
-  default:
-    return "";
-  }
+
+  result.append(reinterpret_cast<const char *>(&root_offset), sizeof(size_t));
+
+  return result;
 }
 
-static sxs_object_t string_to_value(const std::string &str) {
-  if (str.empty()) {
-    return g_api->create_string("");
+static sxs_object_t deserialize_slp_object(const std::string &serialized) {
+  const char *data = serialized.data();
+  size_t pos = 0;
+
+  if (serialized.size() < sizeof(size_t)) {
+    return create_error("deserialize: invalid data");
   }
 
-  if (str.find('.') != std::string::npos) {
-    try {
-      double val = std::stod(str);
-      return g_api->create_real(val);
-    } catch (...) {
-      return g_api->create_string(str.c_str());
+  size_t buffer_size;
+  std::memcpy(&buffer_size, data + pos, sizeof(size_t));
+  pos += sizeof(size_t);
+
+  if (pos + buffer_size > serialized.size()) {
+    return create_error("deserialize: buffer overflow");
+  }
+
+  slp::slp_buffer_c buffer;
+  buffer.resize(buffer_size);
+  std::memcpy(buffer.data(), data + pos, buffer_size);
+  pos += buffer_size;
+
+  if (pos + sizeof(size_t) > serialized.size()) {
+    return create_error("deserialize: invalid symbols");
+  }
+
+  size_t symbols_count;
+  std::memcpy(&symbols_count, data + pos, sizeof(size_t));
+  pos += sizeof(size_t);
+
+  std::map<std::uint64_t, std::string> symbols;
+  for (size_t i = 0; i < symbols_count; i++) {
+    if (pos + sizeof(uint64_t) + sizeof(size_t) > serialized.size()) {
+      return create_error("deserialize: symbol data corrupt");
     }
+
+    uint64_t key;
+    std::memcpy(&key, data + pos, sizeof(uint64_t));
+    pos += sizeof(uint64_t);
+
+    size_t value_len;
+    std::memcpy(&value_len, data + pos, sizeof(size_t));
+    pos += sizeof(size_t);
+
+    if (pos + value_len > serialized.size()) {
+      return create_error("deserialize: symbol value overflow");
+    }
+
+    std::string value(data + pos, value_len);
+    pos += value_len;
+
+    symbols[key] = value;
   }
 
-  try {
-    long long val = std::stoll(str);
-    return g_api->create_int(val);
-  } catch (...) {
-    return g_api->create_string(str.c_str());
+  if (pos + sizeof(size_t) > serialized.size()) {
+    return create_error("deserialize: missing root offset");
   }
+
+  size_t root_offset;
+  std::memcpy(&root_offset, data + pos, sizeof(size_t));
+
+  return new slp::slp_object_c(
+      slp::slp_object_c::from_data(buffer, symbols, root_offset));
 }
 
 static sxs_object_t kv_open_memory(sxs_context_t ctx, sxs_object_t args) {
@@ -198,9 +247,9 @@ static sxs_object_t kv_set(sxs_context_t ctx, sxs_object_t args) {
   }
 
   sxs_object_t evaled_value = g_api->eval(ctx, value_obj);
-  std::string value_str = value_to_string(evaled_value);
+  std::string serialized = serialize_slp_object(evaled_value);
 
-  bool success = store_it->second->set(key, value_str);
+  bool success = store_it->second->set(key, serialized);
   return success ? g_api->create_int(0)
                  : create_error("set: failed to store value");
 }
@@ -234,14 +283,14 @@ static sxs_object_t kv_get(sxs_context_t ctx, sxs_object_t args) {
     return create_error("get: store not found");
   }
 
-  std::string value;
-  bool success = store_it->second->get(key, value);
+  std::string serialized;
+  bool success = store_it->second->get(key, serialized);
 
   if (!success) {
     return create_error("get: key not found");
   }
 
-  return string_to_value(value);
+  return deserialize_slp_object(serialized);
 }
 
 extern "C" void kernel_init(sxs_registry_t registry,

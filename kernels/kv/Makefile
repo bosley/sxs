@@ -1,5 +1,5 @@
 CXX = clang++
-CXXFLAGS = -std=c++20 -fPIC -I../../pkg -I../../extern/json/include
+CXXFLAGS = -std=c++20 -fPIC -I../../pkg
 LDFLAGS = -shared -L../../build/pkg -L/opt/homebrew/opt/rocksdb/lib -lpkg_kvds -lpkg_slp -lrocksdb
 
 UNAME_S := $(shell uname -s)

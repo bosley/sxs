@@ -86,7 +86,8 @@ public:
 
       auto first = list.at(0);
       if (first.type() != slp::slp_type_e::SYMBOL) {
-        return std::move(object);
+        throw std::runtime_error(fmt::format("Cannot call non-symbol type: {}",
+                                             static_cast<int>(first.type())));
       }
 
       std::string cmd = first.as_symbol();
