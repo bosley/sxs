@@ -56,25 +56,15 @@ get_standard_callable_symbols() {
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
         auto list = args_list.as_list();
-        if (list.size() != 3) {
+        if (list.size() < 3) {
           throw std::runtime_error(
-              "import requires exactly 2 arguments: symbol and file_path");
+              "import requires at least 2 arguments: symbol and file_path");
         }
 
-        auto symbol_obj = list.at(1);
-        auto file_path_obj = list.at(2);
-
-        if (symbol_obj.type() != slp::slp_type_e::SYMBOL) {
-          throw std::runtime_error("import: first argument must be a symbol");
-        }
-
-        if (file_path_obj.type() != slp::slp_type_e::DQ_LIST) {
+        if ((list.size() - 1) % 2 != 0) {
           throw std::runtime_error(
-              "import: second argument must be a string (file path)");
+              "import requires pairs of arguments: symbol file_path [symbol file_path ...]");
         }
-
-        std::string symbol = symbol_obj.as_symbol();
-        std::string file_path = file_path_obj.as_string().to_string();
 
         auto import_context = context.get_import_context();
         if (!import_context) {
@@ -86,9 +76,26 @@ get_standard_callable_symbols() {
               "import: imports are locked (must occur at start of program)");
         }
 
-        if (!import_context->attempt_import(symbol, file_path)) {
-          throw std::runtime_error(fmt::format(
-              "import: failed to import {} from {}", symbol, file_path));
+        for (size_t i = 1; i < list.size(); i += 2) {
+          auto symbol_obj = list.at(i);
+          auto file_path_obj = list.at(i + 1);
+
+          if (symbol_obj.type() != slp::slp_type_e::SYMBOL) {
+            throw std::runtime_error("import: symbol arguments must be symbols");
+          }
+
+          if (file_path_obj.type() != slp::slp_type_e::DQ_LIST) {
+            throw std::runtime_error(
+                "import: file path arguments must be strings");
+          }
+
+          std::string symbol = symbol_obj.as_symbol();
+          std::string file_path = file_path_obj.as_string().to_string();
+
+          if (!import_context->attempt_import(symbol, file_path)) {
+            throw std::runtime_error(fmt::format(
+                "import: failed to import {} from {}", symbol, file_path));
+          }
         }
 
         slp::slp_object_c result;
@@ -102,19 +109,10 @@ get_standard_callable_symbols() {
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
         auto list = args_list.as_list();
-        if (list.size() != 2) {
+        if (list.size() < 2) {
           throw std::runtime_error(
-              "load requires exactly 1 argument: kernel_name");
+              "load requires at least 1 argument: kernel_name");
         }
-
-        auto kernel_name_obj = list.at(1);
-
-        if (kernel_name_obj.type() != slp::slp_type_e::DQ_LIST) {
-          throw std::runtime_error(
-              "load: argument must be a string (kernel name)");
-        }
-
-        std::string kernel_name = kernel_name_obj.as_string().to_string();
 
         auto kernel_context = context.get_kernel_context();
         if (!kernel_context) {
@@ -126,9 +124,20 @@ get_standard_callable_symbols() {
                                    "at start of program)");
         }
 
-        if (!kernel_context->attempt_load(kernel_name)) {
-          throw std::runtime_error(
-              fmt::format("load: failed to load kernel {}", kernel_name));
+        for (size_t i = 1; i < list.size(); i++) {
+          auto kernel_name_obj = list.at(i);
+
+          if (kernel_name_obj.type() != slp::slp_type_e::DQ_LIST) {
+            throw std::runtime_error(
+                "load: all arguments must be strings (kernel names)");
+          }
+
+          std::string kernel_name = kernel_name_obj.as_string().to_string();
+
+          if (!kernel_context->attempt_load(kernel_name)) {
+            throw std::runtime_error(
+                fmt::format("load: failed to load kernel {}", kernel_name));
+          }
         }
 
         slp::slp_object_c result;
