@@ -44,10 +44,10 @@ git submodule update --init --recursive
 ```
 
 This will:
-- Clone and build `sxs-std` to `~/.sxs`
-- Build the main SXS project
+- Build and install the standard library (`libs/`) to `~/.sxs`
+- Build the applications (`apps/`)
 - Install the `sxs` binary to `~/.sxs/bin/sxs`
-- Set up kernels and libraries
+- Set up kernels and libraries in `~/.sxs/lib/kernels/`
 
 The base language handled is extraordinarily minimal. Kernels are language extensions written in c++ that extend the language.
 These are linked at runtime and you can swap out versions as you see fit. 
@@ -104,12 +104,12 @@ source ~/.bashrc
 The `wizard.sh` script provides several commands:
 
 ```bash
-./wizard.sh --install      # Install sxs-std and build project
-./wizard.sh --reinstall    # Force reinstall (removes existing)
-./wizard.sh --uninstall    # Remove sxs-std installation
+./wizard.sh --install      # Build libs, install to ~/.sxs, build apps, install binary
+./wizard.sh --reinstall    # Force reinstall (removes existing ~/.sxs)
+./wizard.sh --uninstall    # Remove ~/.sxs installation
 ./wizard.sh --check        # Check installation status
-./wizard.sh --build        # Build the main sxs project
-./wizard.sh --test         # Build and run all tests
+./wizard.sh --build        # Build the apps project (requires libs installed)
+./wizard.sh --test         # Build and run all tests (libs + apps)
 ```
 
 ## Usage
@@ -122,11 +122,11 @@ sxs script.sxs
 
 ### Example Scripts
 
-See the `scripts/` directory for example SXS programs:
+See the `apps/scripts/` directory for example SXS programs:
 
 ```bash
-sxs scripts/example.sxs
-sxs scripts/test_kv_comprehensive.sxs
+sxs apps/scripts/example.sxs
+sxs apps/scripts/test_kv_comprehensive.sxs
 ```
 
 ## SXS Language Features
@@ -140,53 +140,129 @@ sxs scripts/test_kv_comprehensive.sxs
 
 ## Development
 
+### VSCode Configuration
+
+For VSCode users, create `.vscode/c_cpp_properties.json` with the following configuration to support IntelliSense for both `apps/` and `libs/` directories:
+
+```json
+{
+    "configurations": [
+        {
+            "name": "Mac",
+            "includePath": [
+                "${workspaceFolder}/apps/**",
+                "${workspaceFolder}/apps/pkg/**",
+                "${workspaceFolder}/apps/extern/snitch/include/**",
+                "${workspaceFolder}/apps/extern/json/include/**",
+                "${workspaceFolder}/apps/extern/cpp-httplib/**",
+                "${workspaceFolder}/libs/**",
+                "${workspaceFolder}/libs/pkg/**",
+                "/opt/homebrew/include/**",
+                "/usr/local/include/**",
+                "${HOME}/.sxs/include/**"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/clang++",
+            "cStandard": "c17",
+            "cppStandard": "c++20",
+            "intelliSenseMode": "macos-clang-arm64",
+            "compileCommands": "${workspaceFolder}/apps/build/compile_commands.json"
+        }
+    ],
+    "version": 4
+}
+```
+
+Adjust paths for your platform (Linux/Windows) as needed. The key include paths are:
+- `${workspaceFolder}/apps/**` - Apps source code
+- `${workspaceFolder}/libs/**` - Libs (standard library) source code
+- `${HOME}/.sxs/include/**` - Installed headers (kernel_api.h, slp headers)
+
 ### Manual Build
 
 If you need to build without the wizard:
 
+**1. Build and install libs:**
 ```bash
-mkdir -p build
-cd build
+cd libs
+mkdir -p build && cd build
+cmake ..
+make -j8
+make install  # Installs to ~/.sxs
+```
+
+**2. Build apps:**
+```bash
+cd ../../apps
+mkdir -p build && cd build
 cmake ..
 make -j8
 ```
 
-The main binary will be at `build/cmd/sxs/sxs`
+The main binary will be at `apps/build/cmd/sxs/sxs`
 
 ### Running Tests
+
+The recommended way to run all tests:
 
 ```bash
 ./wizard.sh --test
 ```
 
-Or manually:
+This runs:
+1. Libs unit tests (ctest in `libs/build/`)
+2. Libs kernel tests (`libs/tests/kernel/`)
+3. Apps unit tests (ctest in `apps/build/`)
+4. Apps kernel integration tests (`apps/tests/integration/kernel/`)
+5. Apps integration tests (`apps/tests/integration/app/`)
+
+Or manually run specific test suites:
 
 ```bash
-cd build
+# Libs unit tests
+cd libs/build
 ctest --output-on-failure
-```
 
-### Debugging with ASAN
+# Apps unit tests
+cd apps/build
+ctest --output-on-failure
 
-```bash
-cd build
-cmake -DWITH_ASAN=ON ..
-make -j8
+# Kernel tests
+cd apps/tests/integration/kernel
+./test.sh
 ```
 
 ## Project Structure
 
+This is a monorepo with two main directories:
+
 ```
 sxs/
-├── cmd/              # Entry points (sxs binary)
-├── pkg/              # Core runtime libraries
-│   ├── core/         # Interpreter, VM, datum types
-│   ├── bytes/        # Byte utilities
-│   └── types/        # Type system helpers
-├── tests/            # Unit tests
-├── scripts/          # Example SXS scripts
-├── kernels/          # Native kernel extensions
-└── extern/           # External dependencies (submodules)
+├── apps/                # Main application code
+│   ├── cmd/             # Entry points (sxs, sxs-rt binaries)
+│   ├── pkg/             # Core runtime libraries
+│   │   ├── core/        # Interpreter, VM, datum types
+│   │   └── bytes/       # Byte utilities
+│   ├── tests/           # Application tests
+│   │   ├── unit/        # Unit tests
+│   │   └── integration/ # Integration tests (kernel, app)
+│   ├── scripts/         # Example SXS scripts
+│   └── extern/          # External dependencies (submodules)
+│
+├── libs/                # Standard library (installed to ~/.sxs)
+│   ├── pkg/             # Library packages
+│   │   ├── kvds/        # Key-value datastore
+│   │   ├── slp/         # Simple list parser
+│   │   ├── random/      # Random number generation
+│   │   └── kernel_api.h # C API for kernel development
+│   ├── std/             # Standard kernels
+│   │   ├── alu/         # Arithmetic operations kernel
+│   │   ├── io/          # I/O operations kernel
+│   │   ├── kv/          # Key-value store kernel
+│   │   └── random/      # Random generation kernel
+│   └── tests/           # Library tests
+│
+└── wizard.sh            # Build and installation script
 ```
 
 ## License
