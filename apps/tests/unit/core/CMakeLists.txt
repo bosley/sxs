@@ -7,6 +7,7 @@ set(SXS_TEST_FILES
   test_edge_cases.sxs
   test_nested_scopes.sxs
   test_lambda_cleanup.sxs
+  test_if.sxs
   test_import_basic.sxs
   test_import_exported_basic.sxs
   test_import_lambda.sxs
@@ -105,6 +106,19 @@ target_link_libraries(lambda_cleanup_tests PRIVATE
 
 add_dependencies(build_tests lambda_cleanup_tests)
 add_test(NAME lambda_cleanup_tests COMMAND lambda_cleanup_tests)
+
+add_executable(if_tests
+  if_test.cpp
+)
+
+target_link_libraries(if_tests PRIVATE 
+  extern::snitch
+  pkg::core
+  ${SXS_SLP_LIB}
+)
+
+add_dependencies(build_tests if_tests)
+add_test(NAME if_tests COMMAND if_tests)
 
 add_executable(import_tests
   import_test.cpp

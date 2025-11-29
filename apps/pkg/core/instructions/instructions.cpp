@@ -203,6 +203,39 @@ get_standard_callable_symbols() {
         return result;
       }};
 
+  symbols["if"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 4) {
+          throw std::runtime_error(
+              "if requires exactly 3 arguments: condition, true-branch, "
+              "false-branch");
+        }
+
+        auto condition_obj = list.at(1);
+        auto true_branch_obj = list.at(2);
+        auto false_branch_obj = list.at(3);
+
+        auto evaluated_condition = context.eval(condition_obj);
+
+        bool execute_true_branch = true;
+
+        if (evaluated_condition.type() == slp::slp_type_e::INTEGER) {
+          std::int64_t condition_value = evaluated_condition.as_int();
+          execute_true_branch = (condition_value != 0);
+        }
+
+        if (execute_true_branch) {
+          return context.eval(true_branch_obj);
+        } else {
+          return context.eval(false_branch_obj);
+        }
+      }};
+
   return symbols;
 }
 

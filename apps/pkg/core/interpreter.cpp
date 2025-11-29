@@ -440,6 +440,15 @@ private:
         func_def.body.get_root_offset());
     auto result = eval(body_copy);
 
+    if (func_def.return_type != slp::slp_type_e::NONE &&
+        result.type() != func_def.return_type) {
+      std::string error_msg =
+          "@(internal function error: returned unexpected type)";
+      auto error_parse = slp::parse(error_msg);
+      pop_scope();
+      return error_parse.take();
+    }
+
     pop_scope();
 
     return result;

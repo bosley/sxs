@@ -167,3 +167,31 @@ TEST_CASE("type checking - parameter type enforced at call time",
   auto obj = parse_result.take();
   CHECK_THROWS_AS(interpreter->eval(obj), std::exception);
 }
+
+TEST_CASE("type checking - return type mismatch produces error object",
+          "[unit][core][types][return-error]") {
+  std::string source = R"([
+    (def bad-fn (fn (x :int) :int [
+      (if x "string-not-int" 42)
+    ]))
+    (def result (bad-fn 1))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(parse_result.is_success());
+
+  auto symbols = pkg::core::instructions::get_standard_callable_symbols();
+  auto interpreter = pkg::core::create_interpreter(symbols);
+
+  auto obj = parse_result.take();
+  CHECK_NOTHROW(interpreter->eval(obj));
+
+  CHECK(interpreter->has_symbol("result"));
+
+  auto result_parsed = slp::parse("result");
+  REQUIRE(result_parsed.is_success());
+  auto result_obj = result_parsed.take();
+  auto result_val = interpreter->eval(result_obj);
+
+  CHECK(result_val.type() == slp::slp_type_e::ERROR);
+}
