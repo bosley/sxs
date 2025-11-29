@@ -49,6 +49,42 @@ This will:
 - Install the `sxs` binary to `~/.sxs/bin/sxs`
 - Set up kernels and libraries
 
+The base language handled is extraordinarily minimal. Kernels are language extensions written in c++ that extend the language.
+These are linked at runtime and you can swap out versions as you see fit. 
+
+The install directory will look something like: 
+
+```
+/Users/bosley/.sxs
+├── bin
+│   └── sxs
+├── include
+│   └── sxs
+│       ├── kernel_api.h
+│       └── slp
+│           ├── buffer.hpp
+│           └── slp.hpp
+└── lib
+    ├── kernels
+    │   ├── alu
+    │   │   ├── kernel.sxs
+    │   │   └── libkernel_alu.dylib
+    │   ├── io
+    │   │   ├── kernel.sxs
+    │   │   └── libkernel_io.dylib
+    │   ├── kv
+    │   │   ├── kernel.sxs
+    │   │   └── libkernel_kv.dylib
+    │   └── random
+    │       ├── kernel.sxs
+    │       └── libkernel_random.dylib
+    └── libpkg_slp.a
+```
+
+The slp package is the "simple list parser" that parses our sources, the kernel_api.h is the C header for interop with the runtime from a dylib (see kernels/.)
+
+We install `sxs` into the same dir, and key off of `SXS_HOME` to find `kernels` at runtime so things like `#(load "io" "kv")` will work. 
+
 ### 3. Configure Environment
 
 Add these lines to your shell configuration file (`~/.bashrc`, `~/.zshrc`, etc.):
