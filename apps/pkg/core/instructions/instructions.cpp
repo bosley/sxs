@@ -292,6 +292,126 @@ get_standard_callable_symbols() {
         return error_parse.take();
       }};
 
+  symbols["try"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 3) {
+          throw std::runtime_error(
+              "try requires exactly 2 arguments: body and handler");
+        }
+
+        auto body_obj = list.at(1);
+        auto handler_obj = list.at(2);
+
+        auto result = context.eval(body_obj);
+
+        if (result.type() == slp::slp_type_e::ERROR) {
+          const std::uint8_t *base_ptr = result.get_data().data();
+          const std::uint8_t *unit_ptr = base_ptr + result.get_root_offset();
+          const slp::slp_unit_of_store_t *unit =
+              reinterpret_cast<const slp::slp_unit_of_store_t *>(unit_ptr);
+          size_t inner_offset = static_cast<size_t>(unit->data.uint64);
+
+          auto inner_obj = slp::slp_object_c::from_data(
+              result.get_data(), result.get_symbols(), inner_offset);
+
+          if (handler_obj.type() == slp::slp_type_e::BRACKET_LIST) {
+            context.push_scope();
+            context.define_symbol("$error", inner_obj);
+            auto handler_result = context.eval(handler_obj);
+            context.pop_scope();
+            return handler_result;
+          } else {
+            return context.eval(handler_obj);
+          }
+        }
+
+        return result;
+      }};
+
+  symbols["assert"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::NONE,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 3) {
+          throw std::runtime_error(
+              "assert requires exactly 2 arguments: condition and message");
+        }
+
+        auto condition_obj = list.at(1);
+        auto message_obj = list.at(2);
+
+        auto evaluated_condition = context.eval(condition_obj);
+        auto evaluated_message = context.eval(message_obj);
+
+        if (evaluated_condition.type() != slp::slp_type_e::INTEGER) {
+          throw std::runtime_error(
+              "assert: condition must evaluate to an integer");
+        }
+
+        if (evaluated_message.type() != slp::slp_type_e::DQ_LIST) {
+          throw std::runtime_error("assert: message must be a string");
+        }
+
+        std::int64_t condition_value = evaluated_condition.as_int();
+        if (condition_value == 0) {
+          std::string message = evaluated_message.as_string().to_string();
+          throw std::runtime_error(message);
+        }
+
+        slp::slp_object_c result;
+        return result;
+      }};
+
+  symbols["recover"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 3) {
+          throw std::runtime_error(
+              "recover requires exactly 2 arguments: body and handler");
+        }
+
+        auto body_obj = list.at(1);
+        auto handler_obj = list.at(2);
+
+        if (body_obj.type() != slp::slp_type_e::BRACKET_LIST) {
+          throw std::runtime_error("recover: body must be a bracket list");
+        }
+        if (handler_obj.type() != slp::slp_type_e::BRACKET_LIST) {
+          throw std::runtime_error("recover: handler must be a bracket list");
+        }
+
+        try {
+          return context.eval(body_obj);
+        } catch (const std::exception &e) {
+          std::string exception_message = e.what();
+          std::string exception_str_literal = "\"" + exception_message + "\"";
+          auto exception_str_parse = slp::parse(exception_str_literal);
+          if (exception_str_parse.is_error()) {
+            throw std::runtime_error(
+                "recover: failed to parse exception string");
+          }
+          auto exception_str_obj = exception_str_parse.take();
+
+          context.push_scope();
+          context.define_symbol("$exception", exception_str_obj);
+          auto handler_result = context.eval(handler_obj);
+          context.pop_scope();
+          return handler_result;
+        }
+      }};
+
   return symbols;
 }
 

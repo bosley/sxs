@@ -9,6 +9,9 @@ set(SXS_TEST_FILES
   test_lambda_cleanup.sxs
   test_if.sxs
   test_reflect.sxs
+  test_try.sxs
+  test_assert.sxs
+  test_recover.sxs
   test_import_basic.sxs
   test_import_exported_basic.sxs
   test_import_lambda.sxs
@@ -147,4 +150,43 @@ target_link_libraries(reflect_tests PRIVATE
 
 add_dependencies(build_tests reflect_tests)
 add_test(NAME reflect_tests COMMAND reflect_tests)
+
+add_executable(try_tests
+  try_test.cpp
+)
+
+target_link_libraries(try_tests PRIVATE 
+  extern::snitch
+  pkg::core
+  ${SXS_SLP_LIB}
+)
+
+add_dependencies(build_tests try_tests)
+add_test(NAME try_tests COMMAND try_tests)
+
+add_executable(assert_tests
+  assert_test.cpp
+)
+
+target_link_libraries(assert_tests PRIVATE 
+  extern::snitch
+  pkg::core
+  ${SXS_SLP_LIB}
+)
+
+add_dependencies(build_tests assert_tests)
+add_test(NAME assert_tests COMMAND assert_tests)
+
+add_executable(recover_tests
+  recover_test.cpp
+)
+
+target_link_libraries(recover_tests PRIVATE 
+  extern::snitch
+  pkg::core
+  ${SXS_SLP_LIB}
+)
+
+add_dependencies(build_tests recover_tests)
+add_test(NAME recover_tests COMMAND recover_tests)
 

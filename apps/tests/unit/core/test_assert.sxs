@@ -1,0 +1,27 @@
+[
+  (assert 1 "this should pass")
+  (debug "test 1 - assert with truthy condition passed")
+
+  (assert 42 "non-zero is truthy")
+  (debug "test 2 - assert with non-zero value passed")
+
+  (def result1 (recover [
+    (assert 0 "this assertion fails")
+    (debug "this should not print")
+    999
+  ] [
+    (debug "test 3 - caught assertion:" $exception)
+    123
+  ]))
+  (debug "test 3 - recover caught assert, result:" result1)
+
+  (def result2 (recover [
+    (assert 1 "this passes")
+    456
+  ] [
+    (debug "this handler should not run")
+    789
+  ]))
+  (debug "test 4 - assert passed, no exception, result:" result2)
+]
+

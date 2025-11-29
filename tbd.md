@@ -15,6 +15,8 @@
 
 ## try
 
+try handles the event of an SLP Error, not a system THROW. there is a big difference
+
 ```sxs
 (def risky (fn () :int [@(something went wrong)]))
 (try (risky) [
@@ -42,6 +44,8 @@
 
 ## assert
 
+- THROWS does NOT return error
+
 ```sxs
 (assert 1 "this passes")
 (assert 0 "this fails")
@@ -57,6 +61,22 @@
   (assert (if val 1 0) "value cannot be zero")
   val
 ]))
+```
+
+## recover
+
+- used in-tandem with asserts. 
+
+```sxs
+(recover [
+
+    ... 
+    (assert 0 "oops")
+
+
+] [
+  (io/put "got an exception!" $exception ) ; $exception is ephemeral symbol that will return a string
+])
 ```
 
 ## match

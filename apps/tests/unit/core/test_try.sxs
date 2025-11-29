@@ -1,0 +1,26 @@
+[
+  (def error-producer (fn () :error [@(something went wrong)]))
+
+  (def result1 (try (error-producer) 42))
+  (debug "test 1 - try with simple handler value:" result1)
+
+  (def result2 (try (error-producer) [
+    (debug "caught error:" $error)
+    99
+  ]))
+  (debug "test 2 - try with bracket handler and $error:" result2)
+
+  (def result3 (try 100 200))
+  (debug "test 3 - try with non-error value (should return 100):" result3)
+
+  (def result4 (try [@(explicit error)] 777))
+  (debug "test 4 - try with inline error:" result4)
+
+  (def message-holder 0)
+  (def result5 (try (error-producer) [
+    (def message-holder $error)
+    55
+  ]))
+  (debug "test 5 - $error captured in scope:" message-holder)
+]
+
