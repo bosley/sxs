@@ -313,6 +313,18 @@ run_tests() {
     fi
     
     echo
+    echo -e "${GREEN}✓ Kernel tests passed!${NC}"
+    echo
+    
+    echo -e "${YELLOW}Running integration tests...${NC}"
+    echo
+    cd "$SCRIPT_DIR/tests/integration/app"
+    if ! ./test.sh; then
+        echo -e "${RED}✗ Integration tests failed${NC}"
+        exit 1
+    fi
+    
+    echo
     echo -e "${GREEN}✓ All tests passed!${NC}"
     echo
 }
