@@ -28,6 +28,18 @@ struct callable_symbol_s {
 - `slp::slp_type_e::DQ_LIST` - Returns string
 - `slp::slp_type_e::ABERRANT` - Returns any type (use for polymorphic returns)
 
+Additional types supported in type map (for type checking with `:type` syntax):
+- `:rune` - Single character
+- `:list-p` / `:list` - Paren list
+- `:list-c` - Brace list
+- `:list-b` - Bracket list
+- `:some` - Some value (option type)
+- `:error` - Error type
+- `:datum` - Datum type
+- `:aberrant` - Aberrant type (lambdas)
+- `:any` - Any type (maps to NONE for wildcard)
+- Variadic suffix `..` - e.g., `:int..` for variadic parameters
+
 ## Adding a Command
 
 ### 1. Add to symbols map in `get_standard_callable_symbols()`
@@ -84,6 +96,8 @@ symbols["command-name"] = callable_symbol_s{
 ### Import/Kernel Access
 - `context.get_import_context()` - Access import system
 - `context.get_kernel_context()` - Access kernel functions
+- `context.copy_lambda_from(source, lambda_id)` - Copy lambda definition from another context
+- `context.get_import_interpreter(symbol_prefix)` - Get interpreter for imported module
 
 ## Argument Handling
 
@@ -104,9 +118,9 @@ if (arg.type() != slp::slp_type_e::SYMBOL) {
 ```cpp
 std::int64_t int_val = obj.as_int();
 double real_val = obj.as_real();
-const char* symbol_val = obj.as_symbol();
+std::string symbol_val = obj.as_symbol();
 auto list_val = obj.as_list();
-auto string_val = obj.as_string();
+std::string string_val = obj.as_string().to_string();
 ```
 
 ## Creating Return Values
@@ -275,7 +289,7 @@ ctest
 - Evaluates and returns selected branch
 - Returns ABERRANT (polymorphic return)
 
-### debug (variadic, returns INTEGER)
+### debug (variadic, returns NONE)
 - Variadic arguments
 - Iterates all arguments after command name
 - Evaluates each

@@ -373,10 +373,10 @@ private:
 
     auto call_obj = parse_result.take();
 
-    std::unique_lock<std::shared_mutex> lock;
+    std::shared_lock<std::shared_mutex> lock;
     if (import_interpreter_locks_ &&
         import_interpreter_locks_->count(import_prefix)) {
-      lock = std::unique_lock<std::shared_mutex>(
+      lock = std::shared_lock<std::shared_mutex>(
           (*import_interpreter_locks_)[import_prefix]);
     }
 
