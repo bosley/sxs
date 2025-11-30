@@ -77,7 +77,14 @@ this way bad types in yielding empty lists wont cause problems
 SECOND HALF: 
 
 Once the above is fully implemented, we need to get the following upgraded which will entail the 
-updating of 
+updating of the TCS system.
+
+The TCS system is fine for now as-is but if we permit or otherwise describe and define the ability
+of kernels to "inject" variables without explicitly defining them then we need a way to export those
+type symbols at the kernel interface level (sxs file) and mark what command they are permitted "under"
+so that TCS can track them dynamically. This is not a capability in the current TCS tracker.
+Technically a kernel COULD still inject right now but that would lead to some wicked UB at runtime
+given that we assume the kernel is doing exactly as it promised (in kernel.sxs) and nothing more.
 
 --------
 
