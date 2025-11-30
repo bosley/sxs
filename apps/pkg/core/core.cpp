@@ -3,6 +3,7 @@
 #include "instructions/instructions.hpp"
 #include "interpreter.hpp"
 #include "kernels/kernels.hpp"
+#include "tcs/tcs.hpp"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -37,6 +38,16 @@ core_c::~core_c() = default;
 int core_c::run() {
   try {
     options_.logger->info("Loading SLP file: {}", options_.file_path);
+
+    auto tcs_logger = options_.logger->clone("tcs");
+    tcs::tcs_c type_checker(tcs_logger, options_.include_paths,
+                            options_.working_directory);
+
+    options_.logger->info("Validating code (types and symbols)...");
+    if (!type_checker.check(options_.file_path)) {
+      options_.logger->error("Validation failed");
+      return 1;
+    }
 
     std::ifstream file(options_.file_path);
     if (!file.is_open()) {

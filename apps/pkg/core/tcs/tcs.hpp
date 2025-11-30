@@ -13,6 +13,7 @@ struct type_info_s {
   slp::slp_type_e base_type;
   std::string lambda_signature;
   bool is_variadic{false};
+  std::uint64_t lambda_id{0};
 };
 
 struct function_signature_s {

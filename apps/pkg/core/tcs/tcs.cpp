@@ -212,6 +212,65 @@ type_info_s tcs_c::eval_type(slp::slp_object_c &object) {
     if (cmd == "debug")
       return handle_debug(object);
 
+    if (has_symbol(cmd)) {
+      auto sym_type = get_symbol_type(cmd);
+      if (sym_type.base_type == slp::slp_type_e::ABERRANT) {
+        if (sym_type.lambda_id == 0 ||
+            lambda_signatures_.find(sym_type.lambda_id) ==
+                lambda_signatures_.end()) {
+          throw std::runtime_error(
+              fmt::format("Lambda {} has no signature information", cmd));
+        }
+
+        const auto &sig = lambda_signatures_[sym_type.lambda_id];
+
+        if (!sig.variadic && list.size() - 1 != sig.parameters.size()) {
+          throw std::runtime_error(
+              fmt::format("Lambda {} expects {} arguments, got {}", cmd,
+                          sig.parameters.size(), list.size() - 1));
+        }
+
+        size_t fixed_param_count = sig.parameters.size();
+        if (sig.variadic && fixed_param_count > 0) {
+          fixed_param_count--;
+        }
+
+        if (list.size() - 1 < fixed_param_count) {
+          throw std::runtime_error(
+              fmt::format("Lambda {} expects at least {} arguments, got {}",
+                          cmd, fixed_param_count, list.size() - 1));
+        }
+
+        for (size_t i = 0; i < fixed_param_count; i++) {
+          auto arg = list.at(i + 1);
+          auto arg_type = eval_type(arg);
+          if (!types_match(sig.parameters[i], arg_type)) {
+            throw std::runtime_error(fmt::format(
+                "Lambda {} argument {} type mismatch: expected {}, got {}", cmd,
+                i + 1, static_cast<int>(sig.parameters[i].base_type),
+                static_cast<int>(arg_type.base_type)));
+          }
+        }
+
+        if (sig.variadic && sig.parameters.size() > 0) {
+          const auto &variadic_param = sig.parameters.back();
+          for (size_t i = fixed_param_count; i < list.size() - 1; i++) {
+            auto arg = list.at(i + 1);
+            auto arg_type = eval_type(arg);
+            if (!types_match(variadic_param, arg_type)) {
+              throw std::runtime_error(fmt::format(
+                  "Lambda {} variadic argument {} type mismatch: expected {}, "
+                  "got {}",
+                  cmd, i + 1, static_cast<int>(variadic_param.base_type),
+                  static_cast<int>(arg_type.base_type)));
+            }
+          }
+        }
+
+        return sig.return_type;
+      }
+    }
+
     auto slash_pos = cmd.find('/');
     if (slash_pos != std::string::npos) {
       if (function_signatures_.count(cmd)) {
@@ -448,6 +507,7 @@ type_info_s tcs_c::handle_fn(slp::slp_object_c &args_list) {
   type_info_s result;
   result.base_type = slp::slp_type_e::ABERRANT;
   result.lambda_signature = signature;
+  result.lambda_id = lambda_id;
   return result;
 }
 
@@ -794,6 +854,10 @@ type_info_s tcs_c::handle_import(slp::slp_object_c &args_list) {
     if (!import_checker.check(resolved_path)) {
       throw std::runtime_error(
           fmt::format("import: type checking failed for {}", resolved_path));
+    }
+
+    for (const auto &[lambda_id, sig] : import_checker.lambda_signatures_) {
+      lambda_signatures_[lambda_id] = sig;
     }
 
     for (const auto &[export_name, export_type] :

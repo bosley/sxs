@@ -43,3 +43,7 @@ add_executable(tcs_scope_test tcs_scope_test.cpp)
 target_link_libraries(tcs_scope_test PRIVATE pkg_core snitch::snitch spdlog::spdlog)
 add_test(NAME tcs_scope_test COMMAND tcs_scope_test)
 
+add_executable(tcs_lambda_invocation_test tcs_lambda_invocation_test.cpp)
+target_link_libraries(tcs_lambda_invocation_test PRIVATE pkg_core snitch::snitch spdlog::spdlog)
+add_test(NAME tcs_lambda_invocation_test COMMAND tcs_lambda_invocation_test)
+
