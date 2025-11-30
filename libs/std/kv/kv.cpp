@@ -1,19 +1,16 @@
-#include "kernel_api.h"
 #include "kvds/kvds.hpp"
-#include "slp/slp.hpp"
 #include <cstring>
+#include <kernel_api.hpp>
 #include <map>
 #include <memory>
 #include <string>
 
-static const struct sxs_api_table_t *g_api = nullptr;
+static const struct pkg::kernel::api_table_s *g_api = nullptr;
 
-static sxs_object_t create_error(const std::string &message) {
+static slp::slp_object_c create_error(const std::string &message) {
   std::string error_str = "@(" + message + ")";
   auto parse_result = slp::parse(error_str);
-  auto obj = parse_result.take();
-  return new slp::slp_object_c(slp::slp_object_c::from_data(
-      obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+  return parse_result.take();
 }
 
 static std::map<std::string, std::shared_ptr<kvds::kv_c_distributor_c>>
@@ -32,12 +29,10 @@ parse_symbol_key(const char *symbol_str) {
   return {s.substr(0, colon_pos), s.substr(colon_pos + 1)};
 }
 
-static std::string serialize_slp_object(sxs_object_t obj) {
-  auto *object = static_cast<slp::slp_object_c *>(obj);
-
-  const auto &buffer = object->get_data();
-  const auto &symbols = object->get_symbols();
-  size_t root_offset = object->get_root_offset();
+static std::string serialize_slp_object(const slp::slp_object_c &obj) {
+  const auto &buffer = obj.get_data();
+  const auto &symbols = obj.get_symbols();
+  size_t root_offset = obj.get_root_offset();
 
   std::string result;
 
@@ -60,7 +55,7 @@ static std::string serialize_slp_object(sxs_object_t obj) {
   return result;
 }
 
-static sxs_object_t deserialize_slp_object(const std::string &serialized) {
+static slp::slp_object_c deserialize_slp_object(const std::string &serialized) {
   const char *data = serialized.data();
   size_t pos = 0;
 
@@ -120,26 +115,22 @@ static sxs_object_t deserialize_slp_object(const std::string &serialized) {
   size_t root_offset;
   std::memcpy(&root_offset, data + pos, sizeof(size_t));
 
-  return new slp::slp_object_c(
-      slp::slp_object_c::from_data(buffer, symbols, root_offset));
+  return slp::slp_object_c::from_data(buffer, symbols, root_offset);
 }
 
-static sxs_object_t kv_open_memory(sxs_context_t ctx, sxs_object_t args) {
-  void *list = g_api->as_list(args);
-  size_t size = g_api->list_size(list);
-
-  if (size < 2) {
+static slp::slp_object_c kv_open_memory(pkg::kernel::context_t ctx,
+                                        const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  if (list.size() < 2) {
     return create_error("open-memory requires 1 argument");
   }
 
-  sxs_object_t name_obj = g_api->list_at(list, 1);
-  sxs_type_t type = g_api->get_type(name_obj);
-
-  if (type != SXS_TYPE_SYMBOL) {
+  auto name_obj = list.at(1);
+  if (name_obj.type() != slp::slp_type_e::SYMBOL) {
     return create_error("open-memory requires symbol argument");
   }
 
-  const char *name = g_api->as_symbol(name_obj);
+  const char *name = name_obj.as_symbol();
   if (!name) {
     return create_error("open-memory: invalid symbol");
   }
@@ -167,44 +158,41 @@ static sxs_object_t kv_open_memory(sxs_context_t ctx, sxs_object_t args) {
   return g_api->create_int(0);
 }
 
-static sxs_object_t kv_open_disk(sxs_context_t ctx, sxs_object_t args) {
-  void *list = g_api->as_list(args);
-  size_t size = g_api->list_size(list);
-
-  if (size < 3) {
+static slp::slp_object_c kv_open_disk(pkg::kernel::context_t ctx,
+                                      const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  if (list.size() < 3) {
     return create_error("open-disk requires 2 arguments");
   }
 
-  sxs_object_t name_obj = g_api->list_at(list, 1);
-  sxs_object_t path_obj = g_api->list_at(list, 2);
+  auto name_obj = list.at(1);
+  auto path_obj = list.at(2);
 
-  sxs_object_t evaled_path = g_api->eval(ctx, path_obj);
+  auto evaled_path = g_api->eval(ctx, path_obj);
 
-  if (g_api->get_type(name_obj) != SXS_TYPE_SYMBOL ||
-      g_api->get_type(evaled_path) != SXS_TYPE_STRING) {
+  if (name_obj.type() != slp::slp_type_e::SYMBOL ||
+      evaled_path.type() != slp::slp_type_e::DQ_LIST) {
     return create_error("open-disk requires symbol and string arguments");
   }
 
-  const char *name = g_api->as_symbol(name_obj);
-  const char *path = g_api->as_string(evaled_path);
+  const char *name = name_obj.as_symbol();
+  std::string path = evaled_path.as_string().to_string();
 
-  if (!name || !path) {
+  if (!name) {
     return create_error("open-disk: invalid arguments");
   }
 
   std::string store_name(name);
-  std::string disk_path(path);
 
   if (g_stores.find(store_name) != g_stores.end()) {
     return g_api->create_int(0);
   }
 
-  if (g_distributors.find(disk_path) == g_distributors.end()) {
-    g_distributors[disk_path] =
-        std::make_shared<kvds::kv_c_distributor_c>(disk_path);
+  if (g_distributors.find(path) == g_distributors.end()) {
+    g_distributors[path] = std::make_shared<kvds::kv_c_distributor_c>(path);
   }
 
-  auto distributor = g_distributors[disk_path];
+  auto distributor = g_distributors[path];
   auto store_opt = distributor->get_or_create_kv_c(
       store_name, kvds::kv_c_distributor_c::kv_c_backend_e::DISK);
 
@@ -216,22 +204,21 @@ static sxs_object_t kv_open_disk(sxs_context_t ctx, sxs_object_t args) {
   return g_api->create_int(0);
 }
 
-static sxs_object_t kv_set(sxs_context_t ctx, sxs_object_t args) {
-  void *list = g_api->as_list(args);
-  size_t size = g_api->list_size(list);
-
-  if (size < 3) {
+static slp::slp_object_c kv_set(pkg::kernel::context_t ctx,
+                                const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  if (list.size() < 3) {
     return create_error("set requires 2 arguments");
   }
 
-  sxs_object_t dest_obj = g_api->list_at(list, 1);
-  sxs_object_t value_obj = g_api->list_at(list, 2);
+  auto dest_obj = list.at(1);
+  auto value_obj = list.at(2);
 
-  if (g_api->get_type(dest_obj) != SXS_TYPE_SYMBOL) {
+  if (dest_obj.type() != slp::slp_type_e::SYMBOL) {
     return create_error("set requires symbol:key format");
   }
 
-  const char *dest_symbol = g_api->as_symbol(dest_obj);
+  const char *dest_symbol = dest_obj.as_symbol();
   if (!dest_symbol) {
     return create_error("set: invalid symbol");
   }
@@ -246,7 +233,7 @@ static sxs_object_t kv_set(sxs_context_t ctx, sxs_object_t args) {
     return create_error("set: store not found");
   }
 
-  sxs_object_t evaled_value = g_api->eval(ctx, value_obj);
+  auto evaled_value = g_api->eval(ctx, value_obj);
   std::string serialized = serialize_slp_object(evaled_value);
 
   bool success = store_it->second->set(key, serialized);
@@ -254,21 +241,20 @@ static sxs_object_t kv_set(sxs_context_t ctx, sxs_object_t args) {
                  : create_error("set: failed to store value");
 }
 
-static sxs_object_t kv_get(sxs_context_t ctx, sxs_object_t args) {
-  void *list = g_api->as_list(args);
-  size_t size = g_api->list_size(list);
-
-  if (size < 2) {
+static slp::slp_object_c kv_get(pkg::kernel::context_t ctx,
+                                const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  if (list.size() < 2) {
     return create_error("get requires 1 argument");
   }
 
-  sxs_object_t source_obj = g_api->list_at(list, 1);
+  auto source_obj = list.at(1);
 
-  if (g_api->get_type(source_obj) != SXS_TYPE_SYMBOL) {
+  if (source_obj.type() != slp::slp_type_e::SYMBOL) {
     return create_error("get requires symbol:key format");
   }
 
-  const char *source_symbol = g_api->as_symbol(source_obj);
+  const char *source_symbol = source_obj.as_symbol();
   if (!source_symbol) {
     return create_error("get: invalid symbol");
   }
@@ -293,21 +279,20 @@ static sxs_object_t kv_get(sxs_context_t ctx, sxs_object_t args) {
   return deserialize_slp_object(serialized);
 }
 
-static sxs_object_t kv_del(sxs_context_t ctx, sxs_object_t args) {
-  void *list = g_api->as_list(args);
-  size_t size = g_api->list_size(list);
-
-  if (size < 2) {
+static slp::slp_object_c kv_del(pkg::kernel::context_t ctx,
+                                const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  if (list.size() < 2) {
     return create_error("del requires 1 argument");
   }
 
-  sxs_object_t source_obj = g_api->list_at(list, 1);
+  auto source_obj = list.at(1);
 
-  if (g_api->get_type(source_obj) != SXS_TYPE_SYMBOL) {
+  if (source_obj.type() != slp::slp_type_e::SYMBOL) {
     return create_error("del requires symbol:key format");
   }
 
-  const char *source_symbol = g_api->as_symbol(source_obj);
+  const char *source_symbol = source_obj.as_symbol();
   if (!source_symbol) {
     return create_error("del: invalid symbol");
   }
@@ -327,22 +312,21 @@ static sxs_object_t kv_del(sxs_context_t ctx, sxs_object_t args) {
                  : create_error("del: failed to delete key");
 }
 
-static sxs_object_t kv_snx(sxs_context_t ctx, sxs_object_t args) {
-  void *list = g_api->as_list(args);
-  size_t size = g_api->list_size(list);
-
-  if (size < 3) {
+static slp::slp_object_c kv_snx(pkg::kernel::context_t ctx,
+                                const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  if (list.size() < 3) {
     return create_error("snx requires 2 arguments");
   }
 
-  sxs_object_t dest_obj = g_api->list_at(list, 1);
-  sxs_object_t value_obj = g_api->list_at(list, 2);
+  auto dest_obj = list.at(1);
+  auto value_obj = list.at(2);
 
-  if (g_api->get_type(dest_obj) != SXS_TYPE_SYMBOL) {
+  if (dest_obj.type() != slp::slp_type_e::SYMBOL) {
     return create_error("snx requires symbol:key format");
   }
 
-  const char *dest_symbol = g_api->as_symbol(dest_obj);
+  const char *dest_symbol = dest_obj.as_symbol();
   if (!dest_symbol) {
     return create_error("snx: invalid symbol");
   }
@@ -357,7 +341,7 @@ static sxs_object_t kv_snx(sxs_context_t ctx, sxs_object_t args) {
     return create_error("snx: store not found");
   }
 
-  sxs_object_t evaled_value = g_api->eval(ctx, value_obj);
+  auto evaled_value = g_api->eval(ctx, value_obj);
   std::string serialized = serialize_slp_object(evaled_value);
 
   bool success = store_it->second->set_nx(key, serialized);
@@ -365,23 +349,22 @@ static sxs_object_t kv_snx(sxs_context_t ctx, sxs_object_t args) {
                  : create_error("snx: key already exists");
 }
 
-static sxs_object_t kv_cas(sxs_context_t ctx, sxs_object_t args) {
-  void *list = g_api->as_list(args);
-  size_t size = g_api->list_size(list);
-
-  if (size < 4) {
+static slp::slp_object_c kv_cas(pkg::kernel::context_t ctx,
+                                const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  if (list.size() < 4) {
     return create_error("cas requires 3 arguments");
   }
 
-  sxs_object_t dest_obj = g_api->list_at(list, 1);
-  sxs_object_t expected_obj = g_api->list_at(list, 2);
-  sxs_object_t new_obj = g_api->list_at(list, 3);
+  auto dest_obj = list.at(1);
+  auto expected_obj = list.at(2);
+  auto new_obj = list.at(3);
 
-  if (g_api->get_type(dest_obj) != SXS_TYPE_SYMBOL) {
+  if (dest_obj.type() != slp::slp_type_e::SYMBOL) {
     return create_error("cas requires symbol:key format");
   }
 
-  const char *dest_symbol = g_api->as_symbol(dest_obj);
+  const char *dest_symbol = dest_obj.as_symbol();
   if (!dest_symbol) {
     return create_error("cas: invalid symbol");
   }
@@ -396,8 +379,8 @@ static sxs_object_t kv_cas(sxs_context_t ctx, sxs_object_t args) {
     return create_error("cas: store not found");
   }
 
-  sxs_object_t evaled_expected = g_api->eval(ctx, expected_obj);
-  sxs_object_t evaled_new = g_api->eval(ctx, new_obj);
+  auto evaled_expected = g_api->eval(ctx, expected_obj);
+  auto evaled_new = g_api->eval(ctx, new_obj);
 
   std::string serialized_expected = serialize_slp_object(evaled_expected);
   std::string serialized_new = serialize_slp_object(evaled_new);
@@ -408,20 +391,21 @@ static sxs_object_t kv_cas(sxs_context_t ctx, sxs_object_t args) {
                  : create_error("cas: comparison failed");
 }
 
-extern "C" void kernel_init(sxs_registry_t registry,
-                            const struct sxs_api_table_t *api) {
+extern "C" void kernel_init(pkg::kernel::registry_t registry,
+                            const struct pkg::kernel::api_table_s *api) {
   g_api = api;
-  api->register_function(registry, "open-memory", kv_open_memory, SXS_TYPE_INT,
-                         0);
-  api->register_function(registry, "open-disk", kv_open_disk, SXS_TYPE_INT, 0);
-  api->register_function(registry, "set", kv_set, SXS_TYPE_INT, 0);
-  api->register_function(registry, "get", kv_get, SXS_TYPE_NONE, 0);
-  api->register_function(registry, "del", kv_del, SXS_TYPE_INT, 0);
-  api->register_function(registry, "snx", kv_snx, SXS_TYPE_INT, 0);
-  api->register_function(registry, "cas", kv_cas, SXS_TYPE_INT, 0);
+  api->register_function(registry, "open-memory", kv_open_memory,
+                         slp::slp_type_e::INTEGER, 0);
+  api->register_function(registry, "open-disk", kv_open_disk,
+                         slp::slp_type_e::INTEGER, 0);
+  api->register_function(registry, "set", kv_set, slp::slp_type_e::INTEGER, 0);
+  api->register_function(registry, "get", kv_get, slp::slp_type_e::NONE, 0);
+  api->register_function(registry, "del", kv_del, slp::slp_type_e::INTEGER, 0);
+  api->register_function(registry, "snx", kv_snx, slp::slp_type_e::INTEGER, 0);
+  api->register_function(registry, "cas", kv_cas, slp::slp_type_e::INTEGER, 0);
 }
 
-extern "C" void kernel_shutdown(const struct sxs_api_table_t *api) {
+extern "C" void kernel_shutdown(const struct pkg::kernel::api_table_s *api) {
   g_stores.clear();
   g_distributors.clear();
 }

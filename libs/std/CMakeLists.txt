@@ -6,6 +6,14 @@ target_include_directories(kernel_alu PRIVATE
   ${CMAKE_SOURCE_DIR}/pkg
 )
 
+target_compile_definitions(kernel_alu PRIVATE
+  SXS_KERNEL_BUILD
+)
+
+target_link_libraries(kernel_alu PRIVATE
+  pkg::slp
+)
+
 set_target_properties(kernel_alu PROPERTIES
   PREFIX "lib"
   OUTPUT_NAME "kernel_alu"
@@ -18,6 +26,14 @@ add_library(kernel_io SHARED
 
 target_include_directories(kernel_io PRIVATE
   ${CMAKE_SOURCE_DIR}/pkg
+)
+
+target_compile_definitions(kernel_io PRIVATE
+  SXS_KERNEL_BUILD
+)
+
+target_link_libraries(kernel_io PRIVATE
+  pkg::slp
 )
 
 set_target_properties(kernel_io PROPERTIES
@@ -34,8 +50,13 @@ target_include_directories(kernel_random PRIVATE
   ${CMAKE_SOURCE_DIR}/pkg
 )
 
+target_compile_definitions(kernel_random PRIVATE
+  SXS_KERNEL_BUILD
+)
+
 target_link_libraries(kernel_random PRIVATE
   pkg::random
+  pkg::slp
 )
 
 set_target_properties(kernel_random PROPERTIES
@@ -50,6 +71,10 @@ add_library(kernel_kv SHARED
 
 target_include_directories(kernel_kv PRIVATE
   ${CMAKE_SOURCE_DIR}/pkg
+)
+
+target_compile_definitions(kernel_kv PRIVATE
+  SXS_KERNEL_BUILD
 )
 
 target_link_libraries(kernel_kv PRIVATE
@@ -69,6 +94,10 @@ add_library(kernel_event SHARED
 
 target_include_directories(kernel_event PRIVATE
   ${CMAKE_SOURCE_DIR}/pkg
+)
+
+target_compile_definitions(kernel_event PRIVATE
+  SXS_KERNEL_BUILD
 )
 
 target_link_libraries(kernel_event PRIVATE

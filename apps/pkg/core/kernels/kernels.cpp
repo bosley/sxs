@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
-#include <sxs/kernel_api.h>
+#include <sxs/kernel_api.hpp>
 #include <sxs/slp/slp.hpp>
 
 namespace pkg::core::kernels {
@@ -14,7 +14,7 @@ namespace {
 struct registration_context_s {
   kernel_manager_c *manager;
   std::string kernel_name;
-  const sxs_api_table_t *api;
+  const pkg::kernel::api_table_s *api;
 };
 
 struct kernel_definition_context_s {
@@ -25,140 +25,70 @@ struct kernel_definition_context_s {
   std::string dylib_name;
 };
 
-void register_function_callback(sxs_registry_t registry, const char *name,
-                                sxs_kernel_fn_t function,
-                                sxs_type_t return_type, int variadic) {
+void register_function_callback(pkg::kernel::registry_t registry,
+                                const char *name,
+                                pkg::kernel::kernel_fn_t function,
+                                slp::slp_type_e return_type, int variadic) {
   auto *ctx = static_cast<registration_context_s *>(registry);
   ctx->manager->register_kernel_function(
       ctx->kernel_name, name, reinterpret_cast<void *>(function),
       static_cast<int>(return_type), variadic != 0);
 }
 
-sxs_object_t eval_callback(sxs_context_t ctx, sxs_object_t obj) {
+slp::slp_object_c eval_callback(pkg::kernel::context_t ctx,
+                                const slp::slp_object_c &obj) {
   auto *context = static_cast<callable_context_if *>(ctx);
-  auto *object = static_cast<slp::slp_object_c *>(obj);
-  auto result = context->eval(*object);
-  return new slp::slp_object_c(std::move(result));
+  return context->eval(const_cast<slp::slp_object_c &>(obj));
 }
 
-sxs_type_t get_type_callback(sxs_object_t obj) {
-  auto *object = static_cast<slp::slp_object_c *>(obj);
-  return static_cast<sxs_type_t>(object->type());
-}
-
-long long as_int_callback(sxs_object_t obj) {
-  auto *object = static_cast<slp::slp_object_c *>(obj);
-  return object->as_int();
-}
-
-double as_real_callback(sxs_object_t obj) {
-  auto *object = static_cast<slp::slp_object_c *>(obj);
-  return object->as_real();
-}
-
-const char *as_string_callback(sxs_object_t obj) {
-  auto *object = static_cast<slp::slp_object_c *>(obj);
-  static thread_local std::string str_buffer;
-  str_buffer = object->as_string().to_string();
-  return str_buffer.c_str();
-}
-
-void *as_list_callback(sxs_object_t obj) {
-  auto *object = static_cast<slp::slp_object_c *>(obj);
-  return new slp::slp_object_c::list_c(object->as_list());
-}
-
-size_t list_size_callback(void *list) {
-  auto *list_obj = static_cast<slp::slp_object_c::list_c *>(list);
-  return list_obj->size();
-}
-
-sxs_object_t list_at_callback(void *list, size_t index) {
-  auto *list_obj = static_cast<slp::slp_object_c::list_c *>(list);
-  auto elem = list_obj->at(index);
-  return new slp::slp_object_c(std::move(elem));
-}
-
-/*
-  Implementations note and lament:
-
-  Here for helpers on kernel-level calls i didn't want to have to expose or
-  otherwise leverage slp directly too much in kernels and i wanted to keep the
-  api minimal
-
-  to this end, when creating slp objects from kernel implementations call back
-  to here to actually instantiate things. depending on the program and the
-  implementation of the kernel, this might be dreadfully slow. here, we are
-  casting whatever they give us to various strings and data representations and
-  then using the slp parser to ensure the form is stable. yes, this ensures the
-  most correct potential approach, but it will forever pain me to see data
-  transform primitive types at all just for the sake of c++ understandability.
-*/
-
-sxs_object_t create_none_callback() {
+slp::slp_object_c create_none_callback() {
   auto parse_result = slp::parse("()");
-  auto obj = parse_result.take();
-  return new slp::slp_object_c(slp::slp_object_c::from_data(
-      obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+  return parse_result.take();
 }
 
-sxs_object_t create_int_callback(long long value) {
+slp::slp_object_c create_int_callback(long long value) {
   auto parse_result = slp::parse(std::to_string(value));
-  auto obj = parse_result.take();
-  return new slp::slp_object_c(slp::slp_object_c::from_data(
-      obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+  return parse_result.take();
 }
 
-sxs_object_t create_real_callback(double value) {
+slp::slp_object_c create_real_callback(double value) {
   auto parse_result = slp::parse(std::to_string(value));
-  auto obj = parse_result.take();
-  return new slp::slp_object_c(slp::slp_object_c::from_data(
-      obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+  return parse_result.take();
 }
 
-sxs_object_t create_string_callback(const char *value) {
+slp::slp_object_c create_string_callback(const char *value) {
   if (!value) {
     return create_none_callback();
   }
-
-  auto obj = slp::create_string_direct(std::string(value));
-  return new slp::slp_object_c(std::move(obj));
+  return slp::create_string_direct(std::string(value));
 }
 
-const char *as_symbol_callback(sxs_object_t obj) {
-  auto *object = static_cast<slp::slp_object_c *>(obj);
-  return object->as_symbol();
-}
-
-sxs_object_t create_symbol_callback(const char *name) {
+slp::slp_object_c create_symbol_callback(const char *name) {
   if (!name) {
     return create_none_callback();
   }
   auto parse_result = slp::parse(std::string(name));
-  auto obj = parse_result.take();
-  return new slp::slp_object_c(slp::slp_object_c::from_data(
-      obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+  return parse_result.take();
 }
 
-sxs_object_t create_paren_list_callback(sxs_object_t *objects, size_t count) {
+slp::slp_object_c create_paren_list_callback(const slp::slp_object_c *objects,
+                                             size_t count) {
   if (!objects || count == 0) {
     auto parse_result = slp::parse("()");
-    auto obj = parse_result.take();
-    return new slp::slp_object_c(slp::slp_object_c::from_data(
-        obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+    return parse_result.take();
   }
 
   std::string list_str = "(";
   for (size_t i = 0; i < count; i++) {
-    auto *elem = static_cast<slp::slp_object_c *>(objects[i]);
-    if (elem->type() == slp::slp_type_e::INTEGER) {
-      list_str += std::to_string(elem->as_int());
-    } else if (elem->type() == slp::slp_type_e::REAL) {
-      list_str += std::to_string(elem->as_real());
-    } else if (elem->type() == slp::slp_type_e::DQ_LIST) {
-      list_str += "\"" + elem->as_string().to_string() + "\"";
-    } else if (elem->type() == slp::slp_type_e::SYMBOL) {
-      list_str += elem->as_symbol();
+    const auto &elem = objects[i];
+    if (elem.type() == slp::slp_type_e::INTEGER) {
+      list_str += std::to_string(elem.as_int());
+    } else if (elem.type() == slp::slp_type_e::REAL) {
+      list_str += std::to_string(elem.as_real());
+    } else if (elem.type() == slp::slp_type_e::DQ_LIST) {
+      list_str += "\"" + elem.as_string().to_string() + "\"";
+    } else if (elem.type() == slp::slp_type_e::SYMBOL) {
+      list_str += elem.as_symbol();
     } else {
       list_str += "()";
     }
@@ -169,30 +99,27 @@ sxs_object_t create_paren_list_callback(sxs_object_t *objects, size_t count) {
   list_str += ")";
 
   auto parse_result = slp::parse(list_str);
-  auto obj = parse_result.take();
-  return new slp::slp_object_c(slp::slp_object_c::from_data(
-      obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+  return parse_result.take();
 }
 
-sxs_object_t create_bracket_list_callback(sxs_object_t *objects, size_t count) {
+slp::slp_object_c create_bracket_list_callback(const slp::slp_object_c *objects,
+                                               size_t count) {
   if (!objects || count == 0) {
     auto parse_result = slp::parse("[]");
-    auto obj = parse_result.take();
-    return new slp::slp_object_c(slp::slp_object_c::from_data(
-        obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+    return parse_result.take();
   }
 
   std::string list_str = "[";
   for (size_t i = 0; i < count; i++) {
-    auto *elem = static_cast<slp::slp_object_c *>(objects[i]);
-    if (elem->type() == slp::slp_type_e::INTEGER) {
-      list_str += std::to_string(elem->as_int());
-    } else if (elem->type() == slp::slp_type_e::REAL) {
-      list_str += std::to_string(elem->as_real());
-    } else if (elem->type() == slp::slp_type_e::DQ_LIST) {
-      list_str += "\"" + elem->as_string().to_string() + "\"";
-    } else if (elem->type() == slp::slp_type_e::SYMBOL) {
-      list_str += elem->as_symbol();
+    const auto &elem = objects[i];
+    if (elem.type() == slp::slp_type_e::INTEGER) {
+      list_str += std::to_string(elem.as_int());
+    } else if (elem.type() == slp::slp_type_e::REAL) {
+      list_str += std::to_string(elem.as_real());
+    } else if (elem.type() == slp::slp_type_e::DQ_LIST) {
+      list_str += "\"" + elem.as_string().to_string() + "\"";
+    } else if (elem.type() == slp::slp_type_e::SYMBOL) {
+      list_str += elem.as_symbol();
     } else {
       list_str += "()";
     }
@@ -203,30 +130,27 @@ sxs_object_t create_bracket_list_callback(sxs_object_t *objects, size_t count) {
   list_str += "]";
 
   auto parse_result = slp::parse(list_str);
-  auto obj = parse_result.take();
-  return new slp::slp_object_c(slp::slp_object_c::from_data(
-      obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+  return parse_result.take();
 }
 
-sxs_object_t create_brace_list_callback(sxs_object_t *objects, size_t count) {
+slp::slp_object_c create_brace_list_callback(const slp::slp_object_c *objects,
+                                             size_t count) {
   if (!objects || count == 0) {
     auto parse_result = slp::parse("{}");
-    auto obj = parse_result.take();
-    return new slp::slp_object_c(slp::slp_object_c::from_data(
-        obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+    return parse_result.take();
   }
 
   std::string list_str = "{";
   for (size_t i = 0; i < count; i++) {
-    auto *elem = static_cast<slp::slp_object_c *>(objects[i]);
-    if (elem->type() == slp::slp_type_e::INTEGER) {
-      list_str += std::to_string(elem->as_int());
-    } else if (elem->type() == slp::slp_type_e::REAL) {
-      list_str += std::to_string(elem->as_real());
-    } else if (elem->type() == slp::slp_type_e::DQ_LIST) {
-      list_str += "\"" + elem->as_string().to_string() + "\"";
-    } else if (elem->type() == slp::slp_type_e::SYMBOL) {
-      list_str += elem->as_symbol();
+    const auto &elem = objects[i];
+    if (elem.type() == slp::slp_type_e::INTEGER) {
+      list_str += std::to_string(elem.as_int());
+    } else if (elem.type() == slp::slp_type_e::REAL) {
+      list_str += std::to_string(elem.as_real());
+    } else if (elem.type() == slp::slp_type_e::DQ_LIST) {
+      list_str += "\"" + elem.as_string().to_string() + "\"";
+    } else if (elem.type() == slp::slp_type_e::SYMBOL) {
+      list_str += elem.as_symbol();
     } else {
       list_str += "()";
     }
@@ -237,31 +161,7 @@ sxs_object_t create_brace_list_callback(sxs_object_t *objects, size_t count) {
   list_str += "}";
 
   auto parse_result = slp::parse(list_str);
-  auto obj = parse_result.take();
-  return new slp::slp_object_c(slp::slp_object_c::from_data(
-      obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
-}
-
-int some_has_value_callback(sxs_object_t obj) {
-  auto *object = static_cast<slp::slp_object_c *>(obj);
-  return object->has_data() ? 1 : 0;
-}
-
-sxs_object_t some_get_value_callback(sxs_object_t obj) {
-  auto *object = static_cast<slp::slp_object_c *>(obj);
-  if (!object->has_data()) {
-    return create_none_callback();
-  }
-
-  const std::uint8_t *base_ptr = object->get_data().data();
-  const std::uint8_t *unit_ptr = base_ptr + object->get_root_offset();
-  const slp::slp_unit_of_store_t *unit =
-      reinterpret_cast<const slp::slp_unit_of_store_t *>(unit_ptr);
-
-  size_t inner_offset = static_cast<size_t>(unit->data.uint64);
-  auto inner_obj = slp::slp_object_c::from_data(
-      object->get_data(), object->get_symbols(), inner_offset);
-  return new slp::slp_object_c(std::move(inner_obj));
+  return parse_result.take();
 }
 
 std::map<std::string, callable_symbol_s>
@@ -377,29 +277,19 @@ kernel_manager_c::kernel_manager_c(logger_t logger,
     : logger_(logger), include_paths_(std::move(include_paths)),
       working_directory_(std::move(working_directory)), kernels_locked_(false),
       parent_context_(nullptr),
-      api_table_(std::make_unique<sxs_api_table_t>()) {
+      api_table_(std::make_unique<pkg::kernel::api_table_s>()) {
   context_ = std::make_unique<kernel_context_c>(*this);
 
   api_table_->register_function = register_function_callback;
   api_table_->eval = eval_callback;
-  api_table_->get_type = get_type_callback;
-  api_table_->as_int = as_int_callback;
-  api_table_->as_real = as_real_callback;
-  api_table_->as_string = as_string_callback;
-  api_table_->as_list = as_list_callback;
-  api_table_->list_size = list_size_callback;
-  api_table_->list_at = list_at_callback;
   api_table_->create_int = create_int_callback;
   api_table_->create_real = create_real_callback;
   api_table_->create_string = create_string_callback;
   api_table_->create_none = create_none_callback;
-  api_table_->as_symbol = as_symbol_callback;
   api_table_->create_symbol = create_symbol_callback;
   api_table_->create_paren_list = create_paren_list_callback;
   api_table_->create_bracket_list = create_bracket_list_callback;
   api_table_->create_brace_list = create_brace_list_callback;
-  api_table_->some_has_value = some_has_value_callback;
-  api_table_->some_get_value = some_get_value_callback;
 }
 
 kernel_manager_c::~kernel_manager_c() {
@@ -521,8 +411,8 @@ bool kernel_manager_c::load_kernel_dylib(const std::string &kernel_name,
     return false;
   }
 
-  typedef void (*kernel_init_fn_t)(sxs_registry_t,
-                                   const struct sxs_api_table_t *);
+  typedef void (*kernel_init_fn_t)(pkg::kernel::registry_t,
+                                   const pkg::kernel::api_table_s *);
   auto kernel_init =
       reinterpret_cast<kernel_init_fn_t>(dlsym(handle, "kernel_init"));
   if (!kernel_init) {
@@ -549,7 +439,7 @@ bool kernel_manager_c::load_kernel_dylib(const std::string &kernel_name,
 
   logger_->info("All declared functions successfully registered");
 
-  typedef void (*shutdown_fn_t)(const struct sxs_api_table_t *);
+  typedef void (*shutdown_fn_t)(const pkg::kernel::api_table_s *);
   auto kernel_shutdown_fn =
       reinterpret_cast<shutdown_fn_t>(dlsym(handle, "kernel_shutdown"));
   if (kernel_shutdown_fn) {
@@ -570,28 +460,15 @@ void kernel_manager_c::register_kernel_function(
   std::string full_name = kernel_name + "/" + function_name;
   logger_->debug("Registering kernel function: {}", full_name);
 
-  auto kernel_fn = reinterpret_cast<sxs_kernel_fn_t>(function_ptr);
+  auto kernel_fn = reinterpret_cast<pkg::kernel::kernel_fn_t>(function_ptr);
 
   callable_symbol_s symbol;
   symbol.return_type = static_cast<slp::slp_type_e>(return_type);
   symbol.variadic = variadic;
-  symbol.function = [kernel_fn,
-                     this](callable_context_if &context,
-                           slp::slp_object_c &args_list) -> slp::slp_object_c {
-    sxs_object_t result = kernel_fn(static_cast<sxs_context_t>(&context),
-                                    static_cast<sxs_object_t>(&args_list));
-
-    if (result == nullptr) {
-      slp::slp_object_c none_result;
-      return none_result;
-    }
-
-    auto *result_obj = static_cast<slp::slp_object_c *>(result);
-    slp::slp_object_c copy = slp::slp_object_c::from_data(
-        result_obj->get_data(), result_obj->get_symbols(),
-        result_obj->get_root_offset());
-    delete result_obj;
-    return copy;
+  symbol.function =
+      [kernel_fn](callable_context_if &context,
+                  slp::slp_object_c &args_list) -> slp::slp_object_c {
+    return kernel_fn(static_cast<pkg::kernel::context_t>(&context), args_list);
   };
 
   registered_functions_[full_name] = std::move(symbol);

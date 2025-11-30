@@ -1,33 +1,28 @@
 #include "events/events.hpp"
-#include "kernel_api.h"
-#include "slp/slp.hpp"
 #include <cstring>
+#include <kernel_api.hpp>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <spdlog/spdlog.h>
 #include <string>
 
-static const struct sxs_api_table_t *g_api = nullptr;
+static const struct pkg::kernel::api_table_s *g_api = nullptr;
 static std::unique_ptr<pkg::events::event_system_c> g_event_system;
 static std::map<std::string, std::shared_ptr<pkg::events::publisher_if>>
     g_publishers;
 static std::mutex g_publishers_mutex;
 
-static sxs_object_t create_error(const std::string &message) {
+static slp::slp_object_c create_error(const std::string &message) {
   std::string error_str = "@(" + message + ")";
   auto parse_result = slp::parse(error_str);
-  auto obj = parse_result.take();
-  return new slp::slp_object_c(slp::slp_object_c::from_data(
-      obj.get_data(), obj.get_symbols(), obj.get_root_offset()));
+  return parse_result.take();
 }
 
-static std::string serialize_slp_object(sxs_object_t obj) {
-  auto *object = static_cast<slp::slp_object_c *>(obj);
-
-  const auto &buffer = object->get_data();
-  const auto &symbols = object->get_symbols();
-  size_t root_offset = object->get_root_offset();
+static std::string serialize_slp_object(const slp::slp_object_c &obj) {
+  const auto &buffer = obj.get_data();
+  const auto &symbols = obj.get_symbols();
+  size_t root_offset = obj.get_root_offset();
 
   std::string result;
 
@@ -50,7 +45,7 @@ static std::string serialize_slp_object(sxs_object_t obj) {
   return result;
 }
 
-static sxs_object_t deserialize_slp_object(const std::string &serialized) {
+static slp::slp_object_c deserialize_slp_object(const std::string &serialized) {
   const char *data = serialized.data();
   size_t pos = 0;
 
@@ -110,8 +105,7 @@ static sxs_object_t deserialize_slp_object(const std::string &serialized) {
   size_t root_offset;
   std::memcpy(&root_offset, data + pos, sizeof(size_t));
 
-  return new slp::slp_object_c(
-      slp::slp_object_c::from_data(buffer, symbols, root_offset));
+  return slp::slp_object_c::from_data(buffer, symbols, root_offset);
 }
 
 struct subscriber_entry_s {
@@ -137,26 +131,25 @@ private:
 static std::map<std::size_t, std::unique_ptr<lambda_subscriber_c>>
     g_subscriber_impls;
 
-static sxs_object_t event_subscribe(sxs_context_t ctx, sxs_object_t args) {
+static slp::slp_object_c event_subscribe(pkg::kernel::context_t ctx,
+                                         const slp::slp_object_c &args) {
   if (!g_event_system) {
     return create_error("subscribe: event system not initialized");
   }
 
-  void *list = g_api->as_list(args);
-  size_t size = g_api->list_size(list);
-
-  if (size < 3) {
+  auto list = args.as_list();
+  if (list.size() < 3) {
     return create_error("subscribe requires 2 arguments");
   }
 
-  sxs_object_t topic_obj = g_api->list_at(list, 1);
-  sxs_object_t lambda_obj = g_api->list_at(list, 2);
+  auto topic_obj = list.at(1);
+  auto lambda_obj = list.at(2);
 
-  if (g_api->get_type(topic_obj) != SXS_TYPE_SYMBOL) {
+  if (topic_obj.type() != slp::slp_type_e::SYMBOL) {
     return create_error("subscribe requires symbol topic");
   }
 
-  const char *topic = g_api->as_symbol(topic_obj);
+  const char *topic = topic_obj.as_symbol();
   if (!topic) {
     return create_error("subscribe: invalid topic");
   }
@@ -189,26 +182,25 @@ static sxs_object_t event_subscribe(sxs_context_t ctx, sxs_object_t args) {
   return g_api->create_int(static_cast<long long>(sub_id));
 }
 
-static sxs_object_t event_unsubscribe(sxs_context_t ctx, sxs_object_t args) {
+static slp::slp_object_c event_unsubscribe(pkg::kernel::context_t ctx,
+                                           const slp::slp_object_c &args) {
   if (!g_event_system) {
     return create_error("unsubscribe: event system not initialized");
   }
 
-  void *list = g_api->as_list(args);
-  size_t size = g_api->list_size(list);
-
-  if (size < 2) {
+  auto list = args.as_list();
+  if (list.size() < 2) {
     return create_error("unsubscribe requires 1 argument");
   }
 
-  sxs_object_t id_obj = g_api->list_at(list, 1);
-  sxs_object_t evaled_id = g_api->eval(ctx, id_obj);
+  auto id_obj = list.at(1);
+  auto evaled_id = g_api->eval(ctx, id_obj);
 
-  if (g_api->get_type(evaled_id) != SXS_TYPE_INT) {
+  if (evaled_id.type() != slp::slp_type_e::INTEGER) {
     return create_error("unsubscribe requires integer id");
   }
 
-  long long id = g_api->as_int(evaled_id);
+  long long id = evaled_id.as_int();
 
   std::size_t event_system_id;
   {
@@ -228,31 +220,30 @@ static sxs_object_t event_unsubscribe(sxs_context_t ctx, sxs_object_t args) {
   return g_api->create_int(0);
 }
 
-static sxs_object_t event_publish(sxs_context_t ctx, sxs_object_t args) {
+static slp::slp_object_c event_publish(pkg::kernel::context_t ctx,
+                                       const slp::slp_object_c &args) {
   if (!g_event_system) {
     return create_error("publish: event system not initialized");
   }
 
-  void *list = g_api->as_list(args);
-  size_t size = g_api->list_size(list);
-
-  if (size < 3) {
+  auto list = args.as_list();
+  if (list.size() < 3) {
     return create_error("publish requires 2 arguments");
   }
 
-  sxs_object_t topic_obj = g_api->list_at(list, 1);
-  sxs_object_t data_obj = g_api->list_at(list, 2);
+  auto topic_obj = list.at(1);
+  auto data_obj = list.at(2);
 
-  if (g_api->get_type(topic_obj) != SXS_TYPE_SYMBOL) {
+  if (topic_obj.type() != slp::slp_type_e::SYMBOL) {
     return create_error("publish requires symbol topic");
   }
 
-  const char *topic = g_api->as_symbol(topic_obj);
+  const char *topic = topic_obj.as_symbol();
   if (!topic) {
     return create_error("publish: invalid topic");
   }
 
-  sxs_object_t evaled_data = g_api->eval(ctx, data_obj);
+  auto evaled_data = g_api->eval(ctx, data_obj);
   std::string serialized_data = serialize_slp_object(evaled_data);
 
   std::shared_ptr<pkg::events::publisher_if> publisher;
@@ -279,8 +270,8 @@ static sxs_object_t event_publish(sxs_context_t ctx, sxs_object_t args) {
                  : create_error("publish: failed to publish");
 }
 
-extern "C" void kernel_init(sxs_registry_t registry,
-                            const struct sxs_api_table_t *api) {
+extern "C" void kernel_init(pkg::kernel::registry_t registry,
+                            const struct pkg::kernel::api_table_s *api) {
   g_api = api;
 
   if (!g_event_system) {
@@ -293,14 +284,15 @@ extern "C" void kernel_init(sxs_registry_t registry,
     g_event_system->start();
   }
 
-  api->register_function(registry, "subscribe", event_subscribe, SXS_TYPE_INT,
-                         0);
+  api->register_function(registry, "subscribe", event_subscribe,
+                         slp::slp_type_e::INTEGER, 0);
   api->register_function(registry, "unsubscribe", event_unsubscribe,
-                         SXS_TYPE_INT, 0);
-  api->register_function(registry, "publish", event_publish, SXS_TYPE_INT, 0);
+                         slp::slp_type_e::INTEGER, 0);
+  api->register_function(registry, "publish", event_publish,
+                         slp::slp_type_e::INTEGER, 0);
 }
 
-extern "C" void kernel_shutdown(const struct sxs_api_table_t *api) {
+extern "C" void kernel_shutdown(const struct pkg::kernel::api_table_s *api) {
   g_subscribers.clear();
   g_subscriber_impls.clear();
   g_publishers.clear();
