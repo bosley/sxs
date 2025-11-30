@@ -10,13 +10,12 @@
 ## Dynamic Library Loading
 
 - `dlopen()` loads shared library at runtime
-- `dlsym()` resolves `kernel_init` entry point
-- `kernel_init` receives registry handle and API table
+- `dlsym()` resolves `kernel_init` entry point  
+- `kernel_init` called immediately, receives registry handle and API table
 - Registration callbacks populate `registered_functions_` map
-- Optional lifecycle hooks (`on_init`, `on_exit`) can be defined
-- `on_init` called automatically after `kernel_init` if present
-- `on_exit` called automatically before dylib unload if present
-- Handles stored for cleanup on shutdown
+- `dlsym()` checks for optional `kernel_shutdown` function
+- During destruction, `kernel_shutdown` called for all kernels that define it
+- Dylib handles closed after all shutdowns complete
 
 ## Kernel Resolution
 
@@ -24,7 +23,6 @@
 - Looks for `kernel_name/kernel.sxs` in each path
 - `kernel.sxs` contains metadata: `#(define-kernel name dylib [functions])`
 - Dylib name extracted from metadata, loaded from same directory
-- Optional `define-ctor` and `define-dtor` specify lifecycle hook names
 
 ## Function Registration
 
@@ -34,17 +32,22 @@
 - Stored as `kernel_name/function_name` in registry
 - Functions callable from interpreter like built-in symbols
 
-## Lifecycle Hooks
+## Lifecycle
 
-Kernels can optionally define initialization and cleanup functions:
+Kernels have two standard entry points:
 
-- `define-ctor` in kernel.sxs specifies init function name (e.g., `on_init`)
-- `define-dtor` in kernel.sxs specifies cleanup function name (e.g., `on_exit`)
-- Both hooks receive only the API table: `void hook_fn(const sxs_api_table_t *api)`
-- `on_init` called automatically after `kernel_init` completes
-- `on_exit` called automatically before dylib is closed
-- If hooks not found via `dlsym`, silently skipped (no error)
-- Existing kernels without hooks continue to work unchanged
+**kernel_init** (required)
+- Called when kernel is loaded
+- Receives registry handle and API table
+- Used to register kernel functions via `api->register_function()`
+- Can perform any initialization needed
+
+**kernel_shutdown** (optional)
+- Automatically called during kernel_manager destruction for every kernel that defines it
+- Called before dylibs are closed, in order they were registered
+- Receives only the API table: `void kernel_shutdown(const sxs_api_table_t *api)`
+- Used for cleanup (closing resources, freeing memory, etc.)
+- Kernels without kernel_shutdown skip this step (no error)
 
 ## C API Boundary
 

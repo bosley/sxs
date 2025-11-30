@@ -408,15 +408,9 @@ static sxs_object_t kv_cas(sxs_context_t ctx, sxs_object_t args) {
                  : create_error("cas: comparison failed");
 }
 
-static void kernel_cleanup() {
-  g_stores.clear();
-  g_distributors.clear();
-}
-
 extern "C" void kernel_init(sxs_registry_t registry,
                             const struct sxs_api_table_t *api) {
   g_api = api;
-  std::atexit(kernel_cleanup);
   api->register_function(registry, "open-memory", kv_open_memory, SXS_TYPE_INT,
                          0);
   api->register_function(registry, "open-disk", kv_open_disk, SXS_TYPE_INT, 0);
@@ -425,4 +419,9 @@ extern "C" void kernel_init(sxs_registry_t registry,
   api->register_function(registry, "del", kv_del, SXS_TYPE_INT, 0);
   api->register_function(registry, "snx", kv_snx, SXS_TYPE_INT, 0);
   api->register_function(registry, "cas", kv_cas, SXS_TYPE_INT, 0);
+}
+
+extern "C" void kernel_shutdown(const struct sxs_api_table_t *api) {
+  g_stores.clear();
+  g_distributors.clear();
 }

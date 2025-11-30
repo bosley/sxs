@@ -289,9 +289,9 @@ kernel_manager_c::kernel_manager_c(logger_t logger,
 }
 
 kernel_manager_c::~kernel_manager_c() {
-  for (auto &[name, on_exit_fn] : kernel_on_exit_fns_) {
-    logger_->debug("Calling kernel on_exit for: {}", name);
-    on_exit_fn(api_table_.get());
+  for (auto &[name, shutdown_fn] : kernel_on_exit_fns_) {
+    logger_->debug("Calling kernel_shutdown for: {}", name);
+    shutdown_fn(api_table_.get());
   }
 
   for (auto &[name, handle] : loaded_dylibs_) {
@@ -407,44 +407,6 @@ bool kernel_manager_c::load_kernel_dylib(const std::string &kernel_name,
     return false;
   }
 
-  std::string on_init_fn_name;
-  std::string on_exit_fn_name;
-
-  auto functions_obj = list.at(3);
-  if (functions_obj.type() == slp::slp_type_e::BRACKET_LIST) {
-    auto functions_list = functions_obj.as_list();
-    for (size_t i = 0; i < functions_list.size(); i++) {
-      auto func_def = functions_list.at(i);
-      if (func_def.type() != slp::slp_type_e::PAREN_LIST) {
-        continue;
-      }
-
-      auto func_list = func_def.as_list();
-      if (func_list.size() < 2) {
-        continue;
-      }
-
-      auto cmd = func_list.at(0);
-      if (cmd.type() != slp::slp_type_e::SYMBOL) {
-        continue;
-      }
-
-      std::string cmd_str = cmd.as_symbol();
-
-      if (cmd_str == "define-ctor" && func_list.size() >= 2) {
-        auto fn_name_obj = func_list.at(1);
-        if (fn_name_obj.type() == slp::slp_type_e::SYMBOL) {
-          on_init_fn_name = fn_name_obj.as_symbol();
-        }
-      } else if (cmd_str == "define-dtor" && func_list.size() >= 2) {
-        auto fn_name_obj = func_list.at(1);
-        if (fn_name_obj.type() == slp::slp_type_e::SYMBOL) {
-          on_exit_fn_name = fn_name_obj.as_symbol();
-        }
-      }
-    }
-  }
-
   logger_->info("Loading kernel dylib: {}", dylib_path.string());
 
   void *handle = dlopen(dylib_path.string().c_str(), RTLD_NOW | RTLD_LOCAL);
@@ -468,24 +430,12 @@ bool kernel_manager_c::load_kernel_dylib(const std::string &kernel_name,
 
   kernel_init(&reg_ctx, api_table_.get());
 
-  if (!on_init_fn_name.empty()) {
-    typedef void (*lifecycle_fn_t)(const struct sxs_api_table_t *);
-    auto on_init_fn = reinterpret_cast<lifecycle_fn_t>(
-        dlsym(handle, on_init_fn_name.c_str()));
-    if (on_init_fn) {
-      logger_->debug("Calling kernel on_init: {}", on_init_fn_name);
-      on_init_fn(api_table_.get());
-    }
-  }
-
-  if (!on_exit_fn_name.empty()) {
-    typedef void (*lifecycle_fn_t)(const struct sxs_api_table_t *);
-    auto on_exit_fn = reinterpret_cast<lifecycle_fn_t>(
-        dlsym(handle, on_exit_fn_name.c_str()));
-    if (on_exit_fn) {
-      logger_->debug("Registered kernel on_exit: {}", on_exit_fn_name);
-      kernel_on_exit_fns_[kernel_name] = on_exit_fn;
-    }
+  typedef void (*shutdown_fn_t)(const struct sxs_api_table_t *);
+  auto kernel_shutdown_fn =
+      reinterpret_cast<shutdown_fn_t>(dlsym(handle, "kernel_shutdown"));
+  if (kernel_shutdown_fn) {
+    logger_->debug("Registered kernel_shutdown for: {}", kernel_name);
+    kernel_on_exit_fns_[kernel_name] = kernel_shutdown_fn;
   }
 
   loaded_dylibs_[kernel_name] = handle;

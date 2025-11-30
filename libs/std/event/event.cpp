@@ -137,22 +137,6 @@ private:
 static std::map<std::size_t, std::unique_ptr<lambda_subscriber_c>>
     g_subscriber_impls;
 
-extern "C" void on_init(const struct sxs_api_table_t *api) {
-  g_api = api;
-
-  if (g_event_system) {
-    return;
-  }
-
-  pkg::events::options_s options;
-  options.logger = spdlog::default_logger();
-  options.num_threads = 4;
-  options.max_queue_size = 10000;
-
-  g_event_system = std::make_unique<pkg::events::event_system_c>(options);
-  g_event_system->start();
-}
-
 static sxs_object_t event_subscribe(sxs_context_t ctx, sxs_object_t args) {
   if (!g_event_system) {
     return create_error("subscribe: event system not initialized");
@@ -295,7 +279,28 @@ static sxs_object_t event_publish(sxs_context_t ctx, sxs_object_t args) {
                  : create_error("publish: failed to publish");
 }
 
-extern "C" void on_exit(const struct sxs_api_table_t *api) {
+extern "C" void kernel_init(sxs_registry_t registry,
+                            const struct sxs_api_table_t *api) {
+  g_api = api;
+
+  if (!g_event_system) {
+    pkg::events::options_s options;
+    options.logger = spdlog::default_logger();
+    options.num_threads = 4;
+    options.max_queue_size = 10000;
+
+    g_event_system = std::make_unique<pkg::events::event_system_c>(options);
+    g_event_system->start();
+  }
+
+  api->register_function(registry, "subscribe", event_subscribe, SXS_TYPE_INT,
+                         0);
+  api->register_function(registry, "unsubscribe", event_unsubscribe,
+                         SXS_TYPE_INT, 0);
+  api->register_function(registry, "publish", event_publish, SXS_TYPE_INT, 0);
+}
+
+extern "C" void kernel_shutdown(const struct sxs_api_table_t *api) {
   g_subscribers.clear();
   g_subscriber_impls.clear();
   g_publishers.clear();
@@ -303,14 +308,4 @@ extern "C" void on_exit(const struct sxs_api_table_t *api) {
     g_event_system->stop();
     g_event_system.reset();
   }
-}
-
-extern "C" void kernel_init(sxs_registry_t registry,
-                            const struct sxs_api_table_t *api) {
-  g_api = api;
-  api->register_function(registry, "subscribe", event_subscribe, SXS_TYPE_INT,
-                         0);
-  api->register_function(registry, "unsubscribe", event_unsubscribe,
-                         SXS_TYPE_INT, 0);
-  api->register_function(registry, "publish", event_publish, SXS_TYPE_INT, 0);
 }
