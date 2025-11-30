@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="syntax/icons/sxs-icon-dark.svg" alt="SXS Logo" width="128"/>
+</div>
+
 # SXS
 
 A dynamic extensible runtime based on the "simple list programs" slp.
