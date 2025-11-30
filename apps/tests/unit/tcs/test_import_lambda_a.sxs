@@ -1,0 +1,14 @@
+[
+    (export add_numbers (fn (a :int b :int) :int [
+        42
+    ]))
+
+    (export multiply (fn (x :int y :int) :int [
+        100
+    ]))
+
+    (export greet (fn (name :str) :str [
+        "hello"
+    ]))
+]
+

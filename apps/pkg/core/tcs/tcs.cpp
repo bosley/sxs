@@ -856,14 +856,22 @@ type_info_s tcs_c::handle_import(slp::slp_object_c &args_list) {
           fmt::format("import: type checking failed for {}", resolved_path));
     }
 
-    for (const auto &[lambda_id, sig] : import_checker.lambda_signatures_) {
-      lambda_signatures_[lambda_id] = sig;
+    std::map<std::uint64_t, std::uint64_t> lambda_id_remapping;
+    for (const auto &[old_lambda_id, sig] : import_checker.lambda_signatures_) {
+      std::uint64_t new_lambda_id = next_lambda_id_++;
+      lambda_signatures_[new_lambda_id] = sig;
+      lambda_id_remapping[old_lambda_id] = new_lambda_id;
     }
 
     for (const auto &[export_name, export_type] :
          import_checker.current_exports_) {
       std::string prefixed_name = symbol + "/" + export_name;
-      define_symbol(prefixed_name, export_type);
+      type_info_s remapped_type = export_type;
+      if (export_type.lambda_id != 0 &&
+          lambda_id_remapping.count(export_type.lambda_id)) {
+        remapped_type.lambda_id = lambda_id_remapping[export_type.lambda_id];
+      }
+      define_symbol(prefixed_name, remapped_type);
     }
   }
 

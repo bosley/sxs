@@ -5,6 +5,11 @@ set(TCS_TEST_DATA_FILES
     test_error_handling.sxs
     test_imports.sxs
     test_import_exported.sxs
+    test_import_lambda_a.sxs
+    test_import_lambda_b.sxs
+    test_import_nested_a.sxs
+    test_import_nested_b.sxs
+    test_integration_lib.sxs
 )
 
 foreach(TEST_FILE ${TCS_TEST_DATA_FILES})
@@ -46,4 +51,16 @@ add_test(NAME tcs_scope_test COMMAND tcs_scope_test)
 add_executable(tcs_lambda_invocation_test tcs_lambda_invocation_test.cpp)
 target_link_libraries(tcs_lambda_invocation_test PRIVATE pkg_core snitch::snitch spdlog::spdlog)
 add_test(NAME tcs_lambda_invocation_test COMMAND tcs_lambda_invocation_test)
+
+add_executable(tcs_kernel_validation_test tcs_kernel_validation_test.cpp)
+target_link_libraries(tcs_kernel_validation_test PRIVATE pkg_core snitch::snitch spdlog::spdlog)
+add_test(NAME tcs_kernel_validation_test COMMAND tcs_kernel_validation_test)
+
+add_executable(tcs_import_lambda_test tcs_import_lambda_test.cpp)
+target_link_libraries(tcs_import_lambda_test PRIVATE pkg_core snitch::snitch spdlog::spdlog)
+add_test(NAME tcs_import_lambda_test COMMAND tcs_import_lambda_test)
+
+add_executable(tcs_integration_test tcs_integration_test.cpp)
+target_link_libraries(tcs_integration_test PRIVATE pkg_core snitch::snitch spdlog::spdlog)
+add_test(NAME tcs_integration_test COMMAND tcs_integration_test)
 
