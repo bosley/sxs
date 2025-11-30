@@ -54,8 +54,14 @@ this way bad types in yielding empty lists wont cause problems
 
 - forge/lsh -> left-shift the list
 - forge/rsh -> right-shift the list
+- forge/rotr -> rotate right (dont drop)
+- forge/rotl -> rotate left (dont drop)
 - forge/rev -> reverse the list
 - forge/count -> return length of list
+- forge/concat -> join two lists together (Again, will upcast any object to list beforehand so ymmv)
+- forge/replace -> takes object in, any object found matching TYPE AND VALUE will be replaved with object given
+- forge/drop_match -> takes object in, any object found matching TYPE AND VALUE will be dropped
+- forge/drop_period -> <start> <period> ; removes the object starting at offset, and removes every n objects
 
 - forge/visit takes an any, but its a nop unless the given item is a lambda
     the visit takes something like:
