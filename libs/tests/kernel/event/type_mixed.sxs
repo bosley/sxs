@@ -1,0 +1,21 @@
+[
+    #(load "event" "io")
+
+    (io/put "=== Mixed Type Test ===\n")
+
+    (event/init)
+
+    (event/subscribe mixedTopic (fn (evt :any) :any [
+        (io/put "Got mixed event\n")
+    ]))
+
+    (event/publish mixedTopic '(42 3.14 "hello" symbol))
+    (event/publish mixedTopic '((nested (data (structure)))))
+    (event/publish mixedTopic '((id 1) (name "test") (values (1 2 3))))
+    (event/publish mixedTopic '([bracket] {brace} (paren)))
+
+    (io/put "Published 4 mixed structures\n")
+
+    (io/put "\n=== Test complete ===\n")
+]
+

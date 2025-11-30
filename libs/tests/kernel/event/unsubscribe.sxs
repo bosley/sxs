@@ -1,0 +1,24 @@
+[
+    #(load "event" "io")
+
+    (io/put "=== Unsubscribe Test ===\n")
+
+    (event/init)
+
+    (def sub_id (event/subscribe unsubTopic (fn (evt :any) :any [
+        (io/put "Received before unsubscribe: %d\n" evt)
+    ])))
+
+    (io/put "Created subscription: %d\n" sub_id)
+
+    (event/publish unsubTopic 1)
+    (io/put "Published event 1\n")
+
+    (event/unsubscribe sub_id)
+    (io/put "Unsubscribed\n")
+
+    (event/publish unsubTopic 2)
+    (io/put "Published event 2 (should not be received)\n")
+
+    (io/put "\n=== Test complete ===\n")
+]

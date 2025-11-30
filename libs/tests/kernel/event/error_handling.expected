@@ -1,0 +1,13 @@
+=== Error Handling Test ===
+Initialized
+
+--- Test: Subscribe with non-symbol topic ---
+Expected: error
+
+--- Test: Unsubscribe invalid id ---
+Attempted unsubscribe of invalid id
+
+--- Test: Publish with non-symbol topic ---
+Expected: error
+
+=== Test complete ===

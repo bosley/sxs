@@ -1,0 +1,11 @@
+#(define-kernel event "libkernel_event.dylib" [
+    (define-function init () :int)
+    (define-function subscribe (topic :symbol callback :any) :int)
+    (define-function unsubscribe (id :int) :int)
+    (define-function publish (topic :symbol data :any) :int)
+
+    ; if these are not present then no calls issued - no problem. once instituted we can remove the define-function above
+    (define-ctor on_init)
+    (define-dtor on_exit)
+])
+

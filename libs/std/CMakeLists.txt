@@ -63,8 +63,28 @@ set_target_properties(kernel_kv PROPERTIES
   SUFFIX ".dylib"
 )
 
+add_library(kernel_event SHARED
+  event/event.cpp
+)
+
+target_include_directories(kernel_event PRIVATE
+  ${CMAKE_SOURCE_DIR}/pkg
+)
+
+target_link_libraries(kernel_event PRIVATE
+  pkg::events
+  pkg::slp
+  spdlog::spdlog
+)
+
+set_target_properties(kernel_event PROPERTIES
+  PREFIX "lib"
+  OUTPUT_NAME "kernel_event"
+  SUFFIX ".dylib"
+)
+
 add_custom_target(build_kernels ALL
-  DEPENDS kernel_alu kernel_io kernel_random kernel_kv
+  DEPENDS kernel_alu kernel_io kernel_random kernel_kv kernel_event
 )
 
 install(TARGETS kernel_alu
@@ -101,5 +121,14 @@ install(TARGETS kernel_random
 
 install(FILES random/kernel.sxs
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/kernels/random
+)
+
+install(TARGETS kernel_event
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/kernels/event
+  RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/kernels/event
+)
+
+install(FILES event/kernel.sxs
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/kernels/event
 )
 

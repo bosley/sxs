@@ -1,0 +1,27 @@
+[
+    #(load "event" "io")
+
+    (io/put "=== Multiple Subscribers Test ===\n")
+
+    (event/init)
+
+    (def sub1 (event/subscribe sharedTopic (fn (evt :any) :any [
+        (io/put "Subscriber 1 got: %d\n" evt)
+    ])))
+
+    (def sub2 (event/subscribe sharedTopic (fn (evt :any) :any [
+        (io/put "Subscriber 2 got: %d\n" evt)
+    ])))
+
+    (def sub3 (event/subscribe sharedTopic (fn (evt :any) :any [
+        (io/put "Subscriber 3 got: %d\n" evt)
+    ])))
+
+    (io/put "Created 3 subscribers\n")
+
+    (event/publish sharedTopic 100)
+    (io/put "Published event to all\n")
+
+    (io/put "\n=== Test complete ===\n")
+]
+
