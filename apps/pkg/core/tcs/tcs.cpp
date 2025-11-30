@@ -4,6 +4,21 @@
 #include <fstream>
 #include <sstream>
 
+/*
+UPGRADE:DYNAMIC_INJECTED_SYMBOLS
+
+in libs/std/forge im ideating how to dynamically permit the declaration of injected symbols into
+the runtime. this would mean 
+  - update core/kernels to accept new command during kernel ingestion to map symbol and type information
+    along with what "function" if falls under
+  - update this to have configurable function handling so in-addition to the builtins we can handle injection in custom
+    scenarios as well (see below where we inject "$exception" and "$error")
+
+  bosley - 11/30/25
+
+  SEE ALSO pkg/core/kernels/kernels.cpp
+*/
+
 namespace pkg::core::tcs {
 
 tcs_c::tcs_c(logger_t logger, std::vector<std::string> include_paths,

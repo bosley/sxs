@@ -7,6 +7,23 @@
 #include <sxs/kernel_api.hpp>
 #include <sxs/slp/slp.hpp>
 
+
+/*
+UPGRADE:DYNAMIC_INJECTED_SYMBOLS
+
+in libs/std/forge im ideating how to dynamically permit the declaration of injected symbols into
+the runtime. this would mean 
+  - update core/kernels (this) to accept new command during kernel ingestion to map symbol and type information
+    along with what "function" if falls under
+  - update tcs to have configurable function handling so in-addition to the builtins we can handle injection in custom
+    scenarios as well (see tcs sections where we inject "$exception" and "$error")
+
+  bosley - 11/30/25
+
+  See also pkg/tcs/tcs.cpp
+*/
+
+
 namespace pkg::core::kernels {
 
 namespace {
