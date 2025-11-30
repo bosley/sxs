@@ -3,8 +3,6 @@
 
     (io/put "=== String Type Test ===\n")
 
-    (event/init)
-
     (event/subscribe strTopic (fn (evt :any) :any [
         (io/put "Got string: %s\n" evt)
     ]))

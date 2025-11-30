@@ -3,8 +3,6 @@
 
     (io/put "=== Lambda Capture Test ===\n")
 
-    (event/init)
-
     (def prefix "Message:")
 
     (event/subscribe captureTopic (fn (evt :any) :any [

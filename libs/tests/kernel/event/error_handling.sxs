@@ -3,9 +3,6 @@
 
     (io/put "=== Error Handling Test ===\n")
 
-    (event/init)
-    (io/put "Initialized\n")
-
     (io/put "\n--- Test: Subscribe with non-symbol topic ---\n")
     (io/put "Expected: error\n")
 

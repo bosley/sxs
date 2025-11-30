@@ -137,9 +137,11 @@ private:
 static std::map<std::size_t, std::unique_ptr<lambda_subscriber_c>>
     g_subscriber_impls;
 
-static sxs_object_t event_init(sxs_context_t ctx, sxs_object_t args) {
+extern "C" void on_init(const struct sxs_api_table_t *api) {
+  g_api = api;
+
   if (g_event_system) {
-    return g_api->create_int(0);
+    return;
   }
 
   pkg::events::options_s options;
@@ -149,8 +151,6 @@ static sxs_object_t event_init(sxs_context_t ctx, sxs_object_t args) {
 
   g_event_system = std::make_unique<pkg::events::event_system_c>(options);
   g_event_system->start();
-
-  return g_api->create_int(0);
 }
 
 static sxs_object_t event_subscribe(sxs_context_t ctx, sxs_object_t args) {
@@ -295,7 +295,7 @@ static sxs_object_t event_publish(sxs_context_t ctx, sxs_object_t args) {
                  : create_error("publish: failed to publish");
 }
 
-static void kernel_cleanup() {
+extern "C" void on_exit(const struct sxs_api_table_t *api) {
   g_subscribers.clear();
   g_subscriber_impls.clear();
   g_publishers.clear();
@@ -308,8 +308,6 @@ static void kernel_cleanup() {
 extern "C" void kernel_init(sxs_registry_t registry,
                             const struct sxs_api_table_t *api) {
   g_api = api;
-  std::atexit(kernel_cleanup);
-  api->register_function(registry, "init", event_init, SXS_TYPE_INT, 0);
   api->register_function(registry, "subscribe", event_subscribe, SXS_TYPE_INT,
                          0);
   api->register_function(registry, "unsubscribe", event_unsubscribe,

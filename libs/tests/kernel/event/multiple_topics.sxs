@@ -3,8 +3,6 @@
 
     (io/put "=== Multiple Topics Test ===\n")
 
-    (event/init)
-
     (def sub_a (event/subscribe topicA (fn (evt :any) :any [
         (io/put "Topic A received: %d\n" evt)
     ])))

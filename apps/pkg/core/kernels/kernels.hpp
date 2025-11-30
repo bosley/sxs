@@ -64,6 +64,8 @@ private:
   std::map<std::string, callable_symbol_s> registered_functions_;
   callable_context_if *parent_context_;
   std::unique_ptr<sxs_api_table_t> api_table_;
+  std::map<std::string, void (*)(const struct sxs_api_table_t *)>
+      kernel_on_exit_fns_;
 
   class kernel_context_c : public kernel_context_if {
   public:

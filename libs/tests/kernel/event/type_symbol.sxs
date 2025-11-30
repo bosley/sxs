@@ -3,8 +3,6 @@
 
     (io/put "=== Symbol Type Test ===\n")
 
-    (event/init)
-
     (event/subscribe symTopic (fn (evt :any) :any [
         (io/put "Got symbol event\n")
     ]))

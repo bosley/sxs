@@ -3,8 +3,6 @@
 
     (io/put "=== Integer Type Test ===\n")
 
-    (event/init)
-
     (event/subscribe intTopic (fn (evt :any) :any [
         (io/put "Got integer: %d\n" evt)
     ]))

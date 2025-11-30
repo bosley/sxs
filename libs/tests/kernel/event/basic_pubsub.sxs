@@ -3,9 +3,6 @@
 
     (io/put "=== Basic Pub/Sub Test ===\n")
 
-    (event/init)
-    (io/put "Event system initialized\n")
-
     (def received 0)
 
     (def sub_id (event/subscribe testTopic (fn (evt :any) :any [

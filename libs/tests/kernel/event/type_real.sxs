@@ -3,8 +3,6 @@
 
     (io/put "=== Real Type Test ===\n")
 
-    (event/init)
-
     (event/subscribe realTopic (fn (evt :any) :any [
         (io/put "Got real: %f\n" evt)
     ]))

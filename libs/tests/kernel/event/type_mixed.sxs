@@ -3,8 +3,6 @@
 
     (io/put "=== Mixed Type Test ===\n")
 
-    (event/init)
-
     (event/subscribe mixedTopic (fn (evt :any) :any [
         (io/put "Got mixed event\n")
     ]))

@@ -1,5 +1,4 @@
 === Basic Pub/Sub Test ===
-Event system initialized
 Subscribed with id: 1
 Published event
 

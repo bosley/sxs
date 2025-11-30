@@ -3,8 +3,6 @@
 
     (io/put "=== Unsubscribe Test ===\n")
 
-    (event/init)
-
     (def sub_id (event/subscribe unsubTopic (fn (evt :any) :any [
         (io/put "Received before unsubscribe: %d\n" evt)
     ])))

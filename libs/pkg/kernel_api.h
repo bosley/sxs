@@ -29,6 +29,8 @@ typedef void *sxs_object_t;
 
 typedef sxs_object_t (*sxs_kernel_fn_t)(sxs_context_t ctx, sxs_object_t args);
 
+typedef void (*sxs_kernel_lifecycle_fn_t)(const struct sxs_api_table_t *api);
+
 typedef void (*sxs_register_fn_t)(sxs_registry_t registry, const char *name,
                                   sxs_kernel_fn_t function,
                                   sxs_type_t return_type, int variadic);

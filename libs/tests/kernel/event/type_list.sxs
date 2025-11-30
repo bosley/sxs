@@ -3,8 +3,6 @@
 
     (io/put "=== List Type Test ===\n")
 
-    (event/init)
-
     (event/subscribe listTopic (fn (evt :any) :any [
         (io/put "Got list event\n")
     ]))

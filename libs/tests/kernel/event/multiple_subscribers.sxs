@@ -3,8 +3,6 @@
 
     (io/put "=== Multiple Subscribers Test ===\n")
 
-    (event/init)
-
     (def sub1 (event/subscribe sharedTopic (fn (evt :any) :any [
         (io/put "Subscriber 1 got: %d\n" evt)
     ])))
