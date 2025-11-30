@@ -1,0 +1,10 @@
+[
+    #(import hello "modules/hello_world/hello_world.sxs")
+
+    (debug "Starting simple...")
+    
+    (hello/greet)
+    (hello/say_message "Welcome to simple!")
+    
+    (debug "Finished initialization")
+]

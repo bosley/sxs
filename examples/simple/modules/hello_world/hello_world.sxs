@@ -1,0 +1,13 @@
+[
+    (def greeting_count 0)
+
+    (export greet (fn () :int [
+        (debug "Hello from the hello_world module!")
+        greeting_count
+    ]))
+
+    (export say_message (fn (msg :str) :str [
+        (debug "Message:" msg)
+        msg
+    ]))
+]
