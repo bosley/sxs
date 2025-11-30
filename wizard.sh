@@ -135,8 +135,8 @@ install_sxs_std() {
         exit 1
     fi
     
-    echo -e "${YELLOW}Building libs with make -j8...${NC}"
-    if ! make -j8; then
+    echo -e "${YELLOW}Building libs with make -j4...${NC}"
+    if ! make -j4; then
         echo -e "${RED}✗ Libs build failed${NC}"
         exit 1
     fi
@@ -184,8 +184,8 @@ install_sxs_std() {
         exit 1
     fi
     
-    echo -e "${YELLOW}Building apps with make -j8...${NC}"
-    if ! make -j8; then
+    echo -e "${YELLOW}Building apps binaries...${NC}"
+    if ! make -j4 sxs sup; then
         echo -e "${RED}✗ Apps build failed${NC}"
         exit 1
     fi
@@ -283,8 +283,8 @@ build_project() {
         exit 1
     fi
     
-    echo -e "${YELLOW}Building with make -j8...${NC}"
-    if ! make -j8; then
+    echo -e "${YELLOW}Building binaries...${NC}"
+    if ! make -j4 sxs sup; then
         echo -e "${RED}✗ Build failed${NC}"
         exit 1
     fi
@@ -363,7 +363,7 @@ run_tests() {
         exit 1
     fi
     
-    if ! make -j8; then
+    if ! make -j4; then
         echo -e "${RED}✗ Libs build failed${NC}"
         exit 1
     fi
@@ -427,13 +427,23 @@ run_tests() {
         exit 1
     fi
     
-    if ! make -j8; then
-        echo -e "${RED}✗ Apps build failed${NC}"
+    if ! make -j4 sxs sup; then
+        echo -e "${RED}✗ Apps binaries build failed${NC}"
         exit 1
     fi
     
     echo
-    echo -e "${GREEN}✓ Apps built successfully!${NC}"
+    echo -e "${GREEN}✓ Apps binaries built successfully!${NC}"
+    echo
+    
+    echo -e "${YELLOW}Building test targets...${NC}"
+    if ! make -j4 build_tests; then
+        echo -e "${RED}✗ Test targets build failed${NC}"
+        exit 1
+    fi
+    
+    echo
+    echo -e "${GREEN}✓ Test targets built successfully!${NC}"
     echo
     
     echo -e "${YELLOW}Running apps unit tests...${NC}"

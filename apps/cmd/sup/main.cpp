@@ -4,6 +4,7 @@
 // _require_ the sup to be present and running
 
 #include "manager.hpp"
+#include "tui/tui.hpp"
 #include <fmt/core.h>
 #include <vector>
 
@@ -64,8 +65,9 @@ int main(int argc, char **argv) {
   COMMAND_IS("clean", { clean(args); });
 
   if (args.size() < 2) {
-    usage();
-    return 1;
+    cmd::sxs::tui::tui_c tui;
+    tui.run();
+    return 0;
   }
 }
 
