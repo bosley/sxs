@@ -1,0 +1,71 @@
+[
+    #(load "event" "io" "alu")
+
+    (io/put "=== Nested Event Chain Stress Test ===\n")
+    (io/put "Testing cascading events through 6 topics\n")
+    (io/put "Each event triggers publication to next topic\n\n")
+
+    (def counter1 0)
+    (def counter2 0)
+    (def counter3 0)
+    (def counter4 0)
+    (def counter5 0)
+    (def counter6 0)
+
+    (io/put "Setting up event chain...\n")
+
+    (def sub6 (event/subscribe topic6 (fn (evt :any) :any [
+        (def counter6 (alu/add counter6 1))
+        (io/put "  [Topic 6] Final destination reached (event %d)\n" evt)
+    ])))
+
+    (def sub5 (event/subscribe topic5 (fn (evt :any) :any [
+        (def counter5 (alu/add counter5 1))
+        (io/put "  [Topic 5] Received %d, forwarding to topic6\n" evt)
+        (event/publish topic6 evt)
+    ])))
+
+    (def sub4 (event/subscribe topic4 (fn (evt :any) :any [
+        (def counter4 (alu/add counter4 1))
+        (io/put "  [Topic 4] Received %d, forwarding to topic5\n" evt)
+        (event/publish topic5 evt)
+    ])))
+
+    (def sub3 (event/subscribe topic3 (fn (evt :any) :any [
+        (def counter3 (alu/add counter3 1))
+        (io/put "  [Topic 3] Received %d, forwarding to topic4\n" evt)
+        (event/publish topic4 evt)
+    ])))
+
+    (def sub2 (event/subscribe topic2 (fn (evt :any) :any [
+        (def counter2 (alu/add counter2 1))
+        (io/put "  [Topic 2] Received %d, forwarding to topic3\n" evt)
+        (event/publish topic3 evt)
+    ])))
+
+    (def sub1 (event/subscribe topic1 (fn (evt :any) :any [
+        (def counter1 (alu/add counter1 1))
+        (io/put "  [Topic 1] Received %d, forwarding to topic2\n" evt)
+        (event/publish topic2 evt)
+    ])))
+
+    (io/put "Subscribed to all 6 topics in chain\n")
+    (io/put "Sub IDs: %d, %d, %d, %d, %d, %d\n\n" sub1 sub2 sub3 sub4 sub5 sub6)
+
+    (io/put "Starting concurrent publishers...\n")
+    (io/put "Publishing 6 events to topic1\n")
+
+    (event/publish topic1 1)
+    (event/publish topic1 2)
+    (event/publish topic1 3)
+    (event/publish topic1 4)
+    (event/publish topic1 5)
+    (event/publish topic1 6)
+
+    (io/put "All events published to entry point\n")
+    (io/put "Events will cascade through: topic1 -> topic2 -> topic3 -> topic4 -> topic5 -> topic6\n")
+
+    (io/put "\n=== Test complete ===\n")
+    (io/put "Note: Event processing is asynchronous\n")
+]
+
