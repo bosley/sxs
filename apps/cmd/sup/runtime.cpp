@@ -1,5 +1,6 @@
 #include "manager.hpp"
 #include <core/core.hpp>
+#include <core/tcs/tcs.hpp>
 #include <filesystem>
 #include <fmt/core.h>
 #include <fstream>
@@ -158,6 +159,44 @@ static bool process_kernel(const fs::path &kernel_src_dir,
   return false;
 }
 
+static bool check_project_types(const fs::path &project_path) {
+  fs::path init_file = project_path / "init.sxs";
+
+  fs::path cache_dir = project_path / ".sxs-cache" / "kernels";
+  std::vector<std::string> include_paths;
+
+  if (fs::exists(cache_dir) && fs::is_directory(cache_dir)) {
+    include_paths.push_back(cache_dir.string());
+  }
+
+  const char *sxs_home = std::getenv("SXS_HOME");
+  if (sxs_home) {
+    fs::path system_kernels = fs::path(sxs_home) / "lib" / "kernels";
+    if (fs::exists(system_kernels) && fs::is_directory(system_kernels)) {
+      include_paths.push_back(system_kernels.string());
+    }
+  }
+
+  auto logger = spdlog::stdout_color_mt("tcs");
+  logger->set_level(spdlog::level::info);
+
+  pkg::core::tcs::tcs_c type_checker(logger, include_paths,
+                                     project_path.string());
+
+  fmt::print("\n=== Validating Project (Types & Symbols) ===\n");
+  bool success = type_checker.check(init_file.string());
+
+  if (success) {
+    fmt::print("  ✓ Validation passed\n");
+  } else {
+    fmt::print("  ✗ Validation failed\n");
+  }
+  fmt::print("\n");
+
+  spdlog::drop("tcs");
+  return success;
+}
+
 static bool build_project_kernels(const fs::path &project_path) {
   fs::path cache_dir = project_path / ".sxs-cache" / "kernels";
   fs::create_directories(cache_dir);
@@ -212,9 +251,15 @@ void build(runtime_setup_data_s data) {
     return;
   }
 
-  bool success = build_project_kernels(project_path);
+  bool type_check_success = check_project_types(project_path);
+  if (!type_check_success) {
+    fmt::print("\033[31m✗\033[0m Build failed: Validation errors\n");
+    return;
+  }
 
-  if (success) {
+  bool kernel_success = build_project_kernels(project_path);
+
+  if (kernel_success) {
     fmt::print("\033[32m✓\033[0m Build completed successfully\n");
   } else {
     fmt::print("\033[33m⚠\033[0m Build completed with warnings\n");
@@ -243,6 +288,12 @@ void run(runtime_setup_data_s data) {
   if (!fs::exists(init_file)) {
     fmt::print("Error: init.sxs not found in project directory '{}'\n",
                project_path.string());
+    return;
+  }
+
+  bool type_check_success = check_project_types(project_path);
+  if (!type_check_success) {
+    fmt::print("\033[31m✗\033[0m Validation failed, aborting run\n");
     return;
   }
 

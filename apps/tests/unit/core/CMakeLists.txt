@@ -7,6 +7,15 @@ set(SXS_TEST_FILES
   test_edge_cases.sxs
   test_nested_scopes.sxs
   test_lambda_cleanup.sxs
+  test_if.sxs
+  test_reflect.sxs
+  test_try.sxs
+  test_assert.sxs
+  test_recover.sxs
+  test_eval.sxs
+  test_apply.sxs
+  test_match.sxs
+  test_lambda_types.sxs
   test_import_basic.sxs
   test_import_exported_basic.sxs
   test_import_lambda.sxs
@@ -106,6 +115,19 @@ target_link_libraries(lambda_cleanup_tests PRIVATE
 add_dependencies(build_tests lambda_cleanup_tests)
 add_test(NAME lambda_cleanup_tests COMMAND lambda_cleanup_tests)
 
+add_executable(if_tests
+  if_test.cpp
+)
+
+target_link_libraries(if_tests PRIVATE 
+  extern::snitch
+  pkg::core
+  ${SXS_SLP_LIB}
+)
+
+add_dependencies(build_tests if_tests)
+add_test(NAME if_tests COMMAND if_tests)
+
 add_executable(import_tests
   import_test.cpp
 )
@@ -119,4 +141,108 @@ target_link_libraries(import_tests PRIVATE
 
 add_dependencies(build_tests import_tests)
 add_test(NAME import_tests COMMAND import_tests)
+
+add_executable(reflect_tests
+  reflect_test.cpp
+)
+
+target_link_libraries(reflect_tests PRIVATE 
+  extern::snitch
+  pkg::core
+  ${SXS_SLP_LIB}
+)
+
+add_dependencies(build_tests reflect_tests)
+add_test(NAME reflect_tests COMMAND reflect_tests)
+
+add_executable(try_tests
+  try_test.cpp
+)
+
+target_link_libraries(try_tests PRIVATE 
+  extern::snitch
+  pkg::core
+  ${SXS_SLP_LIB}
+)
+
+add_dependencies(build_tests try_tests)
+add_test(NAME try_tests COMMAND try_tests)
+
+add_executable(assert_tests
+  assert_test.cpp
+)
+
+target_link_libraries(assert_tests PRIVATE 
+  extern::snitch
+  pkg::core
+  ${SXS_SLP_LIB}
+)
+
+add_dependencies(build_tests assert_tests)
+add_test(NAME assert_tests COMMAND assert_tests)
+
+add_executable(recover_tests
+  recover_test.cpp
+)
+
+target_link_libraries(recover_tests PRIVATE 
+  extern::snitch
+  pkg::core
+  ${SXS_SLP_LIB}
+)
+
+add_dependencies(build_tests recover_tests)
+add_test(NAME recover_tests COMMAND recover_tests)
+
+add_executable(eval_tests
+  eval_test.cpp
+)
+
+target_link_libraries(eval_tests PRIVATE 
+  extern::snitch
+  pkg::core
+  ${SXS_SLP_LIB}
+)
+
+add_dependencies(build_tests eval_tests)
+add_test(NAME eval_tests COMMAND eval_tests)
+
+add_executable(apply_tests
+  apply_test.cpp
+)
+
+target_link_libraries(apply_tests PRIVATE 
+  extern::snitch
+  pkg::core
+  ${SXS_SLP_LIB}
+)
+
+add_dependencies(build_tests apply_tests)
+add_test(NAME apply_tests COMMAND apply_tests)
+
+add_executable(match_tests
+  match_test.cpp
+)
+
+target_link_libraries(match_tests PRIVATE 
+  extern::snitch
+  pkg::core
+  ${SXS_SLP_LIB}
+)
+
+add_dependencies(build_tests match_tests)
+add_test(NAME match_tests COMMAND match_tests)
+
+add_executable(lambda_type_tests
+  lambda_type_test.cpp
+)
+
+target_link_libraries(lambda_type_tests PRIVATE 
+  extern::snitch
+  pkg::core
+  ${SXS_SLP_LIB}
+)
+
+add_dependencies(build_tests lambda_type_tests)
+add_test(NAME lambda_type_tests COMMAND lambda_type_tests)
 

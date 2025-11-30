@@ -6,7 +6,6 @@
 #include <sxs/slp/slp.hpp>
 
 namespace {
-
 std::string load_test_file(const std::string &filename) {
   std::string path = std::string(TEST_DATA_DIR) + "/" + filename;
   std::ifstream file(path);
@@ -17,13 +16,10 @@ std::string load_test_file(const std::string &filename) {
   buffer << file.rdbuf();
   return buffer.str();
 }
-
 } // namespace
 
-TEST_CASE("type checking - parse and execute all correct types",
-          "[unit][core][types][parse]") {
-  auto source = load_test_file("test_type_checking.sxs");
-
+TEST_CASE("eval - basic test with file", "[unit][core][eval]") {
+  auto source = load_test_file("test_eval.sxs");
   auto parse_result = slp::parse(source);
   CHECK(parse_result.is_success());
 
@@ -34,14 +30,13 @@ TEST_CASE("type checking - parse and execute all correct types",
   CHECK_NOTHROW(interpreter->eval(obj));
 }
 
-TEST_CASE("type checking - integer parameter validation",
-          "[unit][core][types][int]") {
-  std::string source = R"([
-    (def int-fn (fn (x :int) :int [
-      (def r 1)
-    ]))
-    (int-fn 42)
-  ])";
+TEST_CASE("eval - evaluates simple expression", "[unit][core][eval]") {
+  std::string source = R"sxs(
+    [
+      (def expr "(if 1 100 200)")
+      (def result (eval expr))
+    ]
+  )sxs";
 
   auto parse_result = slp::parse(source);
   REQUIRE(parse_result.is_success());
@@ -50,141 +45,7 @@ TEST_CASE("type checking - integer parameter validation",
   auto interpreter = pkg::core::create_interpreter(symbols);
 
   auto obj = parse_result.take();
-  CHECK_NOTHROW(interpreter->eval(obj));
-}
-
-TEST_CASE("type checking - real parameter validation",
-          "[unit][core][types][real]") {
-  std::string source = R"([
-    (def real-fn (fn (x :real) :real [
-      (def r 1.0)
-    ]))
-    (real-fn 3.14)
-  ])";
-
-  auto parse_result = slp::parse(source);
-  REQUIRE(parse_result.is_success());
-
-  auto symbols = pkg::core::instructions::get_standard_callable_symbols();
-  auto interpreter = pkg::core::create_interpreter(symbols);
-
-  auto obj = parse_result.take();
-  CHECK_NOTHROW(interpreter->eval(obj));
-}
-
-TEST_CASE("type checking - symbol parameter validation",
-          "[unit][core][types][symbol]") {
-  std::string source = R"([
-    (def sym-fn (fn (s :symbol) :symbol [
-      (def r test)
-    ]))
-    (sym-fn my-symbol)
-  ])";
-
-  auto parse_result = slp::parse(source);
-  REQUIRE(parse_result.is_success());
-
-  auto symbols = pkg::core::instructions::get_standard_callable_symbols();
-  auto interpreter = pkg::core::create_interpreter(symbols);
-
-  auto obj = parse_result.take();
-  CHECK_NOTHROW(interpreter->eval(obj));
-}
-
-TEST_CASE("type checking - string parameter validation",
-          "[unit][core][types][string]") {
-  std::string source = R"([
-    (def str-fn (fn (s :str) :str [
-      (def r "ok")
-    ]))
-    (str-fn "hello")
-  ])";
-
-  auto parse_result = slp::parse(source);
-  REQUIRE(parse_result.is_success());
-
-  auto symbols = pkg::core::instructions::get_standard_callable_symbols();
-  auto interpreter = pkg::core::create_interpreter(symbols);
-
-  auto obj = parse_result.take();
-  CHECK_NOTHROW(interpreter->eval(obj));
-}
-
-TEST_CASE("type checking - wrong type throws error",
-          "[unit][core][types][error]") {
-  std::string source = R"([
-    (def int-fn (fn (x :int) :int [
-      (def r 1)
-    ]))
-    (int-fn 3.14)
-  ])";
-
-  auto parse_result = slp::parse(source);
-  REQUIRE(parse_result.is_success());
-
-  auto symbols = pkg::core::instructions::get_standard_callable_symbols();
-  auto interpreter = pkg::core::create_interpreter(symbols);
-
-  auto obj = parse_result.take();
-  CHECK_THROWS_AS(interpreter->eval(obj), std::exception);
-}
-
-TEST_CASE("type checking - multiple parameters with mixed types",
-          "[unit][core][types][mixed]") {
-  std::string source = R"([
-    (def mixed-fn (fn (i :int r :real s :symbol st :str) :int [
-      (def done 1)
-    ]))
-    (mixed-fn 42 2.718 test "string")
-  ])";
-
-  auto parse_result = slp::parse(source);
-  REQUIRE(parse_result.is_success());
-
-  auto symbols = pkg::core::instructions::get_standard_callable_symbols();
-  auto interpreter = pkg::core::create_interpreter(symbols);
-
-  auto obj = parse_result.take();
-  CHECK_NOTHROW(interpreter->eval(obj));
-}
-
-TEST_CASE("type checking - parameter type enforced at call time",
-          "[unit][core][types][enforce]") {
-  std::string source = R"([
-    (def typed-fn (fn (x :int) :int [
-      (def r 1)
-    ]))
-    (def wrong-val "not an int")
-    (typed-fn wrong-val)
-  ])";
-
-  auto parse_result = slp::parse(source);
-  REQUIRE(parse_result.is_success());
-
-  auto symbols = pkg::core::instructions::get_standard_callable_symbols();
-  auto interpreter = pkg::core::create_interpreter(symbols);
-
-  auto obj = parse_result.take();
-  CHECK_THROWS_AS(interpreter->eval(obj), std::exception);
-}
-
-TEST_CASE("type checking - return type mismatch produces error object",
-          "[unit][core][types][return-error]") {
-  std::string source = R"([
-    (def bad-fn (fn (x :int) :int [
-      (if x "string-not-int" 42)
-    ]))
-    (def result (bad-fn 1))
-  ])";
-
-  auto parse_result = slp::parse(source);
-  REQUIRE(parse_result.is_success());
-
-  auto symbols = pkg::core::instructions::get_standard_callable_symbols();
-  auto interpreter = pkg::core::create_interpreter(symbols);
-
-  auto obj = parse_result.take();
-  CHECK_NOTHROW(interpreter->eval(obj));
+  interpreter->eval(obj);
 
   CHECK(interpreter->has_symbol("result"));
 
@@ -193,5 +54,143 @@ TEST_CASE("type checking - return type mismatch produces error object",
   auto result_obj = result_parsed.take();
   auto result_val = interpreter->eval(result_obj);
 
-  CHECK(result_val.type() == slp::slp_type_e::ERROR);
+  CHECK(result_val.type() == slp::slp_type_e::INTEGER);
+  CHECK(result_val.as_int() == 100);
+}
+
+TEST_CASE("eval - definitions don't leak to outer scope",
+          "[unit][core][eval]") {
+  std::string source = R"sxs(
+    [
+      (def code "[(def x 42) x]")
+      (def result (eval code))
+    ]
+  )sxs";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(parse_result.is_success());
+
+  auto symbols = pkg::core::instructions::get_standard_callable_symbols();
+  auto interpreter = pkg::core::create_interpreter(symbols);
+
+  auto obj = parse_result.take();
+  interpreter->eval(obj);
+
+  CHECK(interpreter->has_symbol("result"));
+
+  auto result_parsed = slp::parse("result");
+  REQUIRE(result_parsed.is_success());
+  auto result_obj = result_parsed.take();
+  auto result_val = interpreter->eval(result_obj);
+
+  CHECK(result_val.type() == slp::slp_type_e::INTEGER);
+  CHECK(result_val.as_int() == 42);
+
+  CHECK_FALSE(interpreter->has_symbol("x"));
+}
+
+TEST_CASE("eval - can access outer scope symbols", "[unit][core][eval]") {
+  std::string source = R"sxs(
+    [
+      (def outer-var 99)
+      (def result (eval "outer-var"))
+    ]
+  )sxs";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(parse_result.is_success());
+
+  auto symbols = pkg::core::instructions::get_standard_callable_symbols();
+  auto interpreter = pkg::core::create_interpreter(symbols);
+
+  auto obj = parse_result.take();
+  interpreter->eval(obj);
+
+  auto result_parsed = slp::parse("result");
+  REQUIRE(result_parsed.is_success());
+  auto result_obj = result_parsed.take();
+  auto result_val = interpreter->eval(result_obj);
+
+  CHECK(result_val.type() == slp::slp_type_e::INTEGER);
+  CHECK(result_val.as_int() == 99);
+}
+
+TEST_CASE("eval - requires exactly 1 argument", "[unit][core][eval]") {
+  std::string source = R"sxs(
+    [
+      (eval "1" "2")
+    ]
+  )sxs";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(parse_result.is_success());
+
+  auto symbols = pkg::core::instructions::get_standard_callable_symbols();
+  auto interpreter = pkg::core::create_interpreter(symbols);
+
+  auto obj = parse_result.take();
+  CHECK_THROWS_AS(interpreter->eval(obj), std::runtime_error);
+}
+
+TEST_CASE("eval - requires string argument", "[unit][core][eval]") {
+  std::string source = R"sxs(
+    [
+      (eval 42)
+    ]
+  )sxs";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(parse_result.is_success());
+
+  auto symbols = pkg::core::instructions::get_standard_callable_symbols();
+  auto interpreter = pkg::core::create_interpreter(symbols);
+
+  auto obj = parse_result.take();
+  CHECK_THROWS_AS(interpreter->eval(obj), std::runtime_error);
+}
+
+TEST_CASE("eval - throws on malformed code", "[unit][core][eval]") {
+  std::string source = R"sxs(
+    [
+      (eval "(def x")
+    ]
+  )sxs";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(parse_result.is_success());
+
+  auto symbols = pkg::core::instructions::get_standard_callable_symbols();
+  auto interpreter = pkg::core::create_interpreter(symbols);
+
+  auto obj = parse_result.take();
+  CHECK_THROWS_AS(interpreter->eval(obj), std::runtime_error);
+}
+
+TEST_CASE("eval - evaluates bracket list with multiple statements",
+          "[unit][core][eval]") {
+  std::string source = R"sxs(
+    [
+      (def result (eval "[(def a 10) (def b 20) (if 1 a b)]"))
+    ]
+  )sxs";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(parse_result.is_success());
+
+  auto symbols = pkg::core::instructions::get_standard_callable_symbols();
+  auto interpreter = pkg::core::create_interpreter(symbols);
+
+  auto obj = parse_result.take();
+  interpreter->eval(obj);
+
+  auto result_parsed = slp::parse("result");
+  REQUIRE(result_parsed.is_success());
+  auto result_obj = result_parsed.take();
+  auto result_val = interpreter->eval(result_obj);
+
+  CHECK(result_val.type() == slp::slp_type_e::INTEGER);
+  CHECK(result_val.as_int() == 10);
+
+  CHECK_FALSE(interpreter->has_symbol("a"));
+  CHECK_FALSE(interpreter->has_symbol("b"));
 }

@@ -1,0 +1,40 @@
+{
+  "name": "sxs",
+  "displayName": "SXS Language Support",
+  "description": "Syntax highlighting for SXS language",
+  "version": "0.1.0",
+  "publisher": "insula-dev",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "sxs",
+        "aliases": [
+          "SXS",
+          "sxs"
+        ],
+        "extensions": [
+          ".sxs"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/sxs-icon-light.svg",
+          "dark": "./icons/sxs-icon-dark.svg"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "sxs",
+        "scopeName": "source.sxs",
+        "path": "./syntaxes/sxs.tmLanguage.json"
+      }
+    ]
+  }
+}
+

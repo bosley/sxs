@@ -1,0 +1,31 @@
+[
+  (def result1 (recover [
+    (assert 0 "intentional failure")
+    100
+  ] [
+    (debug "test 1 - caught exception:" $exception)
+    200
+  ]))
+  (debug "test 1 - recover result:" result1)
+
+  (def result2 (recover [
+    (def x 42)
+    x
+  ] [
+    (debug "this should not run")
+    999
+  ]))
+  (debug "test 2 - no exception, result:" result2)
+
+  (def exception-holder 0)
+  (def result3 (recover [
+    (assert 0 "captured message")
+    0
+  ] [
+    (def exception-holder $exception)
+    333
+  ]))
+  (debug "test 3 - $exception captured:" exception-holder)
+  (debug "test 3 - result:" result3)
+]
+

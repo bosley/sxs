@@ -1,5 +1,25 @@
 
 
+## Runtime Type Checking vs Build-Time Type Enforcement
+
+### Current Approach (Runtime)
+Lambda return types are validated at runtime. When a function returns a value that doesn't match its declared return type, the interpreter returns an ERROR object (`@(internal function error: returned unexpected type)`) instead of throwing an exception.
+
+This "soft" error approach treats type mismatches like internal server errors in a distributed system - the error is returned as data rather than crashing the process.
+
+### Future Approach (Build-Time)
+During the build step in the `sup` project manager, we will implement a separate type-checking pass that:
+- Validates all function return types match their declarations
+- Ensures symbol resolution is correct
+- Performs static type analysis before execution
+
+This will allow us to:
+1. Run a "VM" mode that executes pre-validated `.bin` files without safety checks
+2. Catch type errors during development/build rather than runtime
+3. Optimize execution by skipping redundant runtime checks
+
+The runtime ERROR objects serve as a safety net during development and for dynamically-loaded code.
+
 ## build step sup
 
 we have a build step in sup for kernels. we are most likely going to have special kernels that need building always.

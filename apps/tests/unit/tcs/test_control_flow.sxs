@@ -1,0 +1,17 @@
+[
+  (def x 42)
+  
+  (def result (if 1 10 20))
+  
+  (def value 5)
+  (def output (match value
+    (5 "five")
+    (10 "ten")
+    (15 "fifteen")))
+  
+  (def data 100)
+  (def type-result (reflect data
+    (:int "integer")
+    (:str "string")))
+]
+

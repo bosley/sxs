@@ -1,0 +1,26 @@
+[
+  (def simple_fn (fn (a :int b :int) :int [
+    (debug "In simple_fn with" a b)
+    42
+  ]))
+  (def result1 (apply simple_fn {1 2}))
+  (debug "Basic apply result:" result1)
+
+  (def get_first (fn (a :int b :int c :int) :int [a]))
+  (def result2 (apply get_first {100 200 300}))
+  (debug "Multi-arg apply:" result2)
+
+  (def return_string (fn (x :int) :str ["hello"]))
+  (def result3 (apply return_string {99}))
+  (debug "Apply returning string:" result3)
+
+  (def no_params (fn () :int [999]))
+  (def result4 (apply no_params {}))
+  (debug "Apply with no params:" result4)
+
+  (def identity (fn (val :int) :int [val]))
+  (def args {777})
+  (def result5 (apply identity args))
+  (debug "Apply with args variable:" result5)
+]
+

@@ -203,6 +203,418 @@ get_standard_callable_symbols() {
         return result;
       }};
 
+  symbols["if"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 4) {
+          throw std::runtime_error(
+              "if requires exactly 3 arguments: condition, true-branch, "
+              "false-branch");
+        }
+
+        auto condition_obj = list.at(1);
+        auto true_branch_obj = list.at(2);
+        auto false_branch_obj = list.at(3);
+
+        auto evaluated_condition = context.eval(condition_obj);
+
+        bool execute_true_branch = true;
+
+        if (evaluated_condition.type() == slp::slp_type_e::INTEGER) {
+          std::int64_t condition_value = evaluated_condition.as_int();
+          execute_true_branch = (condition_value != 0);
+        }
+
+        if (execute_true_branch) {
+          return context.eval(true_branch_obj);
+        } else {
+          return context.eval(false_branch_obj);
+        }
+      }};
+
+  symbols["reflect"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() < 3) {
+          throw std::runtime_error(
+              "reflect requires at least 2 arguments: value and one handler");
+        }
+
+        auto value_obj = list.at(1);
+        auto evaluated_value = context.eval(value_obj);
+        auto actual_type = evaluated_value.type();
+
+        for (size_t i = 2; i < list.size(); i++) {
+          auto handler = list.at(i);
+
+          if (handler.type() != slp::slp_type_e::PAREN_LIST) {
+            throw std::runtime_error(
+                "reflect: handlers must be paren lists like (:type body)");
+          }
+
+          auto handler_list = handler.as_list();
+          if (handler_list.size() != 2) {
+            throw std::runtime_error(
+                "reflect: handler must have exactly 2 elements: (:type body)");
+          }
+
+          auto type_symbol_obj = handler_list.at(0);
+          if (type_symbol_obj.type() != slp::slp_type_e::SYMBOL) {
+            throw std::runtime_error(
+                "reflect: handler type must be a symbol like :int");
+          }
+
+          std::string type_symbol = type_symbol_obj.as_symbol();
+
+          if (actual_type == slp::slp_type_e::ABERRANT &&
+              type_symbol.find(":fn<") == 0) {
+            const std::uint8_t *base_ptr = evaluated_value.get_data().data();
+            const std::uint8_t *unit_ptr =
+                base_ptr + evaluated_value.get_root_offset();
+            const slp::slp_unit_of_store_t *unit =
+                reinterpret_cast<const slp::slp_unit_of_store_t *>(unit_ptr);
+            std::uint64_t lambda_id = unit->data.uint64;
+
+            std::string lambda_sig = context.get_lambda_signature(lambda_id);
+            if (lambda_sig == type_symbol) {
+              auto body = handler_list.at(1);
+              return context.eval(body);
+            }
+            continue;
+          }
+
+          slp::slp_type_e handler_type;
+
+          if (!context.is_symbol_enscribing_valid_type(type_symbol,
+                                                       handler_type)) {
+            throw std::runtime_error(
+                fmt::format("reflect: invalid type symbol: {}", type_symbol));
+          }
+
+          if (handler_type == actual_type) {
+            auto body = handler_list.at(1);
+            return context.eval(body);
+          }
+        }
+
+        std::string error_msg = "@(handler not supplied for given type)";
+        auto error_parse = slp::parse(error_msg);
+        return error_parse.take();
+      }};
+
+  symbols["try"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 3) {
+          throw std::runtime_error(
+              "try requires exactly 2 arguments: body and handler");
+        }
+
+        auto body_obj = list.at(1);
+        auto handler_obj = list.at(2);
+
+        auto result = context.eval(body_obj);
+
+        if (result.type() == slp::slp_type_e::ERROR) {
+          const std::uint8_t *base_ptr = result.get_data().data();
+          const std::uint8_t *unit_ptr = base_ptr + result.get_root_offset();
+          const slp::slp_unit_of_store_t *unit =
+              reinterpret_cast<const slp::slp_unit_of_store_t *>(unit_ptr);
+          size_t inner_offset = static_cast<size_t>(unit->data.uint64);
+
+          auto inner_obj = slp::slp_object_c::from_data(
+              result.get_data(), result.get_symbols(), inner_offset);
+
+          if (handler_obj.type() == slp::slp_type_e::BRACKET_LIST) {
+            context.push_scope();
+            context.define_symbol("$error", inner_obj);
+            auto handler_result = context.eval(handler_obj);
+            context.pop_scope();
+            return handler_result;
+          } else {
+            return context.eval(handler_obj);
+          }
+        }
+
+        return result;
+      }};
+
+  symbols["assert"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::NONE,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 3) {
+          throw std::runtime_error(
+              "assert requires exactly 2 arguments: condition and message");
+        }
+
+        auto condition_obj = list.at(1);
+        auto message_obj = list.at(2);
+
+        auto evaluated_condition = context.eval(condition_obj);
+        auto evaluated_message = context.eval(message_obj);
+
+        if (evaluated_condition.type() != slp::slp_type_e::INTEGER) {
+          throw std::runtime_error(
+              "assert: condition must evaluate to an integer");
+        }
+
+        if (evaluated_message.type() != slp::slp_type_e::DQ_LIST) {
+          throw std::runtime_error("assert: message must be a string");
+        }
+
+        std::int64_t condition_value = evaluated_condition.as_int();
+        if (condition_value == 0) {
+          std::string message = evaluated_message.as_string().to_string();
+          throw std::runtime_error(message);
+        }
+
+        slp::slp_object_c result;
+        return result;
+      }};
+
+  symbols["recover"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 3) {
+          throw std::runtime_error(
+              "recover requires exactly 2 arguments: body and handler");
+        }
+
+        auto body_obj = list.at(1);
+        auto handler_obj = list.at(2);
+
+        if (body_obj.type() != slp::slp_type_e::BRACKET_LIST) {
+          throw std::runtime_error("recover: body must be a bracket list");
+        }
+        if (handler_obj.type() != slp::slp_type_e::BRACKET_LIST) {
+          throw std::runtime_error("recover: handler must be a bracket list");
+        }
+
+        try {
+          return context.eval(body_obj);
+        } catch (const std::exception &e) {
+          std::string exception_message = e.what();
+          std::string exception_str_literal = "\"" + exception_message + "\"";
+          auto exception_str_parse = slp::parse(exception_str_literal);
+          if (exception_str_parse.is_error()) {
+            throw std::runtime_error(
+                "recover: failed to parse exception string");
+          }
+          auto exception_str_obj = exception_str_parse.take();
+
+          context.push_scope();
+          context.define_symbol("$exception", exception_str_obj);
+          auto handler_result = context.eval(handler_obj);
+          context.pop_scope();
+          return handler_result;
+        }
+      }};
+
+  symbols["eval"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 2) {
+          throw std::runtime_error(
+              "eval requires exactly 1 argument: code string");
+        }
+
+        auto code_obj = list.at(1);
+        auto evaluated_code = context.eval(code_obj);
+
+        if (evaluated_code.type() != slp::slp_type_e::DQ_LIST) {
+          throw std::runtime_error("eval: argument must be a string");
+        }
+
+        std::string code_string = evaluated_code.as_string().to_string();
+
+        auto parse_result = slp::parse(code_string);
+        if (parse_result.is_error()) {
+          const auto &error = parse_result.error();
+          throw std::runtime_error(
+              fmt::format("eval: parse error: {}", error.message));
+        }
+
+        auto parsed_obj = parse_result.take();
+
+        context.push_scope();
+        auto result = context.eval(parsed_obj);
+        context.pop_scope();
+
+        return result;
+      }};
+
+  symbols["apply"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 3) {
+          throw std::runtime_error(
+              "apply requires exactly 2 arguments: lambda and args-list");
+        }
+
+        auto lambda_obj = list.at(1);
+        auto args_obj = list.at(2);
+
+        auto evaluated_lambda = context.eval(lambda_obj);
+        if (evaluated_lambda.type() != slp::slp_type_e::ABERRANT) {
+          throw std::runtime_error(
+              "apply: first argument must be a lambda (aberrant type)");
+        }
+
+        auto evaluated_args = context.eval(args_obj);
+        if (evaluated_args.type() != slp::slp_type_e::BRACE_LIST) {
+          throw std::runtime_error(
+              "apply: second argument must be a brace list of arguments");
+        }
+
+        auto args_to_apply = evaluated_args.as_list();
+
+        context.push_scope();
+        context.define_symbol("apply-temp-lambda", evaluated_lambda);
+
+        std::string call_str = "(apply-temp-lambda";
+        for (size_t i = 0; i < args_to_apply.size(); i++) {
+          call_str += " ";
+          auto arg = args_to_apply.at(i);
+          std::string arg_sym = "apply-temp-arg-" + std::to_string(i);
+          context.define_symbol(arg_sym, arg);
+          call_str += arg_sym;
+        }
+        call_str += ")";
+
+        auto parse_result = slp::parse(call_str);
+        if (parse_result.is_error()) {
+          context.pop_scope();
+          throw std::runtime_error("apply: failed to construct call");
+        }
+
+        auto call_obj = parse_result.take();
+        auto result = context.eval(call_obj);
+        context.pop_scope();
+
+        return result;
+      }};
+
+  symbols["match"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() < 3) {
+          throw std::runtime_error(
+              "match requires at least 2 arguments: value and one handler");
+        }
+
+        auto value_obj = list.at(1);
+        auto evaluated_value = context.eval(value_obj);
+        auto actual_type = evaluated_value.type();
+
+        for (size_t i = 2; i < list.size(); i++) {
+          auto handler = list.at(i);
+
+          if (handler.type() != slp::slp_type_e::PAREN_LIST) {
+            throw std::runtime_error(
+                "match: handlers must be paren lists like (pattern result)");
+          }
+
+          auto handler_list = handler.as_list();
+          if (handler_list.size() != 2) {
+            throw std::runtime_error("match: handler must have exactly 2 "
+                                     "elements: (pattern result)");
+          }
+
+          auto pattern_obj = handler_list.at(0);
+          auto evaluated_pattern = context.eval(pattern_obj);
+
+          if (evaluated_pattern.type() != actual_type) {
+            continue;
+          }
+
+          bool values_match = false;
+          switch (actual_type) {
+          case slp::slp_type_e::INTEGER:
+            values_match =
+                evaluated_value.as_int() == evaluated_pattern.as_int();
+            break;
+          case slp::slp_type_e::REAL:
+            values_match =
+                evaluated_value.as_real() == evaluated_pattern.as_real();
+            break;
+          case slp::slp_type_e::SYMBOL: {
+            std::string val_sym = evaluated_value.as_symbol();
+            std::string pat_sym = evaluated_pattern.as_symbol();
+            values_match = (val_sym == pat_sym);
+            break;
+          }
+          case slp::slp_type_e::DQ_LIST: {
+            std::string val_str = evaluated_value.as_string().to_string();
+            std::string pat_str = evaluated_pattern.as_string().to_string();
+            values_match = (val_str == pat_str);
+            break;
+          }
+          case slp::slp_type_e::ABERRANT: {
+            const std::uint8_t *val_base = evaluated_value.get_data().data();
+            const std::uint8_t *val_unit =
+                val_base + evaluated_value.get_root_offset();
+            const slp::slp_unit_of_store_t *val_u =
+                reinterpret_cast<const slp::slp_unit_of_store_t *>(val_unit);
+            std::uint64_t val_id = val_u->data.uint64;
+
+            const std::uint8_t *pat_base = evaluated_pattern.get_data().data();
+            const std::uint8_t *pat_unit =
+                pat_base + evaluated_pattern.get_root_offset();
+            const slp::slp_unit_of_store_t *pat_u =
+                reinterpret_cast<const slp::slp_unit_of_store_t *>(pat_unit);
+            std::uint64_t pat_id = pat_u->data.uint64;
+
+            values_match = (val_id == pat_id);
+            break;
+          }
+          default:
+            values_match = false;
+            break;
+          }
+
+          if (values_match) {
+            auto result_obj = handler_list.at(1);
+            return context.eval(result_obj);
+          }
+        }
+
+        std::string error_msg = "@(no matching handler found)";
+        auto error_parse = slp::parse(error_msg);
+        return error_parse.take();
+      }};
+
   return symbols;
 }
 

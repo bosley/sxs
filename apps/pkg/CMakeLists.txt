@@ -16,6 +16,7 @@ add_library(pkg_core STATIC
     core/instructions/instructions.cpp
     core/imports/imports.cpp
     core/kernels/kernels.cpp
+    core/tcs/tcs.cpp
 )
 
 target_include_directories(pkg_core PUBLIC

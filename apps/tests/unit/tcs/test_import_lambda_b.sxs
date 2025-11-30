@@ -1,0 +1,10 @@
+[
+    (export process_value (fn (val :int) :int [
+        10
+    ]))
+
+    (export format_string (fn (s :str num :int) :str [
+        "formatted"
+    ]))
+]
+
