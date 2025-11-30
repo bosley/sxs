@@ -8,7 +8,7 @@ static slp::slp_object_c random_int_range(pkg::kernel::context_t ctx,
                                           const slp::slp_object_c &args) {
   auto list = args.as_list();
   if (list.size() < 3) {
-    return g_api->create_int(-1);
+    return slp::slp_object_c::create_int(-1);
   }
 
   auto evaled_min = g_api->eval(ctx, list.at(1));
@@ -16,7 +16,7 @@ static slp::slp_object_c random_int_range(pkg::kernel::context_t ctx,
 
   if (evaled_min.type() != slp::slp_type_e::INTEGER ||
       evaled_max.type() != slp::slp_type_e::INTEGER) {
-    return g_api->create_int(-1);
+    return slp::slp_object_c::create_int(-1);
   }
 
   long long min_val = evaled_min.as_int();
@@ -25,14 +25,14 @@ static slp::slp_object_c random_int_range(pkg::kernel::context_t ctx,
   pkg::random::generate_random_c<long long> gen;
   long long result = gen.get_range(min_val, max_val);
 
-  return g_api->create_int(result);
+  return slp::slp_object_c::create_int(result);
 }
 
 static slp::slp_object_c random_real_range(pkg::kernel::context_t ctx,
                                            const slp::slp_object_c &args) {
   auto list = args.as_list();
   if (list.size() < 3) {
-    return g_api->create_int(-1);
+    return slp::slp_object_c::create_int(-1);
   }
 
   auto evaled_min = g_api->eval(ctx, list.at(1));
@@ -40,7 +40,7 @@ static slp::slp_object_c random_real_range(pkg::kernel::context_t ctx,
 
   if (evaled_min.type() != slp::slp_type_e::REAL ||
       evaled_max.type() != slp::slp_type_e::REAL) {
-    return g_api->create_int(-1);
+    return slp::slp_object_c::create_int(-1);
   }
 
   double min_val = evaled_min.as_real();
@@ -49,55 +49,55 @@ static slp::slp_object_c random_real_range(pkg::kernel::context_t ctx,
   pkg::random::generate_random_c<double> gen;
   double result = gen.get_floating_point_range(min_val, max_val);
 
-  return g_api->create_real(result);
+  return slp::slp_object_c::create_real(result);
 }
 
 static slp::slp_object_c random_string(pkg::kernel::context_t ctx,
                                        const slp::slp_object_c &args) {
   auto list = args.as_list();
   if (list.size() < 2) {
-    return g_api->create_int(-1);
+    return slp::slp_object_c::create_int(-1);
   }
 
   auto evaled_length = g_api->eval(ctx, list.at(1));
 
   if (evaled_length.type() != slp::slp_type_e::INTEGER) {
-    return g_api->create_int(-1);
+    return slp::slp_object_c::create_int(-1);
   }
 
   long long length = evaled_length.as_int();
   if (length < 0) {
-    return g_api->create_int(-1);
+    return slp::slp_object_c::create_int(-1);
   }
 
   pkg::random::random_string_c gen;
   std::string result = gen.generate_string(static_cast<size_t>(length));
 
-  return g_api->create_string(result.c_str());
+  return slp::slp_object_c::create_string(result);
 }
 
 static slp::slp_object_c random_string_alpha(pkg::kernel::context_t ctx,
                                              const slp::slp_object_c &args) {
   auto list = args.as_list();
   if (list.size() < 2) {
-    return g_api->create_int(-1);
+    return slp::slp_object_c::create_int(-1);
   }
 
   auto evaled_length = g_api->eval(ctx, list.at(1));
 
   if (evaled_length.type() != slp::slp_type_e::INTEGER) {
-    return g_api->create_int(-1);
+    return slp::slp_object_c::create_int(-1);
   }
 
   long long length = evaled_length.as_int();
   if (length < 0) {
-    return g_api->create_int(-1);
+    return slp::slp_object_c::create_int(-1);
   }
 
   pkg::random::random_string_c gen(pkg::random::random_string_c::ALPHA_NUM);
   std::string result = gen.generate_string(static_cast<size_t>(length));
 
-  return g_api->create_string(result.c_str());
+  return slp::slp_object_c::create_string(result);
 }
 
 extern "C" void kernel_init(pkg::kernel::registry_t registry,

@@ -138,7 +138,7 @@ static slp::slp_object_c kv_open_memory(pkg::kernel::context_t ctx,
   std::string store_name(name);
 
   if (g_stores.find(store_name) != g_stores.end()) {
-    return g_api->create_int(0);
+    return slp::slp_object_c::create_int(0);
   }
 
   if (g_distributors.find("__memory__") == g_distributors.end()) {
@@ -155,7 +155,7 @@ static slp::slp_object_c kv_open_memory(pkg::kernel::context_t ctx,
   }
 
   g_stores[store_name] = store_opt.value();
-  return g_api->create_int(0);
+  return slp::slp_object_c::create_int(0);
 }
 
 static slp::slp_object_c kv_open_disk(pkg::kernel::context_t ctx,
@@ -185,7 +185,7 @@ static slp::slp_object_c kv_open_disk(pkg::kernel::context_t ctx,
   std::string store_name(name);
 
   if (g_stores.find(store_name) != g_stores.end()) {
-    return g_api->create_int(0);
+    return slp::slp_object_c::create_int(0);
   }
 
   if (g_distributors.find(path) == g_distributors.end()) {
@@ -201,7 +201,7 @@ static slp::slp_object_c kv_open_disk(pkg::kernel::context_t ctx,
   }
 
   g_stores[store_name] = store_opt.value();
-  return g_api->create_int(0);
+  return slp::slp_object_c::create_int(0);
 }
 
 static slp::slp_object_c kv_set(pkg::kernel::context_t ctx,
@@ -237,7 +237,7 @@ static slp::slp_object_c kv_set(pkg::kernel::context_t ctx,
   std::string serialized = serialize_slp_object(evaled_value);
 
   bool success = store_it->second->set(key, serialized);
-  return success ? g_api->create_int(0)
+  return success ? slp::slp_object_c::create_int(0)
                  : create_error("set: failed to store value");
 }
 
@@ -308,7 +308,7 @@ static slp::slp_object_c kv_del(pkg::kernel::context_t ctx,
   }
 
   bool success = store_it->second->del(key);
-  return success ? g_api->create_int(0)
+  return success ? slp::slp_object_c::create_int(0)
                  : create_error("del: failed to delete key");
 }
 
@@ -345,7 +345,7 @@ static slp::slp_object_c kv_snx(pkg::kernel::context_t ctx,
   std::string serialized = serialize_slp_object(evaled_value);
 
   bool success = store_it->second->set_nx(key, serialized);
-  return success ? g_api->create_int(0)
+  return success ? slp::slp_object_c::create_int(0)
                  : create_error("snx: key already exists");
 }
 
@@ -387,7 +387,7 @@ static slp::slp_object_c kv_cas(pkg::kernel::context_t ctx,
 
   bool success = store_it->second->compare_and_swap(key, serialized_expected,
                                                     serialized_new);
-  return success ? g_api->create_int(0)
+  return success ? slp::slp_object_c::create_int(0)
                  : create_error("cas: comparison failed");
 }
 

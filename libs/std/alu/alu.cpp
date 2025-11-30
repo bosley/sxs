@@ -6,129 +6,129 @@ static slp::slp_object_c alu_add(pkg::kernel::context_t ctx,
                                  const slp::slp_object_c &args) {
   auto list = args.as_list();
   if (list.size() < 3) {
-    return g_api->create_int(0);
+    return slp::slp_object_c::create_int(0);
   }
 
   auto a = g_api->eval(ctx, list.at(1)).as_int();
   auto b = g_api->eval(ctx, list.at(2)).as_int();
 
-  return g_api->create_int(a + b);
+  return slp::slp_object_c::create_int(a + b);
 }
 
 static slp::slp_object_c alu_sub(pkg::kernel::context_t ctx,
                                  const slp::slp_object_c &args) {
   auto list = args.as_list();
   if (list.size() < 3) {
-    return g_api->create_int(0);
+    return slp::slp_object_c::create_int(0);
   }
 
   auto a = g_api->eval(ctx, list.at(1)).as_int();
   auto b = g_api->eval(ctx, list.at(2)).as_int();
 
-  return g_api->create_int(a - b);
+  return slp::slp_object_c::create_int(a - b);
 }
 
 static slp::slp_object_c alu_mul(pkg::kernel::context_t ctx,
                                  const slp::slp_object_c &args) {
   auto list = args.as_list();
   if (list.size() < 3) {
-    return g_api->create_int(0);
+    return slp::slp_object_c::create_int(0);
   }
 
   auto a = g_api->eval(ctx, list.at(1)).as_int();
   auto b = g_api->eval(ctx, list.at(2)).as_int();
 
-  return g_api->create_int(a * b);
+  return slp::slp_object_c::create_int(a * b);
 }
 
 static slp::slp_object_c alu_div(pkg::kernel::context_t ctx,
                                  const slp::slp_object_c &args) {
   auto list = args.as_list();
   if (list.size() < 3) {
-    return g_api->create_int(0);
+    return slp::slp_object_c::create_int(0);
   }
 
   auto a = g_api->eval(ctx, list.at(1)).as_int();
   auto b = g_api->eval(ctx, list.at(2)).as_int();
 
   if (b == 0) {
-    return g_api->create_int(0);
+    return slp::slp_object_c::create_int(0);
   }
 
-  return g_api->create_int(a / b);
+  return slp::slp_object_c::create_int(a / b);
 }
 
 static slp::slp_object_c alu_mod(pkg::kernel::context_t ctx,
                                  const slp::slp_object_c &args) {
   auto list = args.as_list();
   if (list.size() < 3) {
-    return g_api->create_int(0);
+    return slp::slp_object_c::create_int(0);
   }
 
   auto a = g_api->eval(ctx, list.at(1)).as_int();
   auto b = g_api->eval(ctx, list.at(2)).as_int();
 
   if (b == 0) {
-    return g_api->create_int(0);
+    return slp::slp_object_c::create_int(0);
   }
 
-  return g_api->create_int(a % b);
+  return slp::slp_object_c::create_int(a % b);
 }
 
 static slp::slp_object_c alu_add_r(pkg::kernel::context_t ctx,
                                    const slp::slp_object_c &args) {
   auto list = args.as_list();
   if (list.size() < 3) {
-    return g_api->create_real(0.0);
+    return slp::slp_object_c::create_real(0.0);
   }
 
   auto a = g_api->eval(ctx, list.at(1)).as_real();
   auto b = g_api->eval(ctx, list.at(2)).as_real();
 
-  return g_api->create_real(a + b);
+  return slp::slp_object_c::create_real(a + b);
 }
 
 static slp::slp_object_c alu_sub_r(pkg::kernel::context_t ctx,
                                    const slp::slp_object_c &args) {
   auto list = args.as_list();
   if (list.size() < 3) {
-    return g_api->create_real(0.0);
+    return slp::slp_object_c::create_real(0.0);
   }
 
   auto a = g_api->eval(ctx, list.at(1)).as_real();
   auto b = g_api->eval(ctx, list.at(2)).as_real();
 
-  return g_api->create_real(a - b);
+  return slp::slp_object_c::create_real(a - b);
 }
 
 static slp::slp_object_c alu_mul_r(pkg::kernel::context_t ctx,
                                    const slp::slp_object_c &args) {
   auto list = args.as_list();
   if (list.size() < 3) {
-    return g_api->create_real(0.0);
+    return slp::slp_object_c::create_real(0.0);
   }
 
   auto a = g_api->eval(ctx, list.at(1)).as_real();
   auto b = g_api->eval(ctx, list.at(2)).as_real();
 
-  return g_api->create_real(a * b);
+  return slp::slp_object_c::create_real(a * b);
 }
 
 static slp::slp_object_c alu_div_r(pkg::kernel::context_t ctx,
                                    const slp::slp_object_c &args) {
   auto list = args.as_list();
   if (list.size() < 3) {
-    return g_api->create_real(0.0);
+    return slp::slp_object_c::create_real(0.0);
   }
 
   auto a = g_api->eval(ctx, list.at(1)).as_real();
   auto b = g_api->eval(ctx, list.at(2)).as_real();
 
   if (b == 0.0) {
-    return g_api->create_real(0.0);
+    return slp::slp_object_c::create_real(0.0);
   }
 
-  return g_api->create_real(a / b);
+  return slp::slp_object_c::create_real(a / b);
 }
 
 extern "C" void kernel_init(pkg::kernel::registry_t registry,

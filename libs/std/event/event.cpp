@@ -179,7 +179,7 @@ static slp::slp_object_c event_subscribe(pkg::kernel::context_t ctx,
     g_subscriber_impls[sub_id] = std::move(subscriber_impl);
   }
 
-  return g_api->create_int(static_cast<long long>(sub_id));
+  return slp::slp_object_c::create_int(static_cast<long long>(sub_id));
 }
 
 static slp::slp_object_c event_unsubscribe(pkg::kernel::context_t ctx,
@@ -217,7 +217,7 @@ static slp::slp_object_c event_unsubscribe(pkg::kernel::context_t ctx,
 
   g_event_system->unsubscribe(event_system_id);
 
-  return g_api->create_int(0);
+  return slp::slp_object_c::create_int(0);
 }
 
 static slp::slp_object_c event_publish(pkg::kernel::context_t ctx,
@@ -266,7 +266,7 @@ static slp::slp_object_c event_publish(pkg::kernel::context_t ctx,
   event.encoded_slp_data = serialized_data;
 
   bool success = publisher->publish(event);
-  return success ? g_api->create_int(0)
+  return success ? slp::slp_object_c::create_int(0)
                  : create_error("publish: failed to publish");
 }
 

@@ -10,12 +10,12 @@ static slp::slp_object_c io_put(pkg::kernel::context_t ctx,
                                 const slp::slp_object_c &args) {
   auto list = args.as_list();
   if (list.size() < 2) {
-    return g_api->create_int(-1);
+    return slp::slp_object_c::create_int(-1);
   }
 
   auto evaled_format = g_api->eval(ctx, list.at(1));
   if (evaled_format.type() != slp::slp_type_e::DQ_LIST) {
-    return g_api->create_int(-1);
+    return slp::slp_object_c::create_int(-1);
   }
 
   std::string format = evaled_format.as_string().to_string();
@@ -62,7 +62,7 @@ static slp::slp_object_c io_put(pkg::kernel::context_t ctx,
   printf("%s", output.c_str());
   fflush(stdout);
 
-  return g_api->create_int(static_cast<long long>(output.length()));
+  return slp::slp_object_c::create_int(static_cast<long long>(output.length()));
 }
 
 extern "C" void kernel_init(pkg::kernel::registry_t registry,
