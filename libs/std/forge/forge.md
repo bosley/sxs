@@ -78,6 +78,20 @@ this way bad types in yielding empty lists wont cause problems
 
 
 
+
+-------
+
+
+MIDDLE HALF
+
+------
+
+
+
+forge/to_bits  any -> int -> { 1 0 1 0 .. } bit set 
+forge/from_bits brace list -> int 
+
+
 --------
 
 SECOND HALF: 

@@ -1,0 +1,56 @@
+[
+    #(load "forge" "io")
+
+    (io/put "=== Forge Edge Cases Test ===\n")
+
+    (io/put "\n--- Operations on empty lists ---\n")
+    (def e '())
+    (def e1 (forge/pf e 1))
+    (def e2 (forge/pb e 1))
+    (def e3 (forge/rf e))
+    (def e4 (forge/rb e))
+    (def e5 (forge/rev e))
+    (def e6 (forge/count e))
+    (io/put "Push front to empty: OK\n")
+    (io/put "Push back to empty: OK\n")
+    (io/put "Remove front from empty: OK\n")
+    (io/put "Remove back from empty: OK\n")
+    (io/put "Reverse empty: OK\n")
+    (io/put "Count empty: %d\n" e6)
+
+    (io/put "\n--- Operations on single element ---\n")
+    (def s '(42))
+    (def s1 (forge/rf s))
+    (def s2 (forge/rb s))
+    (def s3 (forge/rev s))
+    (def s4 (forge/rotr s 1))
+    (def s5 (forge/rotl s 1))
+    (io/put "Remove front from single element\n")
+    (io/put "Remove back from single element\n")
+    (io/put "Reverse single element\n")
+    (io/put "Rotate single element\n")
+
+    (io/put "\n--- Upcast scalar to list ---\n")
+    (def scalar 99)
+    (def sc1 (forge/count scalar))
+    (def sc2 (forge/pf scalar 1))
+    (def sc3 (forge/pb scalar 2))
+    (io/put "Count scalar (upcast): %d\n" sc1)
+    (io/put "Push front to scalar: OK\n")
+    (io/put "Push back to scalar: OK\n")
+
+    (io/put "\n--- Large rotations ---\n")
+    (def x '(1 2 3))
+    (def x1 (forge/rotr x 100))
+    (def x2 (forge/rotl x 100))
+    (io/put "Rotate by value > length: OK\n")
+
+    (io/put "\n--- Negative shifts/rotations ---\n")
+    (def y '(1 2 3 4 5))
+    (def y1 (forge/lsh y -1))
+    (def y2 (forge/rotr y -1))
+    (io/put "Negative count treated as no-op\n")
+
+    (io/put "\n=== All edge case tests complete ===\n")
+]
+

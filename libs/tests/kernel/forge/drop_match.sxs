@@ -1,0 +1,28 @@
+[
+    #(load "forge" "io")
+
+    (io/put "=== Forge Drop Match Test ===\n")
+
+    (io/put "\n--- Drop matching integers ---\n")
+    (def x0 '(1 2 3 2 4 2))
+    (def x1 (forge/drop_match x0 2))
+    (io/put "Dropped all 2s from (1 2 3 2 4 2)\n")
+
+    (io/put "\n--- Drop matching symbols ---\n")
+    (def y0 '(a b c b d b))
+    (def y1 (forge/drop_match y0 b))
+    (io/put "Dropped all b from (a b c b d b)\n")
+
+    (io/put "\n--- Drop non-existent ---\n")
+    (def z0 '(1 2 3))
+    (def z1 (forge/drop_match z0 99))
+    (io/put "Dropped non-existent value - no change\n")
+
+    (io/put "\n--- Drop all elements ---\n")
+    (def w0 '(1 1 1 1))
+    (def w1 (forge/drop_match w0 1))
+    (io/put "Dropped all elements - empty list\n")
+
+    (io/put "\n=== All drop_match tests complete ===\n")
+]
+

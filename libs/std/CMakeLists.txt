@@ -112,8 +112,30 @@ set_target_properties(kernel_event PROPERTIES
   SUFFIX ".dylib"
 )
 
+add_library(kernel_forge SHARED
+  forge/forge.cpp
+)
+
+target_include_directories(kernel_forge PRIVATE
+  ${CMAKE_SOURCE_DIR}/pkg
+)
+
+target_compile_definitions(kernel_forge PRIVATE
+  SXS_KERNEL_BUILD
+)
+
+target_link_libraries(kernel_forge PRIVATE
+  pkg::slp
+)
+
+set_target_properties(kernel_forge PROPERTIES
+  PREFIX "lib"
+  OUTPUT_NAME "kernel_forge"
+  SUFFIX ".dylib"
+)
+
 add_custom_target(build_kernels ALL
-  DEPENDS kernel_alu kernel_io kernel_random kernel_kv kernel_event
+  DEPENDS kernel_alu kernel_io kernel_random kernel_kv kernel_event kernel_forge
 )
 
 install(TARGETS kernel_alu
@@ -159,5 +181,14 @@ install(TARGETS kernel_event
 
 install(FILES event/kernel.sxs
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/kernels/event
+)
+
+install(TARGETS kernel_forge
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/kernels/forge
+  RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/kernels/forge
+)
+
+install(FILES forge/kernel.sxs
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/kernels/forge
 )
 

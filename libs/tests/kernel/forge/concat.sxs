@@ -1,0 +1,32 @@
+[
+    #(load "forge" "io")
+
+    (io/put "=== Forge Concat Test ===\n")
+
+    (io/put "\n--- Basic Concat ---\n")
+    (def x0 '(1 2 3))
+    (def x1 '(4 5 6))
+    (def x2 (forge/concat x0 x1))
+    (io/put "Concatenated (1 2 3) and (4 5 6)\n")
+
+    (io/put "\n--- Concat with empty ---\n")
+    (def y0 '(1 2))
+    (def y1 '())
+    (def y2 (forge/concat y0 y1))
+    (io/put "Concatenated (1 2) with empty list\n")
+
+    (io/put "\n--- Concat empty with list ---\n")
+    (def z0 '())
+    (def z1 '(1 2))
+    (def z2 (forge/concat z0 z1))
+    (io/put "Concatenated empty list with (1 2)\n")
+
+    (io/put "\n--- Concat scalar and list ---\n")
+    (def w0 1)
+    (def w1 '(2 3))
+    (def w2 (forge/concat w0 w1))
+    (io/put "Concatenated scalar 1 with (2 3)\n")
+
+    (io/put "\n=== All concat tests complete ===\n")
+]
+

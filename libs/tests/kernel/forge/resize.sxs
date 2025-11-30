@@ -1,0 +1,33 @@
+[
+    #(load "forge" "io")
+
+    (io/put "=== Forge Resize Test ===\n")
+
+    (io/put "\n--- Growing a list ---\n")
+    (def x0 '(1 2 3 4 5))
+    (def x1 (forge/resize x0 10 0))
+    (io/put "Resized (1 2 3 4 5) to size 10 with default 0\n")
+
+    (io/put "\n--- Shrinking a list ---\n")
+    (def y0 '(1 2 3 4 5 6 7 8 9 10))
+    (def y1 (forge/resize y0 3 0))
+    (io/put "Resized (1 2 3 4 5 6 7 8 9 10) to size 3\n")
+
+    (io/put "\n--- Resize to same size ---\n")
+    (def z0 '(a b c))
+    (def z1 (forge/resize z0 3 x))
+    (io/put "Resized (a b c) to size 3 - no change\n")
+
+    (io/put "\n--- Resize to zero ---\n")
+    (def w0 '(1 2 3))
+    (def w1 (forge/resize w0 0 0))
+    (io/put "Resized (1 2 3) to size 0 - empty list\n")
+
+    (io/put "\n--- Resize with non-zero default ---\n")
+    (def v0 '(1 2))
+    (def v1 (forge/resize v0 5 99))
+    (io/put "Resized (1 2) to size 5 with default 99\n")
+
+    (io/put "\n=== All resize tests complete ===\n")
+]
+

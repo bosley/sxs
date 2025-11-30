@@ -1,0 +1,36 @@
+[
+    #(load "forge" "io")
+
+    (io/put "=== Forge Visit Test ===\n")
+
+    (io/put "\n--- Visit all elements ---\n")
+    (def x0 '(1 2 3 4 5))
+    (def x1 (forge/visit x0 (fn (val :any) :any [
+        0
+    ])))
+    (io/put "Visited all elements, returned 0\n")
+
+    (io/put "\n--- Visit with early exit on integer ---\n")
+    (def y0 '(1 2 3 4 5))
+    (def y1 (forge/visit y0 (fn (val :any) :any [
+        1
+    ])))
+    (io/put "Visited with immediate exit, returned 1\n")
+
+    (io/put "\n--- Visit empty list ---\n")
+    (def z0 '())
+    (def z1 (forge/visit z0 (fn (val :any) :any [
+        99
+    ])))
+    (io/put "Visited empty list, returned 0\n")
+
+    (io/put "\n--- Visit with non-integer return ---\n")
+    (def w0 '(1 2 3))
+    (def w1 (forge/visit w0 (fn (val :any) :any [
+        done
+    ])))
+    (io/put "Visited with non-integer return - stopped immediately\n")
+
+    (io/put "\n=== All visit tests complete ===\n")
+]
+

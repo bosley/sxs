@@ -148,6 +148,12 @@ public:
       }
 
       std::string cmd = first.as_symbol();
+
+      auto local_it = callable_symbols_.find(cmd);
+      if (local_it != callable_symbols_.end()) {
+        return local_it->second.function(*this, inner_obj);
+      }
+
       auto datum_symbols = datum::get_standard_callable_symbols();
       auto it = datum_symbols.find(cmd);
       if (it == datum_symbols.end()) {

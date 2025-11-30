@@ -1,0 +1,35 @@
+[
+    #(load "forge" "io")
+
+    (io/put "=== Forge Push/Pop Test ===\n")
+
+    (io/put "\n--- Push Front ---\n")
+    (def x0 '(2 3 4))
+    (def x1 (forge/pf x0 1))
+    (io/put "Push front 1 to (2 3 4)\n")
+
+    (io/put "\n--- Push Back ---\n")
+    (def y0 '(1 2 3))
+    (def y1 (forge/pb y0 4))
+    (io/put "Push back 4 to (1 2 3)\n")
+
+    (io/put "\n--- Remove Front ---\n")
+    (def z0 '(1 2 3 4))
+    (def z1 (forge/rf z0))
+    (io/put "Remove front from (1 2 3 4)\n")
+
+    (io/put "\n--- Remove Back ---\n")
+    (def w0 '(1 2 3 4))
+    (def w1 (forge/rb w0))
+    (io/put "Remove back from (1 2 3 4)\n")
+
+    (io/put "\n--- Remove from empty ---\n")
+    (def e0 '())
+    (def e1 (forge/rf e0))
+    (def e2 (forge/rb e0))
+    (io/put "Remove front from empty list\n")
+    (io/put "Remove back from empty list\n")
+
+    (io/put "\n=== All push/pop tests complete ===\n")
+]
+

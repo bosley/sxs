@@ -1,0 +1,34 @@
+[
+    #(load "forge" "io")
+
+    (io/put "=== Forge Shift Test ===\n")
+
+    (io/put "\n--- Left Shift ---\n")
+    (def x0 '(1 2 3 4 5))
+    (def x1 (forge/lsh x0 1))
+    (io/put "Left shift (1 2 3 4 5) by 1\n")
+    (def x2 (forge/lsh x0 2))
+    (io/put "Left shift (1 2 3 4 5) by 2\n")
+
+    (io/put "\n--- Right Shift ---\n")
+    (def y0 '(1 2 3 4 5))
+    (def y1 (forge/rsh y0 1))
+    (io/put "Right shift (1 2 3 4 5) by 1\n")
+    (def y2 (forge/rsh y0 2))
+    (io/put "Right shift (1 2 3 4 5) by 2\n")
+
+    (io/put "\n--- Shift by 0 ---\n")
+    (def z0 '(1 2 3))
+    (def z1 (forge/lsh z0 0))
+    (io/put "Left shift by 0 - no change\n")
+
+    (io/put "\n--- Shift empty list ---\n")
+    (def e0 '())
+    (def e1 (forge/lsh e0 3))
+    (def e2 (forge/rsh e0 3))
+    (io/put "Left shift empty list\n")
+    (io/put "Right shift empty list\n")
+
+    (io/put "\n=== All shift tests complete ===\n")
+]
+

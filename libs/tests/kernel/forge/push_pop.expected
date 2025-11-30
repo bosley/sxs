@@ -1,0 +1,20 @@
+=== Forge Push/Pop Test ===
+
+--- Push Front ---
+Push front 1 to (2 3 4)
+
+--- Push Back ---
+Push back 4 to (1 2 3)
+
+--- Remove Front ---
+Remove front from (1 2 3 4)
+
+--- Remove Back ---
+Remove back from (1 2 3 4)
+
+--- Remove from empty ---
+Remove front from empty list
+Remove back from empty list
+
+=== All push/pop tests complete ===
+

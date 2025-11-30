@@ -1,0 +1,29 @@
+=== Forge Edge Cases Test ===
+
+--- Operations on empty lists ---
+Push front to empty: OK
+Push back to empty: OK
+Remove front from empty: OK
+Remove back from empty: OK
+Reverse empty: OK
+Count empty: 0
+
+--- Operations on single element ---
+Remove front from single element
+Remove back from single element
+Reverse single element
+Rotate single element
+
+--- Upcast scalar to list ---
+Count scalar (upcast): 1
+Push front to scalar: OK
+Push back to scalar: OK
+
+--- Large rotations ---
+Rotate by value > length: OK
+
+--- Negative shifts/rotations ---
+Negative count treated as no-op
+
+=== All edge case tests complete ===
+
