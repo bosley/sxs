@@ -10,6 +10,15 @@ inline constexpr const char *EXAMPLE_KERNEL_CPP = R"(#include <cstdio>
 
 static const struct sxs_api_table_t *g_api = nullptr;
 
+extern "C" void on_init(const struct sxs_api_table_t *api) {
+  g_api = api;
+  printf("{PROJECT_NAME} kernel initialized\n");
+}
+
+extern "C" void on_exit(const struct sxs_api_table_t *api) {
+  printf("{PROJECT_NAME} kernel shutting down\n");
+}
+
 static sxs_object_t hello_world(sxs_context_t ctx, sxs_object_t args) {
   void *list = g_api->as_list(args);
   printf("Hello from {PROJECT_NAME} kernel!\n");
@@ -78,6 +87,9 @@ inline constexpr const char *KERNEL_SXS =
     (define-function hello_world () :str)
     (define-function add_numbers (a :int b :int) :int)
     (define-function greet_person (name :str) :str)
+
+    (define-ctor on_init)
+    (define-dtor on_exit)
 ])
 )";
 

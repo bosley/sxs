@@ -13,6 +13,9 @@
 - `dlsym()` resolves `kernel_init` entry point
 - `kernel_init` receives registry handle and API table
 - Registration callbacks populate `registered_functions_` map
+- Optional lifecycle hooks (`on_init`, `on_exit`) can be defined
+- `on_init` called automatically after `kernel_init` if present
+- `on_exit` called automatically before dylib unload if present
 - Handles stored for cleanup on shutdown
 
 ## Kernel Resolution
@@ -21,6 +24,7 @@
 - Looks for `kernel_name/kernel.sxs` in each path
 - `kernel.sxs` contains metadata: `#(define-kernel name dylib [functions])`
 - Dylib name extracted from metadata, loaded from same directory
+- Optional `define-ctor` and `define-dtor` specify lifecycle hook names
 
 ## Function Registration
 
@@ -29,6 +33,18 @@
 - Manager wraps kernel function in `callable_symbol_s` lambda
 - Stored as `kernel_name/function_name` in registry
 - Functions callable from interpreter like built-in symbols
+
+## Lifecycle Hooks
+
+Kernels can optionally define initialization and cleanup functions:
+
+- `define-ctor` in kernel.sxs specifies init function name (e.g., `on_init`)
+- `define-dtor` in kernel.sxs specifies cleanup function name (e.g., `on_exit`)
+- Both hooks receive only the API table: `void hook_fn(const sxs_api_table_t *api)`
+- `on_init` called automatically after `kernel_init` completes
+- `on_exit` called automatically before dylib is closed
+- If hooks not found via `dlsym`, silently skipped (no error)
+- Existing kernels without hooks continue to work unchanged
 
 ## C API Boundary
 
