@@ -1,0 +1,15 @@
+=== Nested Event Chain Stress Test ===
+Testing cascading events through 6 topics
+Each event triggers publication to next topic
+
+Setting up event chain...
+Subscribed to all 6 topics in chain
+Sub IDs: 6, 5, 4, 3, 2, 1
+
+Starting concurrent publishers...
+Publishing 6 events to topic1
+All events published to entry point
+Events will cascade through: topic1 -> topic2 -> topic3 -> topic4 -> topic5 -> topic6
+
+=== Test complete ===
+Note: Event processing is asynchronous

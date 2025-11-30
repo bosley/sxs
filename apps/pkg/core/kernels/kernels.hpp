@@ -7,7 +7,9 @@
 #include <set>
 #include <string>
 
-struct sxs_api_table_t;
+namespace pkg::kernel {
+struct api_table_s;
+}
 
 namespace pkg::core::kernels {
 
@@ -63,7 +65,9 @@ private:
   std::map<std::string, void *> loaded_dylibs_;
   std::map<std::string, callable_symbol_s> registered_functions_;
   callable_context_if *parent_context_;
-  std::unique_ptr<sxs_api_table_t> api_table_;
+  std::unique_ptr<pkg::kernel::api_table_s> api_table_;
+  std::map<std::string, void (*)(const pkg::kernel::api_table_s *)>
+      kernel_on_exit_fns_;
 
   class kernel_context_c : public kernel_context_if {
   public:

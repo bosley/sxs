@@ -1,0 +1,20 @@
+[
+    #(load "event" "io")
+
+    (io/put "=== Basic Pub/Sub Test ===\n")
+
+    (def received 0)
+
+    (def sub_id (event/subscribe testTopic (fn (evt :any) :any [
+        (io/put "Received event: %d\n" evt)
+        (def received 1)
+    ])))
+
+    (io/put "Subscribed with id: %d\n" sub_id)
+
+    (event/publish testTopic 42)
+    (io/put "Published event\n")
+
+    (io/put "\n=== Test complete ===\n")
+]
+

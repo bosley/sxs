@@ -1,0 +1,28 @@
+[
+    #(load "event" "io")
+
+    (io/put "=== Multiple Topics Test ===\n")
+
+    (def sub_a (event/subscribe topicA (fn (evt :any) :any [
+        (io/put "Topic A received: %d\n" evt)
+    ])))
+
+    (def sub_b (event/subscribe topicB (fn (evt :any) :any [
+        (io/put "Topic B received: %s\n" evt)
+    ])))
+
+    (def sub_c (event/subscribe topicC (fn (evt :any) :any [
+        (io/put "Topic C received: %f\n" evt)
+    ])))
+
+    (io/put "Subscribed to 3 different topics\n")
+
+    (event/publish topicA 123)
+    (event/publish topicB "hello")
+    (event/publish topicC 3.14)
+
+    (io/put "Published to all topics\n")
+
+    (io/put "\n=== Test complete ===\n")
+]
+

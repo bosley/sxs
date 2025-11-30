@@ -700,4 +700,121 @@ slp_object_c create_string_direct(const std::string &str) {
   return obj;
 }
 
+slp_object_c slp_object_c::create_int(long long value) {
+  auto parse_result = parse(std::to_string(value));
+  return parse_result.take();
+}
+
+slp_object_c slp_object_c::create_real(double value) {
+  auto parse_result = parse(std::to_string(value));
+  return parse_result.take();
+}
+
+slp_object_c slp_object_c::create_string(const std::string &value) {
+  return create_string_direct(value);
+}
+
+slp_object_c slp_object_c::create_symbol(const std::string &name) {
+  auto parse_result = parse(name);
+  return parse_result.take();
+}
+
+slp_object_c slp_object_c::create_none() {
+  auto parse_result = parse("()");
+  return parse_result.take();
+}
+
+slp_object_c slp_object_c::create_paren_list(const slp_object_c *objects,
+                                             size_t count) {
+  if (!objects || count == 0) {
+    auto parse_result = parse("()");
+    return parse_result.take();
+  }
+
+  std::string list_str = "(";
+  for (size_t i = 0; i < count; i++) {
+    const auto &elem = objects[i];
+    if (elem.type() == slp_type_e::INTEGER) {
+      list_str += std::to_string(elem.as_int());
+    } else if (elem.type() == slp_type_e::REAL) {
+      list_str += std::to_string(elem.as_real());
+    } else if (elem.type() == slp_type_e::DQ_LIST) {
+      list_str += "\"" + elem.as_string().to_string() + "\"";
+    } else if (elem.type() == slp_type_e::SYMBOL) {
+      list_str += elem.as_symbol();
+    } else {
+      list_str += "()";
+    }
+    if (i < count - 1) {
+      list_str += " ";
+    }
+  }
+  list_str += ")";
+
+  auto parse_result = parse(list_str);
+  return parse_result.take();
+}
+
+slp_object_c slp_object_c::create_bracket_list(const slp_object_c *objects,
+                                               size_t count) {
+  if (!objects || count == 0) {
+    auto parse_result = parse("[]");
+    return parse_result.take();
+  }
+
+  std::string list_str = "[";
+  for (size_t i = 0; i < count; i++) {
+    const auto &elem = objects[i];
+    if (elem.type() == slp_type_e::INTEGER) {
+      list_str += std::to_string(elem.as_int());
+    } else if (elem.type() == slp_type_e::REAL) {
+      list_str += std::to_string(elem.as_real());
+    } else if (elem.type() == slp_type_e::DQ_LIST) {
+      list_str += "\"" + elem.as_string().to_string() + "\"";
+    } else if (elem.type() == slp_type_e::SYMBOL) {
+      list_str += elem.as_symbol();
+    } else {
+      list_str += "()";
+    }
+    if (i < count - 1) {
+      list_str += " ";
+    }
+  }
+  list_str += "]";
+
+  auto parse_result = parse(list_str);
+  return parse_result.take();
+}
+
+slp_object_c slp_object_c::create_brace_list(const slp_object_c *objects,
+                                             size_t count) {
+  if (!objects || count == 0) {
+    auto parse_result = parse("{}");
+    return parse_result.take();
+  }
+
+  std::string list_str = "{";
+  for (size_t i = 0; i < count; i++) {
+    const auto &elem = objects[i];
+    if (elem.type() == slp_type_e::INTEGER) {
+      list_str += std::to_string(elem.as_int());
+    } else if (elem.type() == slp_type_e::REAL) {
+      list_str += std::to_string(elem.as_real());
+    } else if (elem.type() == slp_type_e::DQ_LIST) {
+      list_str += "\"" + elem.as_string().to_string() + "\"";
+    } else if (elem.type() == slp_type_e::SYMBOL) {
+      list_str += elem.as_symbol();
+    } else {
+      list_str += "()";
+    }
+    if (i < count - 1) {
+      list_str += " ";
+    }
+  }
+  list_str += "}";
+
+  auto parse_result = parse(list_str);
+  return parse_result.take();
+}
+
 } // namespace slp

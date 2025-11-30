@@ -119,6 +119,18 @@ public:
             const std::map<std::uint64_t, std::string> &symbols,
             size_t root_offset);
 
+  static slp_object_c create_int(long long value);
+  static slp_object_c create_real(double value);
+  static slp_object_c create_string(const std::string &value);
+  static slp_object_c create_symbol(const std::string &name);
+  static slp_object_c create_none();
+  static slp_object_c create_paren_list(const slp_object_c *objects,
+                                        size_t count);
+  static slp_object_c create_bracket_list(const slp_object_c *objects,
+                                          size_t count);
+  static slp_object_c create_brace_list(const slp_object_c *objects,
+                                        size_t count);
+
 private:
   slp_unit_of_store_t *view_;
   slp_buffer_c data_;

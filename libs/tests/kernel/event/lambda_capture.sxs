@@ -1,0 +1,21 @@
+[
+    #(load "event" "io")
+
+    (io/put "=== Lambda Capture Test ===\n")
+
+    (def prefix "Message:")
+
+    (event/subscribe captureTopic (fn (evt :any) :any [
+        (io/put "%s received event\n" prefix)
+    ]))
+
+    (io/put "Subscribed with capturing lambda\n")
+
+    (event/publish captureTopic 10)
+    (event/publish captureTopic 20)
+    (event/publish captureTopic 30)
+
+    (io/put "Published 3 events\n")
+
+    (io/put "\n=== Test complete ===\n")
+]

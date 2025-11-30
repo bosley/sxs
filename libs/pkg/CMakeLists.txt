@@ -58,7 +58,7 @@ install(FILES
 )
 
 install(FILES
-  kernel_api.h
+  kernel_api.hpp
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/sxs
 )
 

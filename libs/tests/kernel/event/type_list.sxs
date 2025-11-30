@@ -1,0 +1,19 @@
+[
+    #(load "event" "io")
+
+    (io/put "=== List Type Test ===\n")
+
+    (event/subscribe listTopic (fn (evt :any) :any [
+        (io/put "Got list event\n")
+    ]))
+
+    (event/publish listTopic '(1 2 3))
+    (event/publish listTopic '[a b c])
+    (event/publish listTopic '{x y z})
+    (event/publish listTopic '())
+
+    (io/put "Published 4 lists\n")
+
+    (io/put "\n=== Test complete ===\n")
+]
+
