@@ -13,6 +13,8 @@ set(SXS_TEST_FILES
   test_assert.sxs
   test_recover.sxs
   test_eval.sxs
+  test_apply.sxs
+  test_match.sxs
   test_import_basic.sxs
   test_import_exported_basic.sxs
   test_import_lambda.sxs
@@ -203,4 +205,30 @@ target_link_libraries(eval_tests PRIVATE
 
 add_dependencies(build_tests eval_tests)
 add_test(NAME eval_tests COMMAND eval_tests)
+
+add_executable(apply_tests
+  apply_test.cpp
+)
+
+target_link_libraries(apply_tests PRIVATE 
+  extern::snitch
+  pkg::core
+  ${SXS_SLP_LIB}
+)
+
+add_dependencies(build_tests apply_tests)
+add_test(NAME apply_tests COMMAND apply_tests)
+
+add_executable(match_tests
+  match_test.cpp
+)
+
+target_link_libraries(match_tests PRIVATE 
+  extern::snitch
+  pkg::core
+  ${SXS_SLP_LIB}
+)
+
+add_dependencies(build_tests match_tests)
+add_test(NAME match_tests COMMAND match_tests)
 

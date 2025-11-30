@@ -449,6 +449,141 @@ get_standard_callable_symbols() {
         return result;
       }};
 
+  symbols["apply"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 3) {
+          throw std::runtime_error(
+              "apply requires exactly 2 arguments: lambda and args-list");
+        }
+
+        auto lambda_obj = list.at(1);
+        auto args_obj = list.at(2);
+
+        auto evaluated_lambda = context.eval(lambda_obj);
+        if (evaluated_lambda.type() != slp::slp_type_e::ABERRANT) {
+          throw std::runtime_error(
+              "apply: first argument must be a lambda (aberrant type)");
+        }
+
+        auto evaluated_args = context.eval(args_obj);
+        if (evaluated_args.type() != slp::slp_type_e::BRACE_LIST) {
+          throw std::runtime_error(
+              "apply: second argument must be a brace list of arguments");
+        }
+
+        auto args_to_apply = evaluated_args.as_list();
+
+        context.push_scope();
+        context.define_symbol("apply-temp-lambda", evaluated_lambda);
+
+        std::string call_str = "(apply-temp-lambda";
+        for (size_t i = 0; i < args_to_apply.size(); i++) {
+          call_str += " ";
+          auto arg = args_to_apply.at(i);
+          std::string arg_sym = "apply-temp-arg-" + std::to_string(i);
+          context.define_symbol(arg_sym, arg);
+          call_str += arg_sym;
+        }
+        call_str += ")";
+
+        auto parse_result = slp::parse(call_str);
+        if (parse_result.is_error()) {
+          context.pop_scope();
+          throw std::runtime_error("apply: failed to construct call");
+        }
+
+        auto call_obj = parse_result.take();
+        auto result = context.eval(call_obj);
+        context.pop_scope();
+
+        return result;
+      }};
+
+  symbols["match"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() < 3) {
+          throw std::runtime_error(
+              "match requires at least 2 arguments: value and one handler");
+        }
+
+        auto value_obj = list.at(1);
+        auto evaluated_value = context.eval(value_obj);
+        auto actual_type = evaluated_value.type();
+
+        if (actual_type == slp::slp_type_e::ABERRANT) {
+          throw std::runtime_error(
+              "match: cannot match on aberrant (lambda) types");
+        }
+
+        for (size_t i = 2; i < list.size(); i++) {
+          auto handler = list.at(i);
+
+          if (handler.type() != slp::slp_type_e::PAREN_LIST) {
+            throw std::runtime_error(
+                "match: handlers must be paren lists like (pattern result)");
+          }
+
+          auto handler_list = handler.as_list();
+          if (handler_list.size() != 2) {
+            throw std::runtime_error("match: handler must have exactly 2 "
+                                     "elements: (pattern result)");
+          }
+
+          auto pattern_obj = handler_list.at(0);
+          auto evaluated_pattern = context.eval(pattern_obj);
+
+          if (evaluated_pattern.type() != actual_type) {
+            continue;
+          }
+
+          bool values_match = false;
+          switch (actual_type) {
+          case slp::slp_type_e::INTEGER:
+            values_match =
+                evaluated_value.as_int() == evaluated_pattern.as_int();
+            break;
+          case slp::slp_type_e::REAL:
+            values_match =
+                evaluated_value.as_real() == evaluated_pattern.as_real();
+            break;
+          case slp::slp_type_e::SYMBOL: {
+            std::string val_sym = evaluated_value.as_symbol();
+            std::string pat_sym = evaluated_pattern.as_symbol();
+            values_match = (val_sym == pat_sym);
+            break;
+          }
+          case slp::slp_type_e::DQ_LIST: {
+            std::string val_str = evaluated_value.as_string().to_string();
+            std::string pat_str = evaluated_pattern.as_string().to_string();
+            values_match = (val_str == pat_str);
+            break;
+          }
+          default:
+            values_match = false;
+            break;
+          }
+
+          if (values_match) {
+            auto result_obj = handler_list.at(1);
+            return context.eval(result_obj);
+          }
+        }
+
+        std::string error_msg = "@(no matching handler found)";
+        auto error_parse = slp::parse(error_msg);
+        return error_parse.take();
+      }};
+
   return symbols;
 }
 
