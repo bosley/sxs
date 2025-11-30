@@ -19,11 +19,11 @@ static sxs_object_t add_numbers(sxs_context_t ctx, sxs_object_t args) {
 
   sxs_object_t arg1 = g_api->list_at(list, 1);
   sxs_object_t arg2 = g_api->list_at(list, 2);
-  
+
   sxs_object_t evaled1 = g_api->eval(ctx, arg1);
   sxs_object_t evaled2 = g_api->eval(ctx, arg2);
 
-  if (g_api->get_type(evaled1) != SXS_TYPE_INT || 
+  if (g_api->get_type(evaled1) != SXS_TYPE_INT ||
       g_api->get_type(evaled2) != SXS_TYPE_INT) {
     printf("add_numbers: ERROR - arguments must be integers\n");
     return g_api->create_int(0);
@@ -61,7 +61,9 @@ static sxs_object_t greet_person(sxs_context_t ctx, sxs_object_t args) {
 extern "C" void kernel_init(sxs_registry_t registry,
                             const struct sxs_api_table_t *api) {
   g_api = api;
-  api->register_function(registry, "hello_world", hello_world, SXS_TYPE_STRING, 0);
+  api->register_function(registry, "hello_world", hello_world, SXS_TYPE_STRING,
+                         0);
   api->register_function(registry, "add_numbers", add_numbers, SXS_TYPE_INT, 0);
-  api->register_function(registry, "greet_person", greet_person, SXS_TYPE_STRING, 0);
+  api->register_function(registry, "greet_person", greet_person,
+                         SXS_TYPE_STRING, 0);
 }

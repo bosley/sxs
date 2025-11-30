@@ -34,6 +34,7 @@ if(NOT snitch_POPULATED)
   add_subdirectory(${snitch_SOURCE_DIR} ${snitch_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
+find_package(spdlog REQUIRED)
 find_package(RocksDB REQUIRED)
 
 include_directories(${CMAKE_SOURCE_DIR}/pkg)
