@@ -211,6 +211,8 @@ type_info_s tcs_c::eval_type(slp::slp_object_c &object) {
       return handle_export(object);
     if (cmd == "debug")
       return handle_debug(object);
+    if (cmd == "cast")
+      return handle_cast(object);
 
     if (has_symbol(cmd)) {
       auto sym_type = get_symbol_type(cmd);
@@ -733,6 +735,33 @@ type_info_s tcs_c::handle_assert(slp::slp_object_c &args_list) {
   type_info_s result;
   result.base_type = slp::slp_type_e::NONE;
   return result;
+}
+
+type_info_s tcs_c::handle_cast(slp::slp_object_c &args_list) {
+  auto list = args_list.as_list();
+  if (list.size() != 3) {
+    throw std::runtime_error(
+        "cast requires exactly 2 arguments: type and value");
+  }
+
+  auto type_obj = list.at(1);
+  auto value_obj = list.at(2);
+
+  if (type_obj.type() != slp::slp_type_e::SYMBOL) {
+    throw std::runtime_error("cast: first argument must be a type symbol");
+  }
+
+  std::string type_symbol = type_obj.as_symbol();
+  type_info_s expected_type;
+
+  if (!is_type_symbol(type_symbol, expected_type)) {
+    throw std::runtime_error(
+        fmt::format("cast: invalid type symbol: {}", type_symbol));
+  }
+
+  eval_type(value_obj);
+
+  return expected_type;
 }
 
 type_info_s tcs_c::handle_eval(slp::slp_object_c &args_list) {

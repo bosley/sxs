@@ -16,6 +16,7 @@ set(SXS_TEST_FILES
   test_apply.sxs
   test_match.sxs
   test_lambda_types.sxs
+  test_cast.sxs
   test_import_basic.sxs
   test_import_exported_basic.sxs
   test_import_lambda.sxs
@@ -245,4 +246,17 @@ target_link_libraries(lambda_type_tests PRIVATE
 
 add_dependencies(build_tests lambda_type_tests)
 add_test(NAME lambda_type_tests COMMAND lambda_type_tests)
+
+add_executable(cast_tests
+  cast_test.cpp
+)
+
+target_link_libraries(cast_tests PRIVATE 
+  extern::snitch
+  pkg::core
+  ${SXS_SLP_LIB}
+)
+
+add_dependencies(build_tests cast_tests)
+add_test(NAME cast_tests COMMAND cast_tests)
 
