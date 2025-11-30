@@ -1,4 +1,5 @@
 #include "kernels.hpp"
+#include "core/interpreter.hpp"
 #include <dlfcn.h>
 #include <filesystem>
 #include <fstream>
@@ -14,6 +15,14 @@ struct registration_context_s {
   kernel_manager_c *manager;
   std::string kernel_name;
   const sxs_api_table_t *api;
+};
+
+struct kernel_definition_context_s {
+  kernel_manager_c *manager;
+  std::string kernel_name;
+  std::string kernel_dir;
+  std::set<std::string> declared_functions;
+  std::string dylib_name;
 };
 
 void register_function_callback(sxs_registry_t registry, const char *name,
@@ -255,6 +264,111 @@ sxs_object_t some_get_value_callback(sxs_object_t obj) {
   return new slp::slp_object_c(std::move(inner_obj));
 }
 
+std::map<std::string, callable_symbol_s>
+get_kernel_definition_symbols(kernel_definition_context_s *ctx) {
+  std::map<std::string, callable_symbol_s> symbols;
+
+  symbols["define-function"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::NONE,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [ctx](callable_context_if &context,
+                        slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() < 4) {
+          throw std::runtime_error(
+              "define-function requires at least 3 arguments: name (params) "
+              ":return-type");
+        }
+
+        auto func_name_obj = list.at(1);
+        if (func_name_obj.type() != slp::slp_type_e::SYMBOL) {
+          throw std::runtime_error("define-function: name must be a symbol");
+        }
+        std::string func_name = func_name_obj.as_symbol();
+
+        auto params_obj = list.at(2);
+        if (params_obj.type() != slp::slp_type_e::PAREN_LIST) {
+          throw std::runtime_error(
+              "define-function: parameters must be a paren list");
+        }
+
+        auto return_type_obj = list.at(3);
+        if (return_type_obj.type() != slp::slp_type_e::SYMBOL) {
+          throw std::runtime_error(
+              "define-function: return type must be a symbol");
+        }
+
+        std::string return_type_sym = return_type_obj.as_symbol();
+        slp::slp_type_e return_type;
+        if (!context.is_symbol_enscribing_valid_type(return_type_sym,
+                                                     return_type)) {
+          throw std::runtime_error(fmt::format(
+              "define-function: invalid return type: {}", return_type_sym));
+        }
+
+        auto params_list = params_obj.as_list();
+        for (size_t j = 0; j < params_list.size(); j += 2) {
+          if (j + 1 >= params_list.size()) {
+            throw std::runtime_error(
+                "define-function: parameters must be in pairs (name :type)");
+          }
+
+          auto param_type_obj = params_list.at(j + 1);
+          if (param_type_obj.type() != slp::slp_type_e::SYMBOL) {
+            throw std::runtime_error(
+                "define-function: parameter type must be a symbol");
+          }
+
+          std::string param_type_sym = param_type_obj.as_symbol();
+          slp::slp_type_e param_type;
+          if (!context.is_symbol_enscribing_valid_type(param_type_sym,
+                                                       param_type)) {
+            throw std::runtime_error(fmt::format(
+                "define-function: invalid parameter type: {}", param_type_sym));
+          }
+        }
+
+        ctx->declared_functions.insert(func_name);
+
+        slp::slp_object_c result;
+        return result;
+      }};
+
+  symbols["define-kernel"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::NONE,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [ctx](callable_context_if &context,
+                        slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() < 4) {
+          throw std::runtime_error(
+              "define-kernel requires 3 arguments: name dylib [functions]");
+        }
+
+        auto dylib_name_obj = list.at(2);
+        if (dylib_name_obj.type() != slp::slp_type_e::DQ_LIST) {
+          throw std::runtime_error(
+              "define-kernel: dylib name must be a string");
+        }
+
+        ctx->dylib_name = dylib_name_obj.as_string().to_string();
+
+        auto functions_obj = list.at(3);
+        if (functions_obj.type() != slp::slp_type_e::BRACKET_LIST) {
+          throw std::runtime_error(
+              "define-kernel: functions must be a bracket list");
+        }
+
+        auto result = context.eval(functions_obj);
+
+        return result;
+      }};
+
+  return symbols;
+}
+
 } // namespace
 
 kernel_manager_c::kernel_manager_c(logger_t logger,
@@ -373,35 +487,27 @@ bool kernel_manager_c::load_kernel_dylib(const std::string &kernel_name,
     return false;
   }
 
-  const std::uint8_t *base_ptr = kernel_obj.get_data().data();
-  const std::uint8_t *unit_ptr = base_ptr + kernel_obj.get_root_offset();
-  const slp::slp_unit_of_store_t *unit =
-      reinterpret_cast<const slp::slp_unit_of_store_t *>(unit_ptr);
-  size_t inner_offset = static_cast<size_t>(unit->data.uint64);
+  kernel_definition_context_s def_ctx;
+  def_ctx.manager = this;
+  def_ctx.kernel_name = kernel_name;
+  def_ctx.kernel_dir = kernel_dir;
 
-  auto inner_obj = slp::slp_object_c::from_data(
-      kernel_obj.get_data(), kernel_obj.get_symbols(), inner_offset);
+  auto def_symbols = get_kernel_definition_symbols(&def_ctx);
+  auto def_interpreter = create_interpreter(def_symbols, nullptr, nullptr);
 
-  if (inner_obj.type() != slp::slp_type_e::PAREN_LIST) {
-    logger_->error("kernel.sxs define-kernel must be a list");
+  try {
+    def_interpreter->eval(kernel_obj);
+  } catch (const std::exception &e) {
+    logger_->error("Error processing kernel.sxs: {}", e.what());
     return false;
   }
 
-  auto list = inner_obj.as_list();
-  if (list.size() < 4) {
-    logger_->error("kernel.sxs define-kernel requires: name dylib functions");
+  if (def_ctx.dylib_name.empty()) {
+    logger_->error("kernel.sxs did not specify dylib name");
     return false;
   }
 
-  auto dylib_name_obj = list.at(2);
-  if (dylib_name_obj.type() != slp::slp_type_e::DQ_LIST) {
-    logger_->error("kernel.sxs dylib name must be a string");
-    return false;
-  }
-
-  std::string dylib_name = dylib_name_obj.as_string().to_string();
-  auto dylib_path = std::filesystem::path(kernel_dir) / dylib_name;
-
+  auto dylib_path = std::filesystem::path(kernel_dir) / def_ctx.dylib_name;
   if (!std::filesystem::exists(dylib_path)) {
     logger_->error("Kernel dylib not found: {}", dylib_path.string());
     return false;
@@ -429,6 +535,19 @@ bool kernel_manager_c::load_kernel_dylib(const std::string &kernel_name,
       .manager = this, .kernel_name = kernel_name, .api = api_table_.get()};
 
   kernel_init(&reg_ctx, api_table_.get());
+
+  for (const auto &func_name : def_ctx.declared_functions) {
+    std::string full_name = kernel_name + "/" + func_name;
+    if (registered_functions_.find(full_name) == registered_functions_.end()) {
+      logger_->error(
+          "kernel.sxs declares function '{}' but dylib did not register it",
+          func_name);
+      dlclose(handle);
+      return false;
+    }
+  }
+
+  logger_->info("All declared functions successfully registered");
 
   typedef void (*shutdown_fn_t)(const struct sxs_api_table_t *);
   auto kernel_shutdown_fn =
