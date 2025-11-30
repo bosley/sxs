@@ -75,6 +75,8 @@ public:
 
   virtual callable_context_if *
   get_import_interpreter(const std::string &symbol_prefix) = 0;
+
+  virtual std::string get_lambda_signature(std::uint64_t lambda_id) = 0;
 };
 
 struct callable_symbol_s {

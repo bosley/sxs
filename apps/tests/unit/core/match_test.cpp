@@ -291,12 +291,12 @@ TEST_CASE("match - handler wrong element count", "[unit][core][match]") {
   CHECK_THROWS_AS(interpreter->eval(obj), std::runtime_error);
 }
 
-TEST_CASE("match - cannot match on aberrant", "[unit][core][match]") {
+TEST_CASE("match - can match lambda by identity", "[unit][core][match]") {
   std::string source = R"([
     (def my_fn (fn () :int [42]))
-    (match my_fn
+    (def result (match my_fn
       (my_fn 100)
-    )
+    ))
   ])";
 
   auto parse_result = slp::parse(source);
@@ -306,7 +306,15 @@ TEST_CASE("match - cannot match on aberrant", "[unit][core][match]") {
   auto interpreter = pkg::core::create_interpreter(symbols);
 
   auto obj = parse_result.take();
-  CHECK_THROWS_AS(interpreter->eval(obj), std::runtime_error);
+  CHECK_NOTHROW(interpreter->eval(obj));
+
+  auto result_parsed = slp::parse("result");
+  REQUIRE(result_parsed.is_success());
+  auto result_obj = result_parsed.take();
+  auto result_val = interpreter->eval(result_obj);
+
+  CHECK(result_val.type() == slp::slp_type_e::INTEGER);
+  CHECK(result_val.as_int() == 100);
 }
 
 TEST_CASE("match - multiple types same value different result",

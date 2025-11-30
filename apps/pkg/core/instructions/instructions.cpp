@@ -273,6 +273,24 @@ get_standard_callable_symbols() {
           }
 
           std::string type_symbol = type_symbol_obj.as_symbol();
+
+          if (actual_type == slp::slp_type_e::ABERRANT &&
+              type_symbol.find(":fn<") == 0) {
+            const std::uint8_t *base_ptr = evaluated_value.get_data().data();
+            const std::uint8_t *unit_ptr =
+                base_ptr + evaluated_value.get_root_offset();
+            const slp::slp_unit_of_store_t *unit =
+                reinterpret_cast<const slp::slp_unit_of_store_t *>(unit_ptr);
+            std::uint64_t lambda_id = unit->data.uint64;
+
+            std::string lambda_sig = context.get_lambda_signature(lambda_id);
+            if (lambda_sig == type_symbol) {
+              auto body = handler_list.at(1);
+              return context.eval(body);
+            }
+            continue;
+          }
+
           slp::slp_type_e handler_type;
 
           if (!context.is_symbol_enscribing_valid_type(type_symbol,
@@ -520,11 +538,6 @@ get_standard_callable_symbols() {
         auto evaluated_value = context.eval(value_obj);
         auto actual_type = evaluated_value.type();
 
-        if (actual_type == slp::slp_type_e::ABERRANT) {
-          throw std::runtime_error(
-              "match: cannot match on aberrant (lambda) types");
-        }
-
         for (size_t i = 2; i < list.size(); i++) {
           auto handler = list.at(i);
 
@@ -566,6 +579,24 @@ get_standard_callable_symbols() {
             std::string val_str = evaluated_value.as_string().to_string();
             std::string pat_str = evaluated_pattern.as_string().to_string();
             values_match = (val_str == pat_str);
+            break;
+          }
+          case slp::slp_type_e::ABERRANT: {
+            const std::uint8_t *val_base = evaluated_value.get_data().data();
+            const std::uint8_t *val_unit =
+                val_base + evaluated_value.get_root_offset();
+            const slp::slp_unit_of_store_t *val_u =
+                reinterpret_cast<const slp::slp_unit_of_store_t *>(val_unit);
+            std::uint64_t val_id = val_u->data.uint64;
+
+            const std::uint8_t *pat_base = evaluated_pattern.get_data().data();
+            const std::uint8_t *pat_unit =
+                pat_base + evaluated_pattern.get_root_offset();
+            const slp::slp_unit_of_store_t *pat_u =
+                reinterpret_cast<const slp::slp_unit_of_store_t *>(pat_unit);
+            std::uint64_t pat_id = pat_u->data.uint64;
+
+            values_match = (val_id == pat_id);
             break;
           }
           default:

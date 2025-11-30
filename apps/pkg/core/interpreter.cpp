@@ -290,6 +290,59 @@ public:
     return it->second.get();
   }
 
+  std::string get_lambda_signature(std::uint64_t lambda_id) override {
+    auto it = lambda_definitions_.find(lambda_id);
+    if (it == lambda_definitions_.end()) {
+      return "";
+    }
+
+    const auto &def = it->second;
+
+    auto type_to_string = [](slp::slp_type_e type) -> std::string {
+      switch (type) {
+      case slp::slp_type_e::INTEGER:
+        return "int";
+      case slp::slp_type_e::REAL:
+        return "real";
+      case slp::slp_type_e::DQ_LIST:
+        return "str";
+      case slp::slp_type_e::SYMBOL:
+        return "symbol";
+      case slp::slp_type_e::PAREN_LIST:
+        return "list-p";
+      case slp::slp_type_e::BRACE_LIST:
+        return "list-c";
+      case slp::slp_type_e::BRACKET_LIST:
+        return "list-b";
+      case slp::slp_type_e::NONE:
+        return "none";
+      case slp::slp_type_e::SOME:
+        return "some";
+      case slp::slp_type_e::ERROR:
+        return "error";
+      case slp::slp_type_e::DATUM:
+        return "datum";
+      case slp::slp_type_e::ABERRANT:
+        return "aberrant";
+      case slp::slp_type_e::RUNE:
+        return "rune";
+      default:
+        return "unknown";
+      }
+    };
+
+    std::string signature = ":fn<";
+    for (size_t i = 0; i < def.parameters.size(); i++) {
+      if (i > 0)
+        signature += ",";
+      signature += type_to_string(def.parameters[i].type);
+    }
+    signature += ">";
+    signature += type_to_string(def.return_type);
+
+    return signature;
+  }
+
 private:
   void trigger_import_locks() {
     if (import_context_) {
