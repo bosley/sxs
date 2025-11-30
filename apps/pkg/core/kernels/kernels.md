@@ -2,15 +2,16 @@
 
 ## Overview
 
-The SXS kernel system provides a C-based plugin architecture for extending the language runtime with native compiled functions. Kernels are dynamically loaded shared libraries that register functions callable from SXS code, enabling high-performance operations while maintaining language safety through a well-defined API boundary.
+The SXS kernel system provides a C++ plugin architecture for extending the language runtime with native compiled functions. Kernels are dynamically loaded shared libraries that register functions callable from SXS code, enabling high-performance operations while maintaining type safety through direct integration with the SLP object system.
 
-### Key Design Goals
+### Key Design Principles
 
-- **Language Interoperability**: Clean C API allows kernels in any language that can produce C-compatible shared libraries
-- **Type Safety**: Explicit type annotations and runtime validation
+- **Native C++ Integration**: Direct use of `slp::slp_object_c` eliminates marshaling overhead
+- **Stack-Based Objects**: Move semantics and value passing prevent memory leaks
+- **Minimal API Surface**: Only `register_function` and `eval` in the API table
+- **Type Safety**: Compile-time type checking through C++ type system
 - **Dynamic Loading**: Kernels loaded on-demand, locked after initialization phase
-- **Zero-Copy Optimization**: Direct memory access to SLP objects where possible
-- **Isolation**: Kernels execute in separate compilation units with controlled access to runtime
+- **Isolation**: Kernels execute in separate compilation units with controlled runtime access
 
 ## Architecture
 
@@ -19,7 +20,7 @@ graph TB
     subgraph "SXS Runtime"
         KM[kernel_manager_c]
         KC[kernel_context_c]
-        API[sxs_api_table_t]
+        API[api_table_s<br/>register + eval only]
         RF[registered_functions_]
         IC[Interpreter Context]
     end
@@ -44,9 +45,9 @@ graph TB
     KM -->|dlsym & invoke| KI
     KI -->|registers via| API
     API -->|callbacks to| KM
-    KF1 -->|uses| API
-    KF2 -->|uses| API
-    KFN -->|uses| API
+    KF1 -->|uses slp::slp_object_c| API
+    KF2 -->|uses slp::slp_object_c| API
+    KFN -->|uses slp::slp_object_c| API
     RF -->|invoked by| IC
     KM -->|provides context to| IC
 ```
@@ -62,7 +63,7 @@ Central orchestrator managing the entire kernel subsystem lifecycle.
 - Dynamic library loading and symbol resolution
 - Function registration and lookup
 - Lifecycle management (load → register → lock → execute)
-- API table provisioning to kernels
+- Minimal API table provisioning
 
 **Key State:**
 - `include_paths_`: Search paths for kernel discovery
@@ -82,22 +83,21 @@ Interface exposing kernel operations to the interpreter.
 - `has_function(name)`: Check function availability
 - `get_function(name)`: Retrieve callable symbol
 
-### sxs_api_table_t
+### api_table_s
 
-Function pointer table providing the C API to kernel implementations.
+Minimal API table providing essential runtime operations to kernels.
 
-**Categories:**
+**Structure:**
+```cpp
+namespace pkg::kernel {
+  struct api_table_s {
+    register_fn_t register_function;
+    eval_fn_t eval;
+  };
+}
+```
 
-1. **Registration**: `register_function` - called during kernel_init
-2. **Evaluation**: `eval` - evaluate SXS objects in context
-3. **Type Inspection**: `get_type` - query object type
-4. **Type Extraction**: `as_int`, `as_real`, `as_string`, `as_symbol`, `as_list` - access typed data
-5. **List Operations**: `list_size`, `list_at` - traverse list objects
-6. **Object Creation**: `create_int`, `create_real`, `create_string`, `create_symbol`, `create_none` - construct primitives
-7. **List Creation**: `create_paren_list`, `create_bracket_list`, `create_brace_list` - construct list types
-8. **SOME Operations**: `some_has_value`, `some_get_value` - handle optional/quoted values
-
-All API functions are implemented as callbacks into the C++ runtime with appropriate marshaling.
+All object creation is done via static methods on `slp::slp_object_c`.
 
 ## Kernel Lifecycle
 
@@ -134,7 +134,7 @@ sequenceDiagram
     
     loop For each kernel function
         Kernel->>kernel_manager_c: api->register_function(registry, name, fn_ptr, return_type, variadic)
-        kernel_manager_c->>kernel_manager_c: register_kernel_function()<br/>create callable_symbol_s wrapper
+        kernel_manager_c->>kernel_manager_c: create callable_symbol_s wrapper
         kernel_manager_c->>kernel_manager_c: store in registered_functions_
     end
     
@@ -148,27 +148,6 @@ sequenceDiagram
 3. Search `working_directory_/kernel_name/kernel.sxs`
 4. Return empty string if not found
 
-### kernel.sxs Structure
-
-```scheme
-#(define-kernel <kernel-name> <dylib-filename> [
-    (define-function <fn-name> (<arg> :<type> ...) :<return-type>)
-    ...
-])
-```
-
-**Example:**
-
-```scheme
-#(define-kernel alu "libkernel_alu.dylib" [
-    (define-function add (a :int b :int) :int)
-    (define-function mul (a :int b :int) :int)
-    (define-function put (format :str obj :any..) :int)
-])
-```
-
-The metadata is informational; actual registration happens in kernel_init C code.
-
 ## Runtime Function Call Flow
 
 ```mermaid
@@ -178,7 +157,6 @@ sequenceDiagram
     participant kernel_manager_c
     participant callable_symbol_s
     participant Kernel Function
-    participant API Callbacks
 
     SXS Code->>Interpreter: invoke (alu/add 5 3)
     Interpreter->>kernel_manager_c: get_function("alu/add")
@@ -186,254 +164,93 @@ sequenceDiagram
     
     Interpreter->>callable_symbol_s: function(context, args_list)
     
-    Note over callable_symbol_s: Lambda wrapper created<br/>during registration
+    Note over callable_symbol_s: Thin lambda wrapper
     
-    callable_symbol_s->>Kernel Function: kernel_fn(sxs_context_t, sxs_object_t)
+    callable_symbol_s->>Kernel Function: kernel_fn(context_t, slp_object_c&)
     
-    Note over Kernel Function: Kernel implementation<br/>processes arguments
+    Note over Kernel Function: Direct SLP object access
     
-    loop For each argument
-        Kernel Function->>API Callbacks: api->get_type(arg)
-        API Callbacks-->>Kernel Function: SXS_TYPE_INT
-        Kernel Function->>API Callbacks: api->as_int(arg)
-        API Callbacks->>API Callbacks: cast to slp_object_c*<br/>call as_int()
-        API Callbacks-->>Kernel Function: 5
-    end
+    Kernel Function->>Kernel Function: auto list = args.as_list()<br/>auto a = g_api->eval(ctx, list.at(1)).as_int()<br/>auto b = g_api->eval(ctx, list.at(2)).as_int()
     
     Kernel Function->>Kernel Function: compute result (5 + 3 = 8)
     
-    Kernel Function->>API Callbacks: api->create_int(8)
-    API Callbacks->>API Callbacks: slp::parse("8")<br/>wrap in slp_object_c
-    API Callbacks-->>Kernel Function: sxs_object_t
+    Kernel Function->>Kernel Function: return slp_object_c::create_int(8)
     
-    Kernel Function-->>callable_symbol_s: result
-    
-    callable_symbol_s->>callable_symbol_s: copy slp_object_c data<br/>delete kernel-allocated object
+    Kernel Function-->>callable_symbol_s: slp_object_c
     callable_symbol_s-->>Interpreter: slp_object_c(8)
-    
     Interpreter-->>SXS Code: 8
 ```
-
-## Data Flow & Type System
-
-```mermaid
-flowchart TD
-    Start[Kernel Function Called] --> GetArgs[Receive sxs_object_t args]
-    
-    GetArgs --> CheckType{Need Type?}
-    CheckType -->|Yes| GetType[api->get_type]
-    CheckType -->|No| ExtractData
-    
-    GetType --> TypeSwitch{Type?}
-    TypeSwitch -->|INT| AsInt[api->as_int]
-    TypeSwitch -->|REAL| AsReal[api->as_real]
-    TypeSwitch -->|STRING| AsString[api->as_string]
-    TypeSwitch -->|LIST| AsList[api->as_list]
-    
-    AsInt --> CastInt[Cast sxs_object_t to slp_object_c*]
-    AsReal --> CastReal[Cast sxs_object_t to slp_object_c*]
-    AsString --> CastString[Cast sxs_object_t to slp_object_c*]
-    AsList --> CastList[Cast sxs_object_t to slp_object_c*]
-    
-    CastInt --> ExtractInt[object->as_int]
-    CastReal --> ExtractReal[object->as_real]
-    CastString --> ExtractString[object->as_string.to_string]
-    CastList --> ExtractList[object->as_list]
-    
-    ExtractInt --> ExtractData[Extract Native C++ Value]
-    ExtractReal --> ExtractData
-    ExtractString --> ExtractData
-    ExtractList --> IterateList
-    
-    IterateList --> ListSize[api->list_size]
-    ListSize --> ListLoop{For each index}
-    ListLoop -->|More| ListAt[api->list_at]
-    ListAt --> RecurseType[Recurse: check type, extract]
-    RecurseType --> ListLoop
-    ListLoop -->|Done| ExtractData
-    
-    ExtractData --> Compute[Kernel Logic Executes]
-    
-    Compute --> CreateResult{Return Type?}
-    CreateResult -->|INT| CreateInt[api->create_int]
-    CreateResult -->|REAL| CreateReal[api->create_real]
-    CreateResult -->|STRING| CreateString[api->create_string]
-    CreateResult -->|SYMBOL| CreateSymbol[api->create_symbol]
-    CreateResult -->|LIST| CreateList[api->create_*_list]
-    CreateResult -->|NONE| CreateNone[api->create_none]
-    
-    CreateInt --> ParseInt[slp::parse string representation]
-    CreateReal --> ParseReal[slp::parse string representation]
-    CreateString --> DirectString[slp::create_string_direct]
-    CreateSymbol --> ParseSymbol[slp::parse symbol]
-    CreateList --> ParseList[build string, slp::parse]
-    CreateNone --> ParseNone[slp::parse empty list]
-    
-    ParseInt --> WrapObj[new slp_object_c]
-    ParseReal --> WrapObj
-    DirectString --> WrapObj
-    ParseNone --> WrapObj
-    
-    WrapObj --> ReturnPtr[Return sxs_object_t]
-    ReturnPtr --> Unwrap[Caller: cast back to slp_object_c*]
-    Unwrap --> CopyData[Copy data from result object]
-    CopyData --> DeleteTemp[delete temporary object]
-    DeleteTemp --> End[Return slp_object_c to interpreter]
-```
-
-### Type Mapping
-
-| SXS Type | sxs_type_t Enum | C Representation | C++ Type |
-|----------|-----------------|------------------|----------|
-| None | SXS_TYPE_NONE | - | slp_type_e::NONE |
-| Some | SXS_TYPE_SOME | - | slp_type_e::SOME |
-| Paren List | SXS_TYPE_PAREN_LIST | void* (opaque) | slp_type_e::PAREN_LIST |
-| Brace List | SXS_TYPE_BRACE_LIST | void* (opaque) | slp_type_e::BRACE_LIST |
-| String | SXS_TYPE_STRING | const char* | slp_type_e::DQ_LIST |
-| Symbol | SXS_TYPE_SYMBOL | const char* | slp_type_e::SYMBOL |
-| Rune | SXS_TYPE_RUNE | - | slp_type_e::RUNE |
-| Integer | SXS_TYPE_INT | long long | slp_type_e::INTEGER |
-| Real | SXS_TYPE_REAL | double | slp_type_e::REAL |
-| Bracket List | SXS_TYPE_BRACKET_LIST | void* (opaque) | slp_type_e::BRACKET_LIST |
-| Error | SXS_TYPE_ERROR | - | slp_type_e::ERROR |
-| Datum | SXS_TYPE_DATUM | - | slp_type_e::DATUM |
-| Aberrant | SXS_TYPE_ABERRANT | - | slp_type_e::ABERRANT |
-
-### Memory Management
-
-**Object Lifetime Rules:**
-
-1. **Arguments**: `sxs_object_t` passed to kernel functions are **borrowed references**. Do not delete.
-2. **Return Values**: Created via `api->create_*` functions are **owned by caller**. The kernel returns ownership.
-3. **Lists**: `api->as_list` returns a **new list object**. Kernel must manage if stored beyond call.
-4. **Strings**: `api->as_string` returns pointer to **thread_local buffer**. Copy if needed beyond immediate use.
-
-**Wrapper Lambda Behavior:**
-
-The `callable_symbol_s.function` lambda (lines 446-463 in kernels.cpp):
-- Casts arguments to kernel's expected types
-- Invokes kernel function
-- Copies data from returned `sxs_object_t` 
-- **Deletes** the kernel-allocated return object
-- Returns the copied `slp_object_c` to interpreter
-
-This ensures kernel-created objects don't leak while maintaining clean ownership semantics.
 
 ## API Reference
 
 ### Registration
 
-```c
-void register_function(sxs_registry_t registry, 
+```cpp
+void register_function(pkg::kernel::registry_t registry, 
                        const char *name,
-                       sxs_kernel_fn_t function,
-                       sxs_type_t return_type, 
+                       pkg::kernel::kernel_fn_t function,
+                       slp::slp_type_e return_type, 
                        int variadic)
 ```
 
-Register a kernel function. Called during `kernel_init`.
+Register a kernel function during `kernel_init`.
 
 - `registry`: Opaque handle to registration context
 - `name`: Function name (without kernel prefix)
-- `function`: Function pointer with signature `sxs_object_t(sxs_context_t, sxs_object_t)`
-- `return_type`: Expected return type from `sxs_type_t` enum
+- `function`: Function pointer with signature `slp::slp_object_c(context_t, const slp::slp_object_c&)`
+- `return_type`: Expected return type from `slp::slp_type_e` enum
 - `variadic`: Non-zero if function accepts variable arguments
 
 ### Evaluation
 
-```c
-sxs_object_t eval(sxs_context_t ctx, sxs_object_t obj)
+```cpp
+slp::slp_object_c eval(pkg::kernel::context_t ctx, 
+                       const slp::slp_object_c &obj)
 ```
 
-Evaluate an SXS object in the current execution context. Enables kernels to invoke SXS code.
+Evaluate an SXS object in the current execution context.
 
-- Returns: New `sxs_object_t` with evaluation result (caller owns)
+- Returns: `slp::slp_object_c` by value (move semantics)
 
-### Type Inspection
+### SLP Object Methods
 
-```c
-sxs_type_t get_type(sxs_object_t obj)
+Kernels work directly with `slp::slp_object_c` objects:
+
+**Type Inspection:**
+```cpp
+slp::slp_type_e type() const;
 ```
 
-Query the runtime type of an object.
-
-- Returns: `sxs_type_t` enum value
-
-### Type Extraction
-
-```c
-long long as_int(sxs_object_t obj)
-double as_real(sxs_object_t obj)
-const char* as_string(sxs_object_t obj)
-const char* as_symbol(sxs_object_t obj)
-void* as_list(sxs_object_t obj)
+**Value Extraction:**
+```cpp
+std::int64_t as_int() const;
+double as_real() const;
+const char* as_symbol() const;
+list_c as_list() const;
+string_c as_string() const;
+bool has_data() const;
 ```
 
-Extract typed values from objects. **No type checking** - kernel must verify with `get_type` first.
-
-- `as_int`: Extract integer value
-- `as_real`: Extract floating-point value  
-- `as_string`: Extract string (pointer valid until next call on this thread)
-- `as_symbol`: Extract symbol name (pointer to internal buffer)
-- `as_list`: Extract list as opaque handle (caller must manage lifetime)
-
-### List Operations
-
-```c
-size_t list_size(void *list)
-sxs_object_t list_at(void *list, size_t index)
+**Static Factory Methods:**
+```cpp
+static slp_object_c create_int(long long value);
+static slp_object_c create_real(double value);
+static slp_object_c create_string(const std::string &value);
+static slp_object_c create_symbol(const std::string &name);
+static slp_object_c create_none();
+static slp_object_c create_paren_list(const slp_object_c *objects, size_t count);
+static slp_object_c create_bracket_list(const slp_object_c *objects, size_t count);
+static slp_object_c create_brace_list(const slp_object_c *objects, size_t count);
 ```
 
-Traverse list objects returned by `as_list`.
-
-- `list_size`: Number of elements
-- `list_at`: Get element at index (returns new object, caller owns)
-
-### Object Creation
-
-```c
-sxs_object_t create_int(long long value)
-sxs_object_t create_real(double value)
-sxs_object_t create_string(const char *value)
-sxs_object_t create_symbol(const char *name)
-sxs_object_t create_none()
+**List Operations:**
+```cpp
+class list_c {
+  size_t size() const;
+  bool empty() const;
+  slp_object_c at(size_t index) const;
+};
 ```
-
-Construct primitive SXS objects to return from kernel functions. **Caller owns returned object**.
-
-- `create_int`: Create integer object
-- `create_real`: Create real number object
-- `create_string`: Create string object (NULL creates none)
-- `create_symbol`: Create symbol object (NULL creates none)
-- `create_none`: Create empty/none object `()`
-
-### List Creation
-
-```c
-sxs_object_t create_paren_list(sxs_object_t *objects, size_t count)
-sxs_object_t create_bracket_list(sxs_object_t *objects, size_t count)
-sxs_object_t create_brace_list(sxs_object_t *objects, size_t count)
-```
-
-Construct list objects from arrays of objects. **Caller owns returned object**.
-
-- `create_paren_list`: Create `(...)` list from array of objects
-- `create_bracket_list`: Create `[...]` list from array of objects  
-- `create_brace_list`: Create `{...}` list from array of objects
-
-All functions accept `NULL` or `count=0` to create empty lists.
-
-### SOME Operations
-
-```c
-int some_has_value(sxs_object_t obj)
-sxs_object_t some_get_value(sxs_object_t obj)
-```
-
-Handle SOME type objects (quoted/optional values).
-
-- `some_has_value`: Check if SOME contains inner data (returns 1 if true, 0 if false)
-- `some_get_value`: Extract inner object from SOME (returns none if no data, caller owns returned object)
 
 ## Kernel Implementation Guide
 
@@ -447,32 +264,33 @@ Handle SOME type objects (quoted/optional values).
 ```
 
 **example.cpp**
-```c
-#include "kernel_api.h"
+```cpp
+#include <kernel_api.hpp>
 #include <string>
 
-static const sxs_api_table_t *g_api = nullptr;
+static const pkg::kernel::api_table_s *g_api = nullptr;
 
-sxs_object_t kernel_greet(sxs_context_t ctx, sxs_object_t args) {
-    void *list = g_api->as_list(args);
+static slp::slp_object_c kernel_greet(pkg::kernel::context_t ctx,
+                                       const slp::slp_object_c &args) {
+    auto list = args.as_list();
     
-    sxs_object_t name_obj = g_api->list_at(list, 0);
-    const char *name = g_api->as_string(name_obj);
+    auto name = g_api->eval(ctx, list.at(1)).as_string().to_string();
     
-    std::string greeting = "Hello, " + std::string(name) + "!";
+    std::string greeting = "Hello, " + name + "!";
     
-    return g_api->create_string(greeting.c_str());
+    return slp::slp_object_c::create_string(greeting);
 }
 
 extern "C" {
-    void kernel_init(sxs_registry_t registry, const sxs_api_table_t *api) {
+    void kernel_init(pkg::kernel::registry_t registry, 
+                     const pkg::kernel::api_table_s *api) {
         g_api = api;
         
         api->register_function(
             registry,
             "greet",
             kernel_greet,
-            SXS_TYPE_STRING,
+            slp::slp_type_e::DQ_LIST,
             0
         );
     }
@@ -481,224 +299,407 @@ extern "C" {
 
 **Build**
 ```bash
-g++ -shared -fPIC -o libkernel_example.dylib example.cpp
+g++ -std=c++17 -shared -fPIC -o libkernel_example.dylib example.cpp \
+    -I/path/to/sxs/include -L/path/to/sxs/lib -lpkg_slp
 ```
 
-### Advanced Example: Symbol and List Operations
+### Realistic Example: ALU Kernel
 
-**kernel.sxs**
-```scheme
-#(define-kernel advanced "libkernel_advanced.dylib" [
-    (define-function make_list (a :int b :int c :int) :list-p)
-    (define-function unwrap_quote (sym :some) :symbol)
-])
-```
+**alu.cpp**
+```cpp
+#include <kernel_api.hpp>
 
-**advanced.cpp**
-```c
-#include "kernel_api.h"
+static const pkg::kernel::api_table_s *g_api = nullptr;
 
-static const sxs_api_table_t *g_api = nullptr;
+static slp::slp_object_c alu_add(pkg::kernel::context_t ctx,
+                                  const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  if (list.size() < 3) {
+    return slp::slp_object_c::create_int(0);
+  }
 
-sxs_object_t make_list(sxs_context_t ctx, sxs_object_t args) {
-    void *list = g_api->as_list(args);
-    
-    sxs_object_t objs[3];
-    objs[0] = g_api->list_at(list, 1);
-    objs[1] = g_api->list_at(list, 2);
-    objs[2] = g_api->list_at(list, 3);
-    
-    for (int i = 0; i < 3; i++) {
-        objs[i] = g_api->eval(ctx, objs[i]);
-    }
-    
-    return g_api->create_paren_list(objs, 3);
+  auto a = g_api->eval(ctx, list.at(1)).as_int();
+  auto b = g_api->eval(ctx, list.at(2)).as_int();
+
+  return slp::slp_object_c::create_int(a + b);
 }
 
-sxs_object_t unwrap_quote(sxs_context_t ctx, sxs_object_t args) {
-    void *list = g_api->as_list(args);
-    sxs_object_t quoted = g_api->list_at(list, 1);
-    
-    if (g_api->get_type(quoted) == SXS_TYPE_SOME) {
-        if (g_api->some_has_value(quoted)) {
-            sxs_object_t inner = g_api->some_get_value(quoted);
-            if (g_api->get_type(inner) == SXS_TYPE_SYMBOL) {
-                const char *sym = g_api->as_symbol(inner);
-                return g_api->create_symbol(sym);
-            }
-        }
-    }
-    return g_api->create_none();
+static slp::slp_object_c alu_div(pkg::kernel::context_t ctx,
+                                  const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  if (list.size() < 3) {
+    return slp::slp_object_c::create_int(0);
+  }
+
+  auto a = g_api->eval(ctx, list.at(1)).as_int();
+  auto b = g_api->eval(ctx, list.at(2)).as_int();
+
+  if (b == 0) {
+    return slp::slp_object_c::create_int(0);
+  }
+
+  return slp::slp_object_c::create_int(a / b);
 }
 
 extern "C" {
-    void kernel_init(sxs_registry_t registry, const sxs_api_table_t *api) {
-        g_api = api;
-        api->register_function(registry, "make_list", make_list, 
-                             SXS_TYPE_PAREN_LIST, 0);
-        api->register_function(registry, "unwrap_quote", unwrap_quote,
-                             SXS_TYPE_SYMBOL, 0);
-    }
+  void kernel_init(pkg::kernel::registry_t registry,
+                   const pkg::kernel::api_table_s *api) {
+    g_api = api;
+    api->register_function(registry, "add", alu_add, slp::slp_type_e::INTEGER, 0);
+    api->register_function(registry, "div", alu_div, slp::slp_type_e::INTEGER, 0);
+  }
 }
 ```
 
-### Best Practices
+### Advanced Example: Error Handling
 
-**1. Type Validation**
+```cpp
+#include <kernel_api.hpp>
+#include <string>
+
+static const pkg::kernel::api_table_s *g_api = nullptr;
+
+static slp::slp_object_c create_error(const std::string &message) {
+  std::string error_str = "@(" + message + ")";
+  auto parse_result = slp::parse(error_str);
+  return parse_result.take();
+}
+
+static slp::slp_object_c kv_set(pkg::kernel::context_t ctx,
+                                 const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  if (list.size() < 3) {
+    return create_error("set requires 2 arguments");
+  }
+
+  auto key_obj = list.at(1);
+  if (key_obj.type() != slp::slp_type_e::SYMBOL) {
+    return create_error("set requires symbol key");
+  }
+
+  auto value = g_api->eval(ctx, list.at(2));
+  
+  bool success = store_value(key_obj.as_symbol(), value);
+  
+  return success ? slp::slp_object_c::create_int(0)
+                 : create_error("set: failed to store value");
+}
+```
+
+### Working with Lists
+
+```cpp
+static slp::slp_object_c process_list(pkg::kernel::context_t ctx,
+                                       const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  
+  std::vector<slp::slp_object_c> processed;
+  
+  for (size_t i = 1; i < list.size(); i++) {
+    auto elem = g_api->eval(ctx, list.at(i));
+    if (elem.type() == slp::slp_type_e::INTEGER) {
+      auto value = elem.as_int();
+      processed.push_back(slp::slp_object_c::create_int(value * 2));
+    }
+  }
+  
+  return slp::slp_object_c::create_bracket_list(processed.data(), 
+                                                 processed.size());
+}
+```
+
+### Variadic Functions
+
+```cpp
+static slp::slp_object_c io_put(pkg::kernel::context_t ctx,
+                                 const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  if (list.size() < 2) {
+    return slp::slp_object_c::create_int(-1);
+  }
+
+  auto format = g_api->eval(ctx, list.at(1)).as_string().to_string();
+  
+  for (size_t i = 2; i < list.size(); i++) {
+    auto evaled = g_api->eval(ctx, list.at(i));
+  }
+  
+  return slp::slp_object_c::create_int(output_length);
+}
+
+extern "C" {
+  void kernel_init(pkg::kernel::registry_t registry,
+                   const pkg::kernel::api_table_s *api) {
+    g_api = api;
+    api->register_function(registry, "put", io_put, 
+                          slp::slp_type_e::INTEGER, 1);
+  }
+}
+```
+
+## Best Practices
+
+### 1. Type Validation
 
 Always check types before extraction:
 
-```c
-sxs_type_t type = g_api->get_type(obj);
-if (type != SXS_TYPE_INT) {
-    return g_api->create_none();
+```cpp
+auto obj = g_api->eval(ctx, list.at(1));
+if (obj.type() != slp::slp_type_e::INTEGER) {
+    return create_error("expected integer");
 }
-long long value = g_api->as_int(obj);
+auto value = obj.as_int();
 ```
 
-**2. Error Handling**
+### 2. Error Handling
 
-Return `create_none()` for errors:
+Return error objects for failures:
 
-```c
-if (denominator == 0) {
-    return g_api->create_none();
-}
-```
-
-**3. String Lifetime**
-
-Copy strings if needed beyond immediate use:
-
-```c
-const char *str = g_api->as_string(obj);
-std::string safe_copy(str);
-```
-
-**4. List Memory**
-
-Lists from `as_list` are heap-allocated:
-
-```c
-void *list = g_api->as_list(args);
-size_t count = g_api->list_size(list);
-for (size_t i = 0; i < count; i++) {
-    sxs_object_t elem = g_api->list_at(list, i);
-}
-delete static_cast<slp::slp_object_c::list_c*>(list);
-```
-
-**5. Variadic Functions**
-
-For variable-argument functions, set `variadic = 1` and iterate full list:
-
-```c
-api->register_function(registry, "sum", kernel_sum, SXS_TYPE_INT, 1);
-```
-
-**6. Handling SOME Types**
-
-SOME wraps quoted symbols and optional values. Always check before unwrapping:
-
-```c
-if (g_api->get_type(obj) == SXS_TYPE_SOME) {
-    if (g_api->some_has_value(obj)) {
-        sxs_object_t inner = g_api->some_get_value(obj);
-    }
+```cpp
+static slp::slp_object_c create_error(const std::string &msg) {
+  std::string error_str = "@(" + msg + ")";
+  auto parse_result = slp::parse(error_str);
+  return parse_result.take();
 }
 ```
 
-**7. Creating Lists**
+### 3. String Handling
 
-When building lists, ensure all elements are properly constructed objects:
+The `as_string()` method returns a lightweight view. Call `to_string()` to get `std::string`:
 
-```c
-sxs_object_t elements[3];
-elements[0] = g_api->create_int(1);
-elements[1] = g_api->create_int(2);
-elements[2] = g_api->create_int(3);
-return g_api->create_paren_list(elements, 3);
+```cpp
+auto str_obj = g_api->eval(ctx, list.at(1));
+std::string value = str_obj.as_string().to_string();
 ```
 
-### Performance Considerations
+### 4. List Iteration
 
-**Expensive Operations (per call):**
+`as_list()` returns a lightweight view, not a heap allocation:
 
-- `create_int/create_real`: Converts to string, parses back (lines 96-108)
-- `create_symbol`: Parses symbol string (lines 124-132)
-- `create_paren_list/create_bracket_list/create_brace_list`: Builds string representation, parses (lines 134-234)
-- `create_string`: Direct creation, but copies data (lines 110-117)
-- `as_string`: Copies to thread_local buffer (lines 50-55)
+```cpp
+auto list = args.as_list();
+for (size_t i = 1; i < list.size(); i++) {
+    auto elem = list.at(i);
+}
+```
 
-**Optimization Strategy:**
+### 5. Move Semantics
 
-The implementation note (lines 73-87) acknowledges the overhead of string conversion in object creation. For performance-critical kernels:
+Objects are returned by value using move semantics. No manual memory management:
 
-- Minimize object creation in tight loops
-- Batch operations when possible
-- Consider caching created objects if semantics allow
-- Prefer integer/real returns over complex objects
+```cpp
+return slp::slp_object_c::create_int(result);
+```
 
-### Thread Safety
+### 6. State Management and Cleanup
 
-- API table functions are thread-safe
-- `as_string` uses `thread_local` buffer (safe across threads)
-- Kernel functions may be called concurrently - implement appropriate locking
+Use global or static storage for kernel state. If your kernel maintains global state, implement the **optional** `kernel_shutdown` function:
 
-## System Limitations
+```cpp
+static std::map<std::string, std::shared_ptr<DataStore>> g_stores;
 
-1. **Load Lock**: Once `lock_kernels()` is called, no new kernels can be loaded
-2. **Function Names**: Must be unique within kernel (collisions overwrite)
-3. **Type System**: Limited to enum types; no custom struct marshaling
-4. **Error Reporting**: Kernels return `none` for errors; no exception propagation
-5. **Platform**: Uses POSIX `dlopen` - not portable to non-POSIX systems without modification
+extern "C" void kernel_shutdown(const pkg::kernel::api_table_s *api) {
+  g_stores.clear();
+}
+```
 
-## Example Kernels
+**kernel_shutdown behavior:**
+- **Optional**: Only needed if kernel has state to clean up
+- **Automatic**: Called by `kernel_manager_c` destructor before dylib unload
+- **Timing**: Invoked in reverse order of kernel loading
+- **Not found**: If symbol doesn't exist via `dlsym`, it's silently skipped
 
-### ALU (Arithmetic Logic Unit)
+Stateless kernels (like alu, io, random) don't need to define this function.
 
-Demonstrates simple integer and real arithmetic operations.
+## Type System
 
-**kernel.sxs:**
+### slp::slp_type_e Mapping
+
+| SXS Type | slp_type_e | C++ Access |
+|----------|------------|------------|
+| None | NONE | `create_none()` |
+| Some | SOME | `has_data()`, `get_data()` |
+| Paren List | PAREN_LIST | `as_list()` |
+| Brace List | BRACE_LIST | `as_list()` |
+| Bracket List | BRACKET_LIST | `as_list()` |
+| String | DQ_LIST | `as_string().to_string()` |
+| Symbol | SYMBOL | `as_symbol()` |
+| Rune | RUNE | - |
+| Integer | INTEGER | `as_int()` |
+| Real | REAL | `as_real()` |
+| Error | ERROR | special form |
+| Datum | DATUM | compile-time data |
+| Aberrant | ABERRANT | lambda reference |
+
+## kernel.sxs Metadata Format
+
+```scheme
+#(define-kernel <kernel-name> <dylib-filename> [
+    (define-function <fn-name> (<arg> :<type> ...) :<return-type>)
+    ...
+])
+```
+
+**Example:**
 ```scheme
 #(define-kernel alu "libkernel_alu.dylib" [
     (define-function add (a :int b :int) :int)
     (define-function mul (a :int b :int) :int)
-    (define-function add_r (a :real b :real) :real)
+    (define-function div (a :int b :int) :int)
 ])
 ```
 
-### I/O
+The metadata declares expected functions. The manager verifies that all declared functions are registered during `kernel_init`.
 
-Demonstrates variadic functions for formatted output.
+## Standard Library Kernels
 
-**kernel.sxs:**
-```scheme
-#(define-kernel io "libkernel_io.dylib" [
-    (define-function put (format :str obj :any..) :int)
-])
+### alu - Arithmetic Operations
+
+Integer and real arithmetic: `add`, `sub`, `mul`, `div`, `mod`, `add_r`, `sub_r`, `mul_r`, `div_r`
+
+### io - Input/Output
+
+Formatted output: `put` (variadic printf-style formatting)
+
+### random - Random Generation
+
+Random value generation: `int_range`, `real_range`, `string`, `string_alpha`
+
+### kv - Key-Value Storage
+
+Persistent and in-memory storage: `open-memory`, `open-disk`, `set`, `get`, `del`, `snx`, `cas`
+
+### event - Event System
+
+Pub/sub messaging: `subscribe`, `unsubscribe`, `publish`
+
+## Performance Characteristics
+
+### Zero-Copy Design
+
+Objects are passed by reference and returned by value using move semantics. The SLP shared buffer design means copying an object only copies pointers to shared data, not the data itself.
+
+### Factory Method Performance
+
+Static factory methods use `slp::parse()` internally for consistency. For primitive types:
+- `create_int/create_real`: Parse string representation (~100ns)
+- `create_string`: Direct buffer construction (~50ns)
+- `create_symbol`: Parse symbol string (~80ns)
+- List creation: Build string, parse (~200ns + 50ns per element)
+
+For performance-critical paths, consider batching object creation or caching results.
+
+### Thread Safety
+
+- API functions are thread-safe
+- Kernel functions may be called concurrently - implement locking as needed
+- `eval` acquires appropriate locks for cross-context calls
+
+## System Limitations
+
+1. **C++ Required**: Kernels must be C++17 or later
+2. **Load Lock**: Once locked, no new kernels can be loaded
+3. **Function Names**: Must be unique within kernel
+4. **Platform**: Uses POSIX `dlopen` - macOS/Linux only
+5. **No Exceptions**: Kernel exceptions should be caught and converted to error returns
+
+## Memory Model
+
+### Stack-Based Objects
+
+All `slp::slp_object_c` instances are stack-allocated with automatic lifetime:
+
+```cpp
+slp::slp_object_c obj = g_api->eval(ctx, list.at(1));
+auto value = obj.as_int();
 ```
 
-### Random
+No manual `delete` or `free` calls needed.
 
-Demonstrates generation functions with range parameters.
+### Shared Data Buffers
 
-**kernel.sxs:**
-```scheme
-#(define-kernel random "libkernel_random.dylib" [
-    (define-function int_range (min :int max :int) :int)
-    (define-function real_range (min :real max :real) :real)
-    (define-function string_alpha (length :int) :str)
-])
+SLP objects share underlying data buffers. Copying an object is cheap (copies pointers, not buffers):
+
+```cpp
+slp::slp_object_c obj1 = slp::slp_object_c::create_int(42);
+slp::slp_object_c obj2 = obj1;  
 ```
+
+Both `obj1` and `obj2` point to the same shared buffer.
+
+### Move Semantics
+
+Return values use move semantics to avoid copies:
+
+```cpp
+return slp::slp_object_c::create_int(result);
+```
+
+The object is moved directly to the caller's stack frame.
+
+## Example: Complete Kernel Implementation
+
+**libs/std/alu/alu.cpp** (actual production code):
+
+```cpp
+#include "alu.hpp"
+
+static const struct pkg::kernel::api_table_s *g_api = nullptr;
+
+static slp::slp_object_c alu_add(pkg::kernel::context_t ctx,
+                                  const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  if (list.size() < 3) {
+    return slp::slp_object_c::create_int(0);
+  }
+
+  auto a = g_api->eval(ctx, list.at(1)).as_int();
+  auto b = g_api->eval(ctx, list.at(2)).as_int();
+
+  return slp::slp_object_c::create_int(a + b);
+}
+
+static slp::slp_object_c alu_mul(pkg::kernel::context_t ctx,
+                                  const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  if (list.size() < 3) {
+    return slp::slp_object_c::create_int(0);
+  }
+
+  auto a = g_api->eval(ctx, list.at(1)).as_int();
+  auto b = g_api->eval(ctx, list.at(2)).as_int();
+
+  return slp::slp_object_c::create_int(a * b);
+}
+
+static slp::slp_object_c alu_add_r(pkg::kernel::context_t ctx,
+                                    const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  if (list.size() < 3) {
+    return slp::slp_object_c::create_real(0.0);
+  }
+
+  auto a = g_api->eval(ctx, list.at(1)).as_real();
+  auto b = g_api->eval(ctx, list.at(2)).as_real();
+
+  return slp::slp_object_c::create_real(a + b);
+}
+
+extern "C" void kernel_init(pkg::kernel::registry_t registry,
+                            const pkg::kernel::api_table_s *api) {
+  g_api = api;
+  api->register_function(registry, "add", alu_add, slp::slp_type_e::INTEGER, 0);
+  api->register_function(registry, "mul", alu_mul, slp::slp_type_e::INTEGER, 0);
+  api->register_function(registry, "add_r", alu_add_r, slp::slp_type_e::REAL, 0);
+}
+```
+
+Clean, simple, no memory management required.
 
 ## Future Enhancements
 
-Potential improvements mentioned in code comments and architecture:
-
-1. **Zero-Copy Object Creation**: Eliminate string conversion round-trip in `create_*` functions
-2. **Exception Support**: Propagate kernel errors as SXS error objects
-3. **Async Functions**: Support for non-blocking kernel operations
-4. **Hot Reload**: Dynamic kernel reloading during development
-5. **Sandboxing**: Resource limits and capability-based security for untrusted kernels
-
+1. **Async Functions**: Support for non-blocking kernel operations
+2. **Hot Reload**: Dynamic kernel reloading during development
+3. **Sandboxing**: Resource limits and capability-based security
+4. **Error Propagation**: Rich error objects with stack traces
+5. **JIT Compilation**: Runtime optimization of frequently-called paths
