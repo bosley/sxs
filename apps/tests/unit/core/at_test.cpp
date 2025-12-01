@@ -132,7 +132,7 @@ TEST_CASE("at - multiple byte values from string", "[unit][core][at]") {
   std::string source_c = R"([(at 2 "ABC")])";
 
   auto symbols = pkg::core::instructions::get_standard_callable_symbols();
-  
+
   auto parse_a = slp::parse(source_a);
   REQUIRE(parse_a.is_success());
   auto interp_a = pkg::core::create_interpreter(symbols);
@@ -375,4 +375,3 @@ TEST_CASE("at - zero value element", "[unit][core][at]") {
   REQUIRE(result.type() == slp::slp_type_e::INTEGER);
   CHECK(result.as_int() == 0);
 }
-

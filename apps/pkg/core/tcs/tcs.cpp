@@ -249,6 +249,8 @@ type_info_s tcs_c::eval_type(slp::slp_object_c &object) {
       return handle_done(object);
     if (cmd == "at")
       return handle_at(object);
+    if (cmd == "eq")
+      return handle_eq(object);
 
     if (has_symbol(cmd)) {
       auto sym_type = get_symbol_type(cmd);
@@ -871,6 +873,23 @@ type_info_s tcs_c::handle_at(slp::slp_object_c &args_list) {
 
   type_info_s result;
   result.base_type = slp::slp_type_e::NONE;
+  return result;
+}
+
+type_info_s tcs_c::handle_eq(slp::slp_object_c &args_list) {
+  auto list = args_list.as_list();
+  if (list.size() != 3) {
+    throw std::runtime_error("eq requires exactly 2 arguments: lhs and rhs");
+  }
+
+  auto lhs_obj = list.at(1);
+  auto rhs_obj = list.at(2);
+
+  eval_type(lhs_obj);
+  eval_type(rhs_obj);
+
+  type_info_s result;
+  result.base_type = slp::slp_type_e::INTEGER;
   return result;
 }
 

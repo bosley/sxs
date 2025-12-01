@@ -1,0 +1,66 @@
+[
+  (def int-eq-true (eq 42 42))
+  (assert int-eq-true "integers should be equal")
+
+  (def int-eq-false (eq 42 43))
+  (assert (eq int-eq-false 0) "integers should not be equal")
+
+  (def real-eq-true (eq 3.14 3.14))
+  (assert real-eq-true "reals should be equal")
+
+  (def real-eq-false (eq 3.14 2.71))
+  (assert (eq real-eq-false 0) "reals should not be equal")
+
+  (def str-eq-true (eq "hello" "hello"))
+  (assert str-eq-true "strings should be equal")
+
+  (def str-eq-false (eq "hello" "world"))
+  (assert (eq str-eq-false 0) "strings should not be equal")
+
+  (def sym-eq-true (eq 'test 'test))
+  (assert sym-eq-true "symbols should be equal")
+
+  (def sym-eq-false (eq 'test 'other))
+  (assert (eq sym-eq-false 0) "symbols should not be equal")
+
+  (def type-mismatch (eq 42 "42"))
+  (assert (eq type-mismatch 0) "different types should not be equal")
+
+  (def list-eq-true (eq '(1 2 3) '(1 2 3)))
+  (assert list-eq-true "lists should be equal")
+
+  (def list-eq-false (eq '(1 2 3) '(1 2 4)))
+  (assert (eq list-eq-false 0) "lists should not be equal")
+
+  (def nested-eq-true (eq '(1 (2 3) 4) '(1 (2 3) 4)))
+  (assert nested-eq-true "nested lists should be equal")
+
+  (def nested-eq-false (eq '(1 (2 3) 4) '(1 (2 5) 4)))
+  (assert (eq nested-eq-false 0) "nested lists should not be equal at depth")
+
+  (def empty-lists (eq '() '()))
+  (assert empty-lists "empty lists should be equal")
+
+  (def brace-vs-paren (eq '{1 2 3} '(1 2 3)))
+  (assert (eq brace-vs-paren 0) "brace list should not equal paren list")
+
+  (def lambda1 (fn (x :int) :int [x]))
+  (def lambda2 (fn (x :int) :int [x]))
+  (def same-lambda (eq lambda1 lambda1))
+  (assert same-lambda "same lambda should be equal to itself")
+
+  (def diff-lambda (eq lambda1 lambda2))
+  (assert (eq diff-lambda 0) "different lambdas should not be equal")
+
+  (def err1 @(test error))
+  (def err2 @(test error))
+  (def err-eq-true (eq err1 err2))
+  (assert err-eq-true "error objects with same message should be equal")
+
+  (def err3 @(different error))
+  (def err-eq-false (eq err1 err3))
+  (assert (eq err-eq-false 0) "error objects with different messages should not be equal")
+
+  (debug "All eq tests passed!")
+]
+
