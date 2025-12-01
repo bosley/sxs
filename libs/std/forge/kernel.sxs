@@ -14,5 +14,9 @@
     (define-function replace (target :any match :any replacement :any) :any)
     (define-function drop_match (target :any match :any) :any)
     (define-function drop_period (target :any start :int period :int) :any)
+    (define-function to_bits (value :int) :list-c)
+    (define-function from_bits (bits :list-c) :int)
+    (define-function to_bits_r (value :real) :list-c)
+    (define-function from_bits_r (bits :list-c) :real)
 ])
 

@@ -148,7 +148,8 @@ static slp::slp_object_c forge_pb(pkg::kernel::context_t ctx,
                                   const slp::slp_object_c &args) {
   auto list = args.as_list();
   if (list.size() < 3) {
-    return slp::slp_object_c::create_none();
+    std::vector<slp::slp_object_c> empty;
+    return slp::slp_object_c::create_paren_list(empty.data(), 0);
   }
 
   auto target = g_api->eval(ctx, list.at(1));
@@ -637,6 +638,133 @@ static slp::slp_object_c forge_drop_period(pkg::kernel::context_t ctx,
   return create_list_of_type(orig_type, items);
 }
 
+static slp::slp_object_c forge_to_bits(pkg::kernel::context_t ctx,
+                                       const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  if (list.size() < 2) {
+    std::vector<slp::slp_object_c> empty;
+    return slp::slp_object_c::create_brace_list(empty.data(), 0);
+  }
+
+  auto value_obj = g_api->eval(ctx, list.at(1));
+  if (value_obj.type() != slp::slp_type_e::INTEGER) {
+    std::vector<slp::slp_object_c> empty;
+    return slp::slp_object_c::create_brace_list(empty.data(), 0);
+  }
+
+  long long value = value_obj.as_int();
+  std::uint64_t bits = static_cast<std::uint64_t>(value);
+
+  std::vector<slp::slp_object_c> bit_objects;
+  bit_objects.reserve(64);
+
+  for (int i = 63; i >= 0; i--) {
+    std::uint64_t bit = (bits >> i) & 1ULL;
+    bit_objects.push_back(
+        slp::slp_object_c::create_int(static_cast<long long>(bit)));
+  }
+
+  return slp::slp_object_c::create_brace_list(bit_objects.data(),
+                                              bit_objects.size());
+}
+
+static slp::slp_object_c forge_from_bits(pkg::kernel::context_t ctx,
+                                         const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  if (list.size() < 2) {
+    return slp::slp_object_c::create_int(0);
+  }
+
+  auto bits_obj = g_api->eval(ctx, list.at(1));
+
+  if (!is_list_type(bits_obj.type())) {
+    return slp::slp_object_c::create_int(0);
+  }
+
+  auto bits_list = bits_obj.as_list();
+  std::uint64_t result = 0;
+
+  for (size_t i = 0; i < bits_list.size() && i < 64; i++) {
+    auto bit_obj = g_api->eval(ctx, bits_list.at(i));
+    if (bit_obj.type() == slp::slp_type_e::INTEGER) {
+      long long bit_val = bit_obj.as_int();
+      if (bit_val != 0) {
+        size_t shift = bits_list.size() - 1 - i;
+        if (shift < 64) {
+          result |= (1ULL << shift);
+        }
+      }
+    }
+  }
+
+  return slp::slp_object_c::create_int(static_cast<long long>(result));
+}
+
+static slp::slp_object_c forge_to_bits_r(pkg::kernel::context_t ctx,
+                                         const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  if (list.size() < 2) {
+    std::vector<slp::slp_object_c> empty;
+    return slp::slp_object_c::create_brace_list(empty.data(), 0);
+  }
+
+  auto value_obj = g_api->eval(ctx, list.at(1));
+  if (value_obj.type() != slp::slp_type_e::REAL) {
+    std::vector<slp::slp_object_c> empty;
+    return slp::slp_object_c::create_brace_list(empty.data(), 0);
+  }
+
+  double value = value_obj.as_real();
+  std::uint64_t bits;
+  std::memcpy(&bits, &value, sizeof(double));
+
+  std::vector<slp::slp_object_c> bit_objects;
+  bit_objects.reserve(64);
+
+  for (int i = 63; i >= 0; i--) {
+    std::uint64_t bit = (bits >> i) & 1ULL;
+    bit_objects.push_back(
+        slp::slp_object_c::create_int(static_cast<long long>(bit)));
+  }
+
+  return slp::slp_object_c::create_brace_list(bit_objects.data(),
+                                              bit_objects.size());
+}
+
+static slp::slp_object_c forge_from_bits_r(pkg::kernel::context_t ctx,
+                                           const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  if (list.size() < 2) {
+    return slp::slp_object_c::create_real(0.0);
+  }
+
+  auto bits_obj = g_api->eval(ctx, list.at(1));
+
+  if (!is_list_type(bits_obj.type())) {
+    return slp::slp_object_c::create_real(0.0);
+  }
+
+  auto bits_list = bits_obj.as_list();
+  std::uint64_t result = 0;
+
+  for (size_t i = 0; i < bits_list.size() && i < 64; i++) {
+    auto bit_obj = g_api->eval(ctx, bits_list.at(i));
+    if (bit_obj.type() == slp::slp_type_e::INTEGER) {
+      long long bit_val = bit_obj.as_int();
+      if (bit_val != 0) {
+        size_t shift = bits_list.size() - 1 - i;
+        if (shift < 64) {
+          result |= (1ULL << shift);
+        }
+      }
+    }
+  }
+
+  double real_value;
+  std::memcpy(&real_value, &result, sizeof(double));
+  return slp::slp_object_c::create_real(real_value);
+}
+
 extern "C" void kernel_init(pkg::kernel::registry_t registry,
                             const struct pkg::kernel::api_table_s *api) {
   g_api = api;
@@ -663,4 +791,12 @@ extern "C" void kernel_init(pkg::kernel::registry_t registry,
                          slp::slp_type_e::NONE, 0);
   api->register_function(registry, "drop_period", forge_drop_period,
                          slp::slp_type_e::NONE, 0);
+  api->register_function(registry, "to_bits", forge_to_bits,
+                         slp::slp_type_e::BRACE_LIST, 0);
+  api->register_function(registry, "from_bits", forge_from_bits,
+                         slp::slp_type_e::INTEGER, 0);
+  api->register_function(registry, "to_bits_r", forge_to_bits_r,
+                         slp::slp_type_e::BRACE_LIST, 0);
+  api->register_function(registry, "from_bits_r", forge_from_bits_r,
+                         slp::slp_type_e::REAL, 0);
 }

@@ -188,6 +188,20 @@ type_info_s tcs_c::eval_type(slp::slp_object_c &object) {
     result.base_type = slp::slp_type_e::ABERRANT;
     return result;
 
+  case slp::slp_type_e::SOME: {
+    const std::uint8_t *base_ptr = object.get_data().data();
+    const std::uint8_t *unit_ptr = base_ptr + object.get_root_offset();
+    const slp::slp_unit_of_store_t *unit =
+        reinterpret_cast<const slp::slp_unit_of_store_t *>(unit_ptr);
+    size_t inner_offset = static_cast<size_t>(unit->data.uint64);
+
+    auto inner_obj = slp::slp_object_c::from_data(
+        object.get_data(), object.get_symbols(), inner_offset);
+
+    result.base_type = inner_obj.type();
+    return result;
+  }
+
   case slp::slp_type_e::PAREN_LIST: {
     auto list = object.as_list();
     if (list.empty()) {
