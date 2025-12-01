@@ -1,0 +1,15 @@
+=== Forge Replace Test ===
+
+--- Replace integers ---
+Replaced all 2s with 99 in (1 2 3 2 4 2)
+
+--- Replace symbols ---
+Replaced all b with x in (a b c b d)
+
+--- Replace non-existent ---
+Replaced non-existent value - no change
+
+--- Replace in empty ---
+Replace in empty list - still empty
+
+=== All replace tests complete ===

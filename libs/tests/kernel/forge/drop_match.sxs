@@ -1,0 +1,31 @@
+[
+    #(load "forge" "io" "alu")
+
+    (io/put "=== Forge Drop Match Test ===\n")
+
+    (io/put "\n--- Drop matching integers ---\n")
+    (def x0 '(1 2 3 2 4 2))
+    (def x1 (forge/drop_match x0 2))
+    (assert (alu/eq (forge/count x1) 3) "After dropping 2s, should have 3 elements")
+    (io/put "Dropped all 2s from (1 2 3 2 4 2)\n")
+
+    (io/put "\n--- Drop matching symbols ---\n")
+    (def y0 '(a b c b d b))
+    (def y1 (forge/drop_match y0 b))
+    (assert (alu/eq (forge/count y1) 3) "After dropping bs, should have 3 elements")
+    (io/put "Dropped all b from (a b c b d b)\n")
+
+    (io/put "\n--- Drop non-existent ---\n")
+    (def z0 '(1 2 3))
+    (def z1 (forge/drop_match z0 99))
+    (assert (alu/eq (forge/count z1) 3) "Drop non-existent should not change size")
+    (io/put "Dropped non-existent value - no change\n")
+
+    (io/put "\n--- Drop all elements ---\n")
+    (def w0 '(1 1 1 1))
+    (def w1 (forge/drop_match w0 1))
+    (assert (alu/eq (forge/count w1) 0) "Drop all should give empty list")
+    (io/put "Dropped all elements - empty list\n")
+
+    (io/put "\n=== All drop_match tests complete ===\n")
+]

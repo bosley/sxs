@@ -304,4 +304,21 @@ ctest
 - Registers export
 - Returns NONE
 
+### do (loop, returns ABERRANT)
+- Validates 1 argument (bracket list body)
+- Pushes loop context
+- Loops infinitely until done is called
+- Each iteration: pushes scope, defines $iterations (int, starts at 1), evaluates body, pops scope
+- Checks done flag after each iteration
+- Increments $iterations counter
+- Returns value passed to done
+- Nested loops supported via stacked contexts
+
+### done (loop exit, returns NONE)
+- Validates 1 argument (return value)
+- Checks if inside do loop (throws if not)
+- Evaluates argument
+- Signals loop done with evaluated value
+- Returns NONE
+
     this all appears correect - bosley

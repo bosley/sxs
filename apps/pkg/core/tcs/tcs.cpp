@@ -4,6 +4,22 @@
 #include <fstream>
 #include <sstream>
 
+/*
+UPGRADE:DYNAMIC_INJECTED_SYMBOLS
+
+in libs/std/forge im ideating how to dynamically permit the declaration of
+injected symbols into the runtime. this would mean
+  - update core/kernels to accept new command during kernel ingestion to map
+symbol and type information along with what "function" if falls under
+  - update this to have configurable function handling so in-addition to the
+builtins we can handle injection in custom scenarios as well (see below where we
+inject "$exception" and "$error")
+
+  bosley - 11/30/25
+
+  SEE ALSO pkg/core/kernels/kernels.cpp
+*/
+
 namespace pkg::core::tcs {
 
 tcs_c::tcs_c(logger_t logger, std::vector<std::string> include_paths,
@@ -172,6 +188,20 @@ type_info_s tcs_c::eval_type(slp::slp_object_c &object) {
     result.base_type = slp::slp_type_e::ABERRANT;
     return result;
 
+  case slp::slp_type_e::SOME: {
+    const std::uint8_t *base_ptr = object.get_data().data();
+    const std::uint8_t *unit_ptr = base_ptr + object.get_root_offset();
+    const slp::slp_unit_of_store_t *unit =
+        reinterpret_cast<const slp::slp_unit_of_store_t *>(unit_ptr);
+    size_t inner_offset = static_cast<size_t>(unit->data.uint64);
+
+    auto inner_obj = slp::slp_object_c::from_data(
+        object.get_data(), object.get_symbols(), inner_offset);
+
+    result.base_type = inner_obj.type();
+    return result;
+  }
+
   case slp::slp_type_e::PAREN_LIST: {
     auto list = object.as_list();
     if (list.empty()) {
@@ -211,6 +241,12 @@ type_info_s tcs_c::eval_type(slp::slp_object_c &object) {
       return handle_export(object);
     if (cmd == "debug")
       return handle_debug(object);
+    if (cmd == "cast")
+      return handle_cast(object);
+    if (cmd == "do")
+      return handle_do(object);
+    if (cmd == "done")
+      return handle_done(object);
 
     if (has_symbol(cmd)) {
       auto sym_type = get_symbol_type(cmd);
@@ -729,6 +765,79 @@ type_info_s tcs_c::handle_assert(slp::slp_object_c &args_list) {
   if (message_type.base_type != slp::slp_type_e::DQ_LIST) {
     throw std::runtime_error("assert: message must be a string");
   }
+
+  type_info_s result;
+  result.base_type = slp::slp_type_e::NONE;
+  return result;
+}
+
+type_info_s tcs_c::handle_cast(slp::slp_object_c &args_list) {
+  auto list = args_list.as_list();
+  if (list.size() != 3) {
+    throw std::runtime_error(
+        "cast requires exactly 2 arguments: type and value");
+  }
+
+  auto type_obj = list.at(1);
+  auto value_obj = list.at(2);
+
+  if (type_obj.type() != slp::slp_type_e::SYMBOL) {
+    throw std::runtime_error("cast: first argument must be a type symbol");
+  }
+
+  std::string type_symbol = type_obj.as_symbol();
+  type_info_s expected_type;
+
+  if (!is_type_symbol(type_symbol, expected_type)) {
+    throw std::runtime_error(
+        fmt::format("cast: invalid type symbol: {}", type_symbol));
+  }
+
+  eval_type(value_obj);
+
+  return expected_type;
+}
+
+type_info_s tcs_c::handle_do(slp::slp_object_c &args_list) {
+  auto list = args_list.as_list();
+  if (list.size() != 2) {
+    throw std::runtime_error("do requires exactly 1 argument: body");
+  }
+
+  auto body_obj = list.at(1);
+  if (body_obj.type() != slp::slp_type_e::BRACKET_LIST) {
+    throw std::runtime_error("do: argument must be a bracket list");
+  }
+
+  loop_depth_++;
+  push_scope();
+
+  type_info_s iterations_type;
+  iterations_type.base_type = slp::slp_type_e::INTEGER;
+  define_symbol("$iterations", iterations_type);
+
+  eval_type(body_obj);
+
+  pop_scope();
+  loop_depth_--;
+
+  type_info_s result;
+  result.base_type = slp::slp_type_e::ABERRANT;
+  return result;
+}
+
+type_info_s tcs_c::handle_done(slp::slp_object_c &args_list) {
+  auto list = args_list.as_list();
+  if (list.size() != 2) {
+    throw std::runtime_error("done requires exactly 1 argument: return value");
+  }
+
+  if (loop_depth_ == 0) {
+    throw std::runtime_error("done called outside of do loop");
+  }
+
+  auto value_obj = list.at(1);
+  eval_type(value_obj);
 
   type_info_s result;
   result.base_type = slp::slp_type_e::NONE;

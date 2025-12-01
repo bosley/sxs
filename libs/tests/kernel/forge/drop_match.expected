@@ -1,0 +1,15 @@
+=== Forge Drop Match Test ===
+
+--- Drop matching integers ---
+Dropped all 2s from (1 2 3 2 4 2)
+
+--- Drop matching symbols ---
+Dropped all b from (a b c b d b)
+
+--- Drop non-existent ---
+Dropped non-existent value - no change
+
+--- Drop all elements ---
+Dropped all elements - empty list
+
+=== All drop_match tests complete ===

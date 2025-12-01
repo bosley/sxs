@@ -1,0 +1,31 @@
+[
+    #(load "forge" "io" "alu")
+
+    (io/put "=== Forge Reverse Test ===\n")
+
+    (io/put "\n--- Basic Reverse ---\n")
+    (def x0 '(1 2 3 4 5))
+    (def x1 (forge/rev x0))
+    (assert (alu/eq (forge/count x1) 5) "Reversed list should have 5 elements")
+    (io/put "Reversed (1 2 3 4 5)\n")
+
+    (io/put "\n--- Reverse single element ---\n")
+    (def y0 '(42))
+    (def y1 (forge/rev y0))
+    (assert (alu/eq (forge/count y1) 1) "Reversed single element list should have 1 element")
+    (io/put "Reversed single element list\n")
+
+    (io/put "\n--- Reverse empty ---\n")
+    (def z0 '())
+    (def z1 (forge/rev z0))
+    (assert (alu/eq (forge/count z1) 0) "Reversed empty list should be empty")
+    (io/put "Reversed empty list\n")
+
+    (io/put "\n--- Reverse symbols ---\n")
+    (def w0 '(a b c d))
+    (def w1 (forge/rev w0))
+    (assert (alu/eq (forge/count w1) 4) "Reversed symbol list should have 4 elements")
+    (io/put "Reversed (a b c d)\n")
+
+    (io/put "\n=== All reverse tests complete ===\n")
+]

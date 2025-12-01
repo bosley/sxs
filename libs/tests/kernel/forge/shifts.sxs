@@ -1,0 +1,40 @@
+[
+    #(load "forge" "io" "alu")
+
+    (io/put "=== Forge Shift Test ===\n")
+
+    (io/put "\n--- Left Shift ---\n")
+    (def x0 '(1 2 3 4 5))
+    (def x1 (forge/lsh x0 1))
+    (assert (alu/eq (forge/count x1) 4) "Left shift by 1 should have 4 elements")
+    (io/put "Left shift (1 2 3 4 5) by 1\n")
+    (def x2 (forge/lsh x0 2))
+    (assert (alu/eq (forge/count x2) 3) "Left shift by 2 should have 3 elements")
+    (io/put "Left shift (1 2 3 4 5) by 2\n")
+
+    (io/put "\n--- Right Shift ---\n")
+    (def y0 '(1 2 3 4 5))
+    (def y1 (forge/rsh y0 1))
+    (assert (alu/eq (forge/count y1) 4) "Right shift by 1 should have 4 elements")
+    (io/put "Right shift (1 2 3 4 5) by 1\n")
+    (def y2 (forge/rsh y0 2))
+    (assert (alu/eq (forge/count y2) 3) "Right shift by 2 should have 3 elements")
+    (io/put "Right shift (1 2 3 4 5) by 2\n")
+
+    (io/put "\n--- Shift by 0 ---\n")
+    (def z0 '(1 2 3))
+    (def z1 (forge/lsh z0 0))
+    (assert (alu/eq (forge/count z1) 3) "Shift by 0 should not change size")
+    (io/put "Left shift by 0 - no change\n")
+
+    (io/put "\n--- Shift empty list ---\n")
+    (def e0 '())
+    (def e1 (forge/lsh e0 3))
+    (def e2 (forge/rsh e0 3))
+    (assert (alu/eq (forge/count e1) 0) "Shift empty should stay empty")
+    (assert (alu/eq (forge/count e2) 0) "Shift empty should stay empty")
+    (io/put "Left shift empty list\n")
+    (io/put "Right shift empty list\n")
+
+    (io/put "\n=== All shift tests complete ===\n")
+]

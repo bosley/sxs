@@ -131,6 +131,32 @@ static slp::slp_object_c alu_div_r(pkg::kernel::context_t ctx,
   return slp::slp_object_c::create_real(a / b);
 }
 
+static slp::slp_object_c alu_eq(pkg::kernel::context_t ctx,
+                                const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  if (list.size() < 3) {
+    return slp::slp_object_c::create_int(0);
+  }
+
+  auto a = g_api->eval(ctx, list.at(1)).as_int();
+  auto b = g_api->eval(ctx, list.at(2)).as_int();
+
+  return slp::slp_object_c::create_int(a == b ? 1 : 0);
+}
+
+static slp::slp_object_c alu_eq_r(pkg::kernel::context_t ctx,
+                                  const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  if (list.size() < 3) {
+    return slp::slp_object_c::create_int(0);
+  }
+
+  auto a = g_api->eval(ctx, list.at(1)).as_real();
+  auto b = g_api->eval(ctx, list.at(2)).as_real();
+
+  return slp::slp_object_c::create_int(a == b ? 1 : 0);
+}
+
 extern "C" void kernel_init(pkg::kernel::registry_t registry,
                             const struct pkg::kernel::api_table_s *api) {
   g_api = api;
@@ -146,5 +172,8 @@ extern "C" void kernel_init(pkg::kernel::registry_t registry,
   api->register_function(registry, "mul_r", alu_mul_r, slp::slp_type_e::REAL,
                          0);
   api->register_function(registry, "div_r", alu_div_r, slp::slp_type_e::REAL,
+                         0);
+  api->register_function(registry, "eq", alu_eq, slp::slp_type_e::INTEGER, 0);
+  api->register_function(registry, "eq_r", alu_eq_r, slp::slp_type_e::INTEGER,
                          0);
 }

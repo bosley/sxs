@@ -1,0 +1,18 @@
+=== Forge Shift Test ===
+
+--- Left Shift ---
+Left shift (1 2 3 4 5) by 1
+Left shift (1 2 3 4 5) by 2
+
+--- Right Shift ---
+Right shift (1 2 3 4 5) by 1
+Right shift (1 2 3 4 5) by 2
+
+--- Shift by 0 ---
+Left shift by 0 - no change
+
+--- Shift empty list ---
+Left shift empty list
+Right shift empty list
+
+=== All shift tests complete ===

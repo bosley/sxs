@@ -615,6 +615,243 @@ get_standard_callable_symbols() {
         return error_parse.take();
       }};
 
+  symbols["cast"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 3) {
+          throw std::runtime_error(
+              "cast requires exactly 2 arguments: type and value");
+        }
+
+        auto type_obj = list.at(1);
+        auto value_obj = list.at(2);
+
+        if (type_obj.type() != slp::slp_type_e::SYMBOL) {
+          throw std::runtime_error(
+              "cast: first argument must be a type symbol");
+        }
+
+        std::string type_symbol = type_obj.as_symbol();
+        slp::slp_type_e expected_type;
+
+        if (!context.is_symbol_enscribing_valid_type(type_symbol,
+                                                     expected_type)) {
+          throw std::runtime_error(
+              fmt::format("cast: invalid type symbol: {}", type_symbol));
+        }
+
+        auto evaluated_value = context.eval(value_obj);
+        auto actual_type = evaluated_value.type();
+
+        if (expected_type == actual_type) {
+          return evaluated_value;
+        }
+
+        if (expected_type == slp::slp_type_e::INTEGER &&
+            actual_type == slp::slp_type_e::REAL) {
+          double real_val = evaluated_value.as_real();
+          std::int64_t int_val = static_cast<std::int64_t>(real_val);
+          std::string int_str = std::to_string(int_val);
+          auto parse_result = slp::parse(int_str);
+          return parse_result.take();
+        }
+
+        if (expected_type == slp::slp_type_e::REAL &&
+            actual_type == slp::slp_type_e::INTEGER) {
+          std::int64_t int_val = evaluated_value.as_int();
+          double real_val = static_cast<double>(int_val);
+          std::string real_str = std::to_string(real_val);
+          auto parse_result = slp::parse(real_str);
+          return parse_result.take();
+        }
+
+        bool is_actual_list_type =
+            (actual_type == slp::slp_type_e::DQ_LIST ||
+             actual_type == slp::slp_type_e::PAREN_LIST ||
+             actual_type == slp::slp_type_e::BRACE_LIST ||
+             actual_type == slp::slp_type_e::BRACKET_LIST ||
+             actual_type == slp::slp_type_e::SOME);
+
+        bool is_expected_list_type =
+            (expected_type == slp::slp_type_e::DQ_LIST ||
+             expected_type == slp::slp_type_e::PAREN_LIST ||
+             expected_type == slp::slp_type_e::BRACE_LIST ||
+             expected_type == slp::slp_type_e::BRACKET_LIST);
+
+        if (is_actual_list_type && is_expected_list_type) {
+          if (actual_type == slp::slp_type_e::SOME) {
+            const std::uint8_t *base_ptr = evaluated_value.get_data().data();
+            const std::uint8_t *unit_ptr =
+                base_ptr + evaluated_value.get_root_offset();
+            const slp::slp_unit_of_store_t *unit =
+                reinterpret_cast<const slp::slp_unit_of_store_t *>(unit_ptr);
+            size_t inner_offset = static_cast<size_t>(unit->data.uint64);
+
+            evaluated_value = slp::slp_object_c::from_data(
+                evaluated_value.get_data(), evaluated_value.get_symbols(),
+                inner_offset);
+            actual_type = evaluated_value.type();
+          }
+          if (expected_type == slp::slp_type_e::DQ_LIST) {
+            std::string bytes;
+            if (actual_type == slp::slp_type_e::DQ_LIST) {
+              bytes = evaluated_value.as_string().to_string();
+            } else {
+              auto list_items = evaluated_value.as_list();
+              for (size_t i = 0; i < list_items.size(); i++) {
+                auto item = list_items.at(i);
+                if (item.type() == slp::slp_type_e::INTEGER) {
+                  std::int64_t val = item.as_int();
+                  unsigned char byte = static_cast<unsigned char>(val % 256);
+                  bytes += static_cast<char>(byte);
+                } else if (item.type() == slp::slp_type_e::DQ_LIST) {
+                  bytes += item.as_string().to_string();
+                }
+              }
+            }
+            return slp::create_string_direct(bytes);
+          }
+
+          if (actual_type == slp::slp_type_e::DQ_LIST) {
+            auto str_data = evaluated_value.as_string();
+            size_t len = str_data.size();
+            std::vector<slp::slp_object_c> int_objects;
+            int_objects.reserve(len);
+            for (size_t i = 0; i < len; i++) {
+              unsigned char byte = static_cast<unsigned char>(str_data.at(i));
+              int_objects.push_back(slp::slp_object_c::create_int(
+                  static_cast<std::int64_t>(byte)));
+            }
+
+            if (expected_type == slp::slp_type_e::PAREN_LIST) {
+              return slp::slp_object_c::create_paren_list(int_objects.data(),
+                                                          int_objects.size());
+            } else if (expected_type == slp::slp_type_e::BRACE_LIST) {
+              return slp::slp_object_c::create_brace_list(int_objects.data(),
+                                                          int_objects.size());
+            } else if (expected_type == slp::slp_type_e::BRACKET_LIST) {
+              return slp::slp_object_c::create_bracket_list(int_objects.data(),
+                                                            int_objects.size());
+            }
+          }
+
+          std::string repr;
+          auto list_items = evaluated_value.as_list();
+          std::string list_str;
+          for (size_t i = 0; i < list_items.size(); i++) {
+            if (i > 0)
+              list_str += " ";
+            auto item = list_items.at(i);
+            if (item.type() == slp::slp_type_e::SYMBOL) {
+              list_str += item.as_symbol();
+            } else if (item.type() == slp::slp_type_e::INTEGER) {
+              list_str += std::to_string(item.as_int());
+            } else if (item.type() == slp::slp_type_e::REAL) {
+              list_str += std::to_string(item.as_real());
+            } else if (item.type() == slp::slp_type_e::DQ_LIST) {
+              list_str += "\"" + item.as_string().to_string() + "\"";
+            } else {
+              throw std::runtime_error(
+                  "cast: cannot convert complex list structures");
+            }
+          }
+          repr = list_str;
+
+          std::string cast_str;
+          if (expected_type == slp::slp_type_e::PAREN_LIST) {
+            cast_str = "(" + repr + ")";
+          } else if (expected_type == slp::slp_type_e::BRACE_LIST) {
+            cast_str = "{" + repr + "}";
+          } else if (expected_type == slp::slp_type_e::BRACKET_LIST) {
+            cast_str = "[" + repr + "]";
+          }
+
+          auto parse_result = slp::parse(cast_str);
+          if (parse_result.is_error()) {
+            throw std::runtime_error("cast: failed to parse converted value");
+          }
+          return parse_result.take();
+        }
+
+        throw std::runtime_error(fmt::format(
+            "cast: type mismatch: expected {}, got {}",
+            static_cast<int>(expected_type), static_cast<int>(actual_type)));
+      }};
+
+  symbols["do"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 2) {
+          throw std::runtime_error("do requires exactly 1 argument: body");
+        }
+
+        auto body_obj = list.at(1);
+        if (body_obj.type() != slp::slp_type_e::BRACKET_LIST) {
+          throw std::runtime_error("do: argument must be a bracket list");
+        }
+
+        context.push_loop_context();
+
+        while (true) {
+          context.push_scope();
+
+          std::int64_t current_iteration = context.get_current_iteration();
+          auto iteration_obj = slp::slp_object_c::create_int(current_iteration);
+          context.define_symbol("$iterations", iteration_obj);
+
+          auto body_copy = slp::slp_object_c::from_data(
+              body_obj.get_data(), body_obj.get_symbols(),
+              body_obj.get_root_offset());
+          context.eval(body_copy);
+
+          context.pop_scope();
+
+          if (context.should_exit_loop()) {
+            break;
+          }
+
+          context.increment_iteration();
+        }
+
+        auto return_value = context.get_loop_return_value();
+        context.pop_loop_context();
+
+        return return_value;
+      }};
+
+  symbols["done"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::NONE,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 2) {
+          throw std::runtime_error(
+              "done requires exactly 1 argument: return value");
+        }
+
+        if (!context.is_in_loop()) {
+          throw std::runtime_error("done called outside of do loop");
+        }
+
+        auto value_obj = list.at(1);
+        auto evaluated_value = context.eval(value_obj);
+
+        context.signal_loop_done(evaluated_value);
+
+        slp::slp_object_c result;
+        return result;
+      }};
+
   return symbols;
 }
 

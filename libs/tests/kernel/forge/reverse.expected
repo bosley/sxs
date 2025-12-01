@@ -1,0 +1,15 @@
+=== Forge Reverse Test ===
+
+--- Basic Reverse ---
+Reversed (1 2 3 4 5)
+
+--- Reverse single element ---
+Reversed single element list
+
+--- Reverse empty ---
+Reversed empty list
+
+--- Reverse symbols ---
+Reversed (a b c d)
+
+=== All reverse tests complete ===

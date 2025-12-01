@@ -77,6 +77,15 @@ public:
   get_import_interpreter(const std::string &symbol_prefix) = 0;
 
   virtual std::string get_lambda_signature(std::uint64_t lambda_id) = 0;
+
+  virtual void push_loop_context() = 0;
+  virtual void pop_loop_context() = 0;
+  virtual bool is_in_loop() = 0;
+  virtual void signal_loop_done(slp::slp_object_c &value) = 0;
+  virtual bool should_exit_loop() = 0;
+  virtual slp::slp_object_c get_loop_return_value() = 0;
+  virtual std::int64_t get_current_iteration() = 0;
+  virtual void increment_iteration() = 0;
 };
 
 struct callable_symbol_s {

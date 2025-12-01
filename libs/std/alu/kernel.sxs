@@ -8,5 +8,7 @@
     (define-function sub_r (a :real b :real) :real)
     (define-function mul_r (a :real b :real) :real)
     (define-function div_r (a :real b :real) :real)
+    (define-function eq (a :int b :int) :int)
+    (define-function eq_r (a :real b :real) :int)
 ])
 

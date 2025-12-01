@@ -121,11 +121,11 @@
       "patterns": [
         {
           "name": "keyword.control.sxs",
-          "match": "\\b(if|match|reflect|try|recover|assert)\\b"
+          "match": "\\b(if|match|reflect|try|recover|assert|do|done)\\b"
         },
         {
           "name": "keyword.other.sxs",
-          "match": "\\b(def|fn|apply|eval|debug|export)\\b"
+          "match": "\\b(def|fn|apply|eval|debug|export|cast)\\b"
         }
       ]
     },

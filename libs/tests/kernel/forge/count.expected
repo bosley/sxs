@@ -1,0 +1,11 @@
+=== Forge Count Test ===
+
+--- Count elements ---
+Count of (1 2 3 4 5): 5
+Count of empty list: 0
+Count of single element: 1
+
+--- Count non-list ---
+Count of scalar (upcast to list): 1
+
+=== All count tests complete ===

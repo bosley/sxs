@@ -1,0 +1,18 @@
+=== Forge Rotation Test ===
+
+--- Rotate Right ---
+Rotate right (1 2 3 4 5) by 1
+Rotate right (1 2 3 4 5) by 2
+
+--- Rotate Left ---
+Rotate left (1 2 3 4 5) by 1
+Rotate left (1 2 3 4 5) by 2
+
+--- Rotate full cycle ---
+Rotate right by list length - no change
+Rotate left by 2x list length - no change
+
+--- Rotate by 0 ---
+Rotate by 0 - no change
+
+=== All rotation tests complete ===
