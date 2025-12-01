@@ -95,6 +95,11 @@ public:
 
   virtual const std::map<std::string, callable_symbol_s> &
   get_callable_symbols() = 0;
+
+  virtual std::string resolve_file_path(const std::string &file_path) = 0;
+  virtual std::string resolve_kernel_path(const std::string &kernel_name) = 0;
+  virtual bool load_kernel_types(const std::string &kernel_name,
+                                 const std::string &kernel_dir) = 0;
 };
 
 std::unique_ptr<compiler_context_if> create_compiler_context(

@@ -1,5 +1,6 @@
 #include "type_checker.hpp"
 #include "core/compiler_context.hpp"
+#include "core/datum/datum.hpp"
 #include "core/instructions/instructions.hpp"
 #include <filesystem>
 #include <fstream>
@@ -50,6 +51,9 @@ bool type_checker_c::check_source(const std::string &source,
 
   try {
     auto symbols = instructions::get_standard_callable_symbols();
+    auto datum_symbols = datum::get_standard_callable_symbols();
+    symbols.insert(datum_symbols.begin(), datum_symbols.end());
+
     auto context = create_compiler_context(logger_, include_paths_,
                                            working_directory_, symbols);
 
@@ -75,6 +79,9 @@ type_info_s type_checker_c::check_expression(const std::string &source,
   }
 
   auto symbols = instructions::get_standard_callable_symbols();
+  auto datum_symbols = datum::get_standard_callable_symbols();
+  symbols.insert(datum_symbols.begin(), datum_symbols.end());
+
   auto context = create_compiler_context(logger_, include_paths_,
                                          working_directory_, symbols);
 

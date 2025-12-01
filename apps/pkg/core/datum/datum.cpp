@@ -1,5 +1,6 @@
 #include "datum.hpp"
 #include "core/imports/imports.hpp"
+#include "core/instructions/typechecking/typechecking.hpp"
 #include "core/kernels/kernels.hpp"
 #include <fmt/core.h>
 
@@ -46,7 +47,8 @@ get_standard_callable_symbols() {
 
         slp::slp_object_c result;
         return result;
-      }};
+      },
+      .typecheck_function = instructions::typechecking::typecheck_debug};
 
   symbols["import"] = callable_symbol_s{
       .return_type = slp::slp_type_e::NONE,
@@ -99,7 +101,8 @@ get_standard_callable_symbols() {
 
         slp::slp_object_c result;
         return result;
-      }};
+      },
+      .typecheck_function = instructions::typechecking::typecheck_import};
 
   symbols["load"] = callable_symbol_s{
       .return_type = slp::slp_type_e::NONE,
@@ -140,7 +143,8 @@ get_standard_callable_symbols() {
 
         slp::slp_object_c result;
         return result;
-      }};
+      },
+      .typecheck_function = instructions::typechecking::typecheck_load};
 
   return symbols;
 }

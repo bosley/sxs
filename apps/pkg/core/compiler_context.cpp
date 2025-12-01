@@ -2,7 +2,10 @@
 #include "imports/imports.hpp"
 #include "interpreter.hpp"
 #include "kernels/kernels.hpp"
+#include <filesystem>
 #include <fmt/core.h>
+#include <fstream>
+#include <sstream>
 
 namespace pkg::core {
 
@@ -220,6 +223,11 @@ public:
   get_callable_symbols() override {
     return callable_symbols_;
   }
+
+  std::string resolve_file_path(const std::string &file_path) override;
+  std::string resolve_kernel_path(const std::string &kernel_name) override;
+  bool load_kernel_types(const std::string &kernel_name,
+                         const std::string &kernel_dir) override;
 
 private:
   logger_t logger_;
@@ -472,6 +480,15 @@ type_info_s compiler_context_c::eval_type(slp::slp_object_c &object) {
       return result;
     }
 
+    std::string cmd = first.as_symbol();
+
+    if (callable_symbols_.count(cmd)) {
+      const auto &symbol = callable_symbols_.at(cmd);
+      if (symbol.typecheck_function) {
+        return symbol.typecheck_function(*this, inner_obj);
+      }
+    }
+
     result.base_type = slp::slp_type_e::DATUM;
     return result;
   }
@@ -492,6 +509,200 @@ type_info_s compiler_context_c::eval_type(slp::slp_object_c &object) {
     result.base_type = type;
     return result;
   }
+}
+
+std::string
+compiler_context_c::resolve_file_path(const std::string &file_path) {
+  if (std::filesystem::path(file_path).is_absolute()) {
+    if (std::filesystem::exists(file_path)) {
+      return file_path;
+    }
+  }
+
+  for (const auto &include_path : include_paths_) {
+    auto full_path = std::filesystem::path(include_path) / file_path;
+    if (std::filesystem::exists(full_path)) {
+      return full_path.string();
+    }
+  }
+
+  auto working_path = std::filesystem::path(working_directory_) / file_path;
+  if (std::filesystem::exists(working_path)) {
+    return working_path.string();
+  }
+
+  return "";
+}
+
+std::string
+compiler_context_c::resolve_kernel_path(const std::string &kernel_name) {
+  if (std::filesystem::path(kernel_name).is_absolute()) {
+    if (std::filesystem::exists(kernel_name)) {
+      return kernel_name;
+    }
+  }
+
+  for (const auto &include_path : include_paths_) {
+    auto kernel_path = std::filesystem::path(include_path) / kernel_name;
+    if (std::filesystem::exists(kernel_path / "kernel.sxs")) {
+      return kernel_path.string();
+    }
+  }
+
+  auto working_kernel_path =
+      std::filesystem::path(working_directory_) / kernel_name;
+  if (std::filesystem::exists(working_kernel_path / "kernel.sxs")) {
+    return working_kernel_path.string();
+  }
+
+  return "";
+}
+
+bool compiler_context_c::load_kernel_types(const std::string &kernel_name,
+                                           const std::string &kernel_dir) {
+  auto kernel_sxs_path = std::filesystem::path(kernel_dir) / "kernel.sxs";
+
+  std::ifstream file(kernel_sxs_path);
+  if (!file.is_open()) {
+    logger_->error("Could not open kernel.sxs: {}", kernel_sxs_path.string());
+    return false;
+  }
+
+  std::stringstream buffer;
+  buffer << file.rdbuf();
+  std::string source = buffer.str();
+  file.close();
+
+  auto parse_result = slp::parse(source);
+  if (parse_result.is_error()) {
+    logger_->error("Failed to parse kernel.sxs: {}",
+                   parse_result.error().message);
+    return false;
+  }
+
+  auto kernel_obj = parse_result.take();
+  if (kernel_obj.type() != slp::slp_type_e::DATUM) {
+    logger_->error("kernel.sxs must start with #(define-kernel ...)");
+    return false;
+  }
+
+  const std::uint8_t *base_ptr = kernel_obj.get_data().data();
+  const std::uint8_t *unit_ptr = base_ptr + kernel_obj.get_root_offset();
+  const slp::slp_unit_of_store_t *unit =
+      reinterpret_cast<const slp::slp_unit_of_store_t *>(unit_ptr);
+  size_t inner_offset = static_cast<size_t>(unit->data.uint64);
+
+  auto inner_obj = slp::slp_object_c::from_data(
+      kernel_obj.get_data(), kernel_obj.get_symbols(), inner_offset);
+
+  if (inner_obj.type() != slp::slp_type_e::PAREN_LIST) {
+    logger_->error("kernel.sxs define-kernel must be a list");
+    return false;
+  }
+
+  auto list = inner_obj.as_list();
+  if (list.size() < 4) {
+    logger_->error("kernel.sxs define-kernel requires: name dylib functions");
+    return false;
+  }
+
+  auto functions_obj = list.at(3);
+  if (functions_obj.type() != slp::slp_type_e::BRACKET_LIST) {
+    logger_->error("kernel.sxs functions must be a bracket list");
+    return false;
+  }
+
+  auto functions_list = functions_obj.as_list();
+  for (size_t i = 0; i < functions_list.size(); i++) {
+    auto func_def = functions_list.at(i);
+    if (func_def.type() != slp::slp_type_e::PAREN_LIST) {
+      logger_->warn("kernel.sxs: skipping non-list function definition");
+      continue;
+    }
+
+    auto func_list = func_def.as_list();
+    if (func_list.size() < 4) {
+      logger_->warn("kernel.sxs: function definition requires at least 4 "
+                    "elements");
+      continue;
+    }
+
+    auto cmd = func_list.at(0);
+    if (cmd.type() != slp::slp_type_e::SYMBOL ||
+        cmd.as_symbol() != std::string("define-function")) {
+      continue;
+    }
+
+    auto func_name_obj = func_list.at(1);
+    if (func_name_obj.type() != slp::slp_type_e::SYMBOL) {
+      logger_->warn("kernel.sxs: function name must be a symbol");
+      continue;
+    }
+    std::string func_name = func_name_obj.as_symbol();
+
+    auto params_obj = func_list.at(2);
+    if (params_obj.type() != slp::slp_type_e::PAREN_LIST) {
+      logger_->warn("kernel.sxs: function parameters must be a list");
+      continue;
+    }
+
+    auto return_type_obj = func_list.at(3);
+    if (return_type_obj.type() != slp::slp_type_e::SYMBOL) {
+      logger_->warn("kernel.sxs: function return type must be a symbol");
+      continue;
+    }
+
+    std::string return_type_sym = return_type_obj.as_symbol();
+    type_info_s return_type;
+    if (!is_type_symbol(return_type_sym, return_type)) {
+      logger_->error("kernel.sxs: invalid return type: {}", return_type_sym);
+      continue;
+    }
+
+    auto params_list = params_obj.as_list();
+    std::vector<type_info_s> parameters;
+    bool variadic = false;
+
+    for (size_t j = 0; j < params_list.size(); j += 2) {
+      if (j + 1 >= params_list.size()) {
+        logger_->warn("kernel.sxs: parameters must be in pairs");
+        break;
+      }
+
+      auto param_type_obj = params_list.at(j + 1);
+      if (param_type_obj.type() != slp::slp_type_e::SYMBOL) {
+        logger_->warn("kernel.sxs: parameter type must be a symbol");
+        continue;
+      }
+
+      std::string param_type_sym = param_type_obj.as_symbol();
+      type_info_s param_type;
+
+      if (!is_type_symbol(param_type_sym, param_type)) {
+        logger_->error("kernel.sxs: invalid parameter type: {}",
+                       param_type_sym);
+        continue;
+      }
+
+      if (param_type.is_variadic) {
+        variadic = true;
+      }
+
+      parameters.push_back(param_type);
+    }
+
+    function_signature_s sig;
+    sig.parameters = parameters;
+    sig.return_type = return_type;
+    sig.variadic = variadic;
+
+    std::string full_func_name = kernel_name + "/" + func_name;
+    function_signatures_[full_func_name] = sig;
+
+    logger_->debug("Registered kernel function: {}", full_func_name);
+  }
+
+  return true;
 }
 
 std::unique_ptr<compiler_context_if> create_compiler_context(
