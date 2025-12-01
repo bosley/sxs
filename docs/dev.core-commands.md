@@ -13,7 +13,6 @@ for source of truth read the actual code, fool
 ```cpp
 struct callable_symbol_s {
   slp::slp_type_e return_type;
-  std::vector<callable_parameter_s> required_parameters;
   bool variadic;
   std::function<slp::slp_object_c(callable_context_if &context,
                                   slp::slp_object_c &args_list)> function;
@@ -47,7 +46,6 @@ Additional types supported in type map (for type checking with `:type` syntax):
 ```cpp
 symbols["command-name"] = callable_symbol_s{
     .return_type = slp::slp_type_e::ABERRANT,
-    .required_parameters = {},
     .variadic = false,
     .function = [](callable_context_if &context,
                    slp::slp_object_c &args_list) -> slp::slp_object_c {

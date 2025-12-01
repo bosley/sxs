@@ -90,7 +90,6 @@ public:
 
 struct callable_symbol_s {
   slp::slp_type_e return_type;
-  std::vector<callable_parameter_s> required_parameters;
   bool variadic{false};
   std::function<slp::slp_object_c(callable_context_if &context,
                                   slp::slp_object_c &args_list)>

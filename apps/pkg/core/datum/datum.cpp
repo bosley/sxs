@@ -11,7 +11,6 @@ get_standard_callable_symbols() {
 
   symbols["debug"] = callable_symbol_s{
       .return_type = slp::slp_type_e::INTEGER,
-      .required_parameters = {},
       .variadic = true,
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
@@ -51,7 +50,6 @@ get_standard_callable_symbols() {
 
   symbols["import"] = callable_symbol_s{
       .return_type = slp::slp_type_e::NONE,
-      .required_parameters = {},
       .variadic = false,
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
@@ -105,7 +103,6 @@ get_standard_callable_symbols() {
 
   symbols["load"] = callable_symbol_s{
       .return_type = slp::slp_type_e::NONE,
-      .required_parameters = {},
       .variadic = false,
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {

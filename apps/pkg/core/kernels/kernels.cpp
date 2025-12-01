@@ -63,7 +63,6 @@ get_kernel_definition_symbols(kernel_definition_context_s *ctx) {
 
   symbols["define-function"] = callable_symbol_s{
       .return_type = slp::slp_type_e::NONE,
-      .required_parameters = {},
       .variadic = false,
       .function = [ctx](callable_context_if &context,
                         slp::slp_object_c &args_list) -> slp::slp_object_c {
@@ -130,7 +129,6 @@ get_kernel_definition_symbols(kernel_definition_context_s *ctx) {
 
   symbols["define-kernel"] = callable_symbol_s{
       .return_type = slp::slp_type_e::NONE,
-      .required_parameters = {},
       .variadic = false,
       .function = [ctx](callable_context_if &context,
                         slp::slp_object_c &args_list) -> slp::slp_object_c {
