@@ -2,7 +2,9 @@
 
 ## Overview
 
-The SXS kernel system provides a C++ plugin architecture for extending the language runtime with native compiled functions. Kernels are dynamically loaded shared libraries that register functions callable from SXS code, enabling high-performance operations while maintaining type safety through direct integration with the SLP object system.
+The SXS kernel system provides a C++ plugin architecture for extending the language **runtime** with native compiled functions. Kernels are dynamically loaded shared libraries that register functions callable from SXS code, enabling high-performance operations while maintaining type safety through direct integration with the SLP object system.
+
+**Note:** This document describes the runtime loading system. For information on how kernel type checking works independently during validation, see the compiler context documentation. The type checker validates kernel function signatures without loading native code.
 
 ### Key Design Principles
 
@@ -12,6 +14,34 @@ The SXS kernel system provides a C++ plugin architecture for extending the langu
 - **Type Safety**: Compile-time type checking through C++ type system
 - **Dynamic Loading**: Kernels loaded on-demand, locked after initialization phase
 - **Isolation**: Kernels execute in separate compilation units with controlled runtime access
+
+### Type Checking vs Runtime Loading
+
+**Important Architectural Separation:**
+
+The kernel system documented here handles **runtime loading and execution only**. Type checking for kernel functions is performed separately by the compiler context (`compiler_context_c::load_kernel_types`) during the type checking phase.
+
+**Type Checking Phase:**
+- Performed by `compiler_context_c::load_kernel_types()`
+- Parses `kernel.sxs` to extract function signatures
+- Validates parameter and return types
+- Registers function signatures for compile-time type validation
+- Does NOT load dylibs or execute kernel code
+- Used by standalone type checker and pre-execution validation
+
+**Runtime Loading Phase (This System):**
+- Performed by `kernel_manager_c::load_kernel_dylib()`
+- Parses `kernel.sxs` for metadata validation
+- Dynamically loads shared libraries via `dlopen`
+- Resolves and invokes `kernel_init` symbols
+- Registers actual executable function pointers
+- Only happens during program execution
+
+**Why Separate?**
+- Type checking can run without loading native code
+- Faster validation without dylib overhead  
+- Security: type check untrusted code without execution
+- Supports ahead-of-time validation workflows
 
 ## Architecture
 
@@ -52,18 +82,25 @@ graph TB
     KM -->|provides context to| IC
 ```
 
+**Note:** This diagram shows the **runtime** kernel system. Type checking occurs separately through `compiler_context_c` which parses `kernel.sxs` independently without loading dylibs or invoking kernel code.
+
 ## Core Components
 
 ### kernel_manager_c
 
-Central orchestrator managing the entire kernel subsystem lifecycle.
+Central orchestrator managing **runtime** kernel subsystem lifecycle.
 
 **Responsibilities:**
 - Path resolution across include directories
 - Dynamic library loading and symbol resolution
-- Function registration and lookup
+- **Runtime** function registration and lookup
 - Lifecycle management (load → register → lock → execute)
 - Minimal API table provisioning
+
+**Does NOT handle:**
+- Type checking or validation (see `compiler_context_c`)
+- Compile-time symbol validation
+- Function signature verification for type safety
 
 **Key State:**
 - `include_paths_`: Search paths for kernel discovery
@@ -533,6 +570,11 @@ Stateless kernels (like alu, io, random) don't need to define this function.
 
 ## kernel.sxs Metadata Format
 
+The `kernel.sxs` file serves **two purposes**:
+
+1. **Type Checking** (compiler context): Function signatures for compile-time validation
+2. **Runtime Loading** (kernel manager): Dylib location and function verification
+
 ```scheme
 #(define-kernel <kernel-name> <dylib-filename> [
     (define-function <fn-name> (<arg> :<type> ...) :<return-type>)
@@ -549,7 +591,15 @@ Stateless kernels (like alu, io, random) don't need to define this function.
 ])
 ```
 
-The metadata declares expected functions. The manager verifies that all declared functions are registered during `kernel_init`.
+**Type Checking Usage:**
+- Parses function signatures independently
+- Registers types without loading dylib
+- Enables standalone validation
+
+**Runtime Usage:**  
+- The manager verifies all declared functions are registered during `kernel_init`
+- Loads dylib and executes registration
+- Validates runtime completeness
 
 ## Standard Library Kernels
 
@@ -693,13 +743,3 @@ extern "C" void kernel_init(pkg::kernel::registry_t registry,
   api->register_function(registry, "add_r", alu_add_r, slp::slp_type_e::REAL, 0);
 }
 ```
-
-Clean, simple, no memory management required.
-
-## Future Enhancements
-
-1. **Async Functions**: Support for non-blocking kernel operations
-2. **Hot Reload**: Dynamic kernel reloading during development
-3. **Sandboxing**: Resource limits and capability-based security
-4. **Error Propagation**: Rich error objects with stack traces
-5. **JIT Compilation**: Runtime optimization of frequently-called paths
