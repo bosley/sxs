@@ -3,7 +3,7 @@
 #include "instructions/instructions.hpp"
 #include "interpreter.hpp"
 #include "kernels/kernels.hpp"
-#include "tcs/tcs.hpp"
+#include "type_checker/type_checker.hpp"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -40,8 +40,8 @@ int core_c::run() {
     options_.logger->info("Loading SLP file: {}", options_.file_path);
 
     auto tcs_logger = options_.logger->clone("tcs");
-    tcs::tcs_c type_checker(tcs_logger, options_.include_paths,
-                            options_.working_directory);
+    type_checker::type_checker_c type_checker(
+        tcs_logger, options_.include_paths, options_.working_directory);
 
     options_.logger->info("Validating code (types and symbols)...");
     if (!type_checker.check(options_.file_path)) {

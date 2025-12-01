@@ -20,7 +20,6 @@ add_library(pkg_core STATIC
     core/instructions/typechecking/typechecking.cpp
     core/imports/imports.cpp
     core/kernels/kernels.cpp
-    core/tcs/tcs.cpp
     core/type_checker/type_checker.cpp
 )
 

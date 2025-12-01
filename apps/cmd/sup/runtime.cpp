@@ -1,6 +1,6 @@
 #include "manager.hpp"
 #include <core/core.hpp>
-#include <core/tcs/tcs.hpp>
+#include <core/type_checker/type_checker.hpp>
 #include <filesystem>
 #include <fmt/core.h>
 #include <fstream>
@@ -180,8 +180,8 @@ static bool check_project_types(const fs::path &project_path) {
   auto logger = spdlog::stdout_color_mt("tcs");
   logger->set_level(spdlog::level::info);
 
-  pkg::core::tcs::tcs_c type_checker(logger, include_paths,
-                                     project_path.string());
+  pkg::core::type_checker::type_checker_c type_checker(logger, include_paths,
+                                                       project_path.string());
 
   fmt::print("\n=== Validating Project (Types & Symbols) ===\n");
   bool success = type_checker.check(init_file.string());
