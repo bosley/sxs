@@ -35,8 +35,19 @@ create_list_of_type(slp::slp_type_e type,
     return slp::slp_object_c::create_bracket_list(items.data(), items.size());
   case slp::slp_type_e::BRACE_LIST:
     return slp::slp_object_c::create_brace_list(items.data(), items.size());
-  case slp::slp_type_e::DQ_LIST:
-    return slp::slp_object_c::create_string("");
+  case slp::slp_type_e::DQ_LIST: {
+    std::string str;
+    for (const auto &item : items) {
+      if (item.type() == slp::slp_type_e::INTEGER) {
+        str += static_cast<char>(item.as_int());
+      } else if (item.type() == slp::slp_type_e::SYMBOL) {
+        str += item.as_symbol();
+      } else if (item.type() == slp::slp_type_e::DQ_LIST) {
+        str += item.as_string().to_string();
+      }
+    }
+    return slp::slp_object_c::create_string(str.c_str());
+  }
   default:
     return slp::slp_object_c::create_paren_list(items.data(), items.size());
   }
@@ -476,6 +487,12 @@ static slp::slp_object_c forge_count(pkg::kernel::context_t ctx,
   }
 
   auto target = g_api->eval(ctx, list.at(1));
+
+  if (target.type() == slp::slp_type_e::DQ_LIST) {
+    auto str = target.as_string();
+    return slp::slp_object_c::create_int(static_cast<long long>(str.size()));
+  }
+
   auto upcast = upcast_to_list(ctx, target);
   auto orig_list = upcast.as_list();
 

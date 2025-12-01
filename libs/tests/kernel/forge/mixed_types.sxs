@@ -12,7 +12,7 @@
     (io/put "Paren list operations: OK\n")
 
     (io/put "\n--- Bracket lists ---\n")
-    (def b0 [1 2 3])
+    (def b0 '[1 2 3])
     (def b1 (forge/pf b0 0))
     (def b2 (forge/rev b0))
     (assert (alu/eq (forge/count b1) 4) "Push front should give 4 elements")

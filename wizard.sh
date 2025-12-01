@@ -236,6 +236,23 @@ install_sxs_std() {
     echo -e "  export SXS_HOME=$SXS_HOME"
     echo -e "  export PATH=\$SXS_HOME/bin:\$PATH"
     echo
+    
+    sleep 0.25
+    
+    echo -e "${YELLOW}Running kernel tests...${NC}"
+    echo
+    if ! cd "$SCRIPT_DIR/libs/tests/kernel"; then
+        echo -e "${RED}✗ Failed to change to kernel tests directory${NC}"
+        exit 1
+    fi
+    if ! ./run.sh; then
+        echo -e "${RED}✗ Kernel tests failed${NC}"
+        exit 1
+    fi
+    
+    echo
+    echo -e "${GREEN}✓ Kernel tests passed!${NC}"
+    echo
 }
 
 build_project() {

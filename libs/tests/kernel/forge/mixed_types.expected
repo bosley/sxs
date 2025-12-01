@@ -4,3 +4,21 @@
 Paren list operations: OK
 
 --- Bracket lists ---
+Bracket list operations: OK
+
+--- Brace lists ---
+Brace list operations: OK
+
+--- String (DQ_LIST) ---
+String count: 3
+
+--- Mixed value types in list ---
+Mixed value types: count=4
+Reverse mixed types: OK
+Replace in mixed types: OK
+
+--- Nested lists ---
+Nested list count: 3
+Reverse nested list: OK
+
+=== All mixed type tests complete ===
