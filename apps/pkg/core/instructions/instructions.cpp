@@ -852,6 +852,63 @@ get_standard_callable_symbols() {
         return result;
       }};
 
+  symbols["at"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 3) {
+          throw std::runtime_error(
+              "at requires exactly 2 arguments: index and collection");
+        }
+
+        auto index_obj = list.at(1);
+        auto collection_obj = list.at(2);
+
+        auto evaluated_index = context.eval(index_obj);
+        if (evaluated_index.type() != slp::slp_type_e::INTEGER) {
+          throw std::runtime_error("at: index must be an integer");
+        }
+
+        std::int64_t index = evaluated_index.as_int();
+        if (index < 0) {
+          std::string error_msg = "@(index out of bounds)";
+          auto error_parse = slp::parse(error_msg);
+          return error_parse.take();
+        }
+
+        auto evaluated_collection = context.eval(collection_obj);
+        auto collection_type = evaluated_collection.type();
+
+        if (collection_type == slp::slp_type_e::DQ_LIST) {
+          auto str_data = evaluated_collection.as_string();
+          if (static_cast<size_t>(index) >= str_data.size()) {
+            std::string error_msg = "@(index out of bounds)";
+            auto error_parse = slp::parse(error_msg);
+            return error_parse.take();
+          }
+          unsigned char byte = static_cast<unsigned char>(str_data.at(index));
+          return slp::slp_object_c::create_int(static_cast<std::int64_t>(byte));
+        }
+
+        if (collection_type == slp::slp_type_e::PAREN_LIST ||
+            collection_type == slp::slp_type_e::BRACKET_LIST ||
+            collection_type == slp::slp_type_e::BRACE_LIST) {
+          auto collection_list = evaluated_collection.as_list();
+          if (static_cast<size_t>(index) >= collection_list.size()) {
+            std::string error_msg = "@(index out of bounds)";
+            auto error_parse = slp::parse(error_msg);
+            return error_parse.take();
+          }
+          return collection_list.at(static_cast<size_t>(index));
+        }
+
+        throw std::runtime_error(
+            "at: collection must be a list or string type");
+      }};
+
   return symbols;
 }
 

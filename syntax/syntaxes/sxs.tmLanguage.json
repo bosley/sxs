@@ -125,7 +125,7 @@
         },
         {
           "name": "keyword.other.sxs",
-          "match": "\\b(def|fn|apply|eval|debug|export|cast)\\b"
+          "match": "\\b(def|fn|apply|eval|debug|export|cast|at)\\b"
         }
       ]
     },

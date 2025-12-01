@@ -18,6 +18,7 @@ set(SXS_TEST_FILES
   test_lambda_types.sxs
   test_cast.sxs
   test_do_loop.sxs
+  test_at.sxs
   test_import_basic.sxs
   test_import_exported_basic.sxs
   test_import_lambda.sxs
@@ -273,4 +274,17 @@ target_link_libraries(do_loop_tests PRIVATE
 
 add_dependencies(build_tests do_loop_tests)
 add_test(NAME do_loop_tests COMMAND do_loop_tests)
+
+add_executable(at_tests
+  at_test.cpp
+)
+
+target_link_libraries(at_tests PRIVATE 
+  extern::snitch
+  pkg::core
+  ${SXS_SLP_LIB}
+)
+
+add_dependencies(build_tests at_tests)
+add_test(NAME at_tests COMMAND at_tests)
 

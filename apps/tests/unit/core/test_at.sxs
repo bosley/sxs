@@ -1,0 +1,105 @@
+[
+  (def paren_list '(1 2 3 4 5))
+  (def first (at 0 paren_list))
+  (debug "test 1 - first element of paren list:" first)
+
+  (def last (at 4 paren_list))
+  (debug "test 2 - last element of paren list:" last)
+
+  (def middle (at 2 paren_list))
+  (debug "test 3 - middle element of paren list:" middle)
+
+  (def bracket_list (cast :list-b '(10 20 30 40)))
+  (def bracket_first (at 0 bracket_list))
+  (debug "test 4 - first element of bracket list:" bracket_first)
+
+  (def bracket_last (at 3 bracket_list))
+  (debug "test 5 - last element of bracket list:" bracket_last)
+
+  (def brace_list {100 200 300})
+  (def brace_first (at 0 brace_list))
+  (debug "test 6 - first element of brace list:" brace_first)
+
+  (def brace_mid (at 1 brace_list))
+  (debug "test 7 - middle element of brace list:" brace_mid)
+
+  (def test_string "ABC")
+  (def char_a (at 0 test_string))
+  (debug "test 8 - byte value of 'A':" char_a)
+
+  (def char_b (at 1 test_string))
+  (debug "test 9 - byte value of 'B':" char_b)
+
+  (def char_c (at 2 test_string))
+  (debug "test 10 - byte value of 'C':" char_c)
+
+  (def hello "Hello")
+  (def h_byte (at 0 hello))
+  (debug "test 11 - byte value of 'H':" h_byte)
+
+  (def out_of_bounds (at 10 paren_list))
+  (debug "test 12 - out of bounds returns error:" out_of_bounds)
+
+  (def negative_index (at -1 brace_list))
+  (debug "test 13 - negative index returns error:" negative_index)
+
+  (def out_of_bounds_string (at 100 "test"))
+  (debug "test 14 - string out of bounds returns error:" out_of_bounds_string)
+
+  (def empty_list '())
+  (def empty_access (at 0 empty_list))
+  (debug "test 15 - access empty list returns error:" empty_access)
+
+  (def nested_list '((1 2) (3 4) (5 6)))
+  (def nested_result (at 1 nested_list))
+  (debug "test 16 - access nested list element:" nested_result)
+
+  (def string_list {"one" "two" "three"})
+  (def string_elem (at 2 string_list))
+  (debug "test 17 - access string from list:" string_elem)
+
+  (def mixed_list '(42 "hello" 3.14))
+  (def mixed_int (at 0 mixed_list))
+  (debug "test 18 - access int from mixed list:" mixed_int)
+
+  (def mixed_str (at 1 mixed_list))
+  (debug "test 19 - access string from mixed list:" mixed_str)
+
+  (def mixed_real (at 2 mixed_list))
+  (debug "test 20 - access real from mixed list:" mixed_real)
+
+  (def result1 (recover [
+    (def bad (at "not-an-int" paren_list))
+    999
+  ] [
+    (debug "test 21 - caught non-integer index error:" $exception)
+    123
+  ]))
+  (debug "test 21 - recover result:" result1)
+
+  (def result2 (recover [
+    (def bad (at 0 42))
+    888
+  ] [
+    (debug "test 22 - caught non-list collection error:" $exception)
+    456
+  ]))
+  (debug "test 22 - recover result:" result2)
+
+  (def quoted_list '(7 8 9))
+  (def from_quoted (at 1 quoted_list))
+  (debug "test 23 - access element from quoted list:" from_quoted)
+
+  (def zero_elem (at 0 {0 1 2}))
+  (debug "test 24 - access zero value:" zero_elem)
+
+  (def single_elem (at 0 {999}))
+  (debug "test 25 - access single element list:" single_elem)
+
+  (def special_chars "\n\t\r")
+  (def newline_byte (at 0 special_chars))
+  (debug "test 26 - byte value of newline:" newline_byte)
+
+  (debug "All at instruction tests completed successfully!")
+]
+
