@@ -782,6 +782,76 @@ get_standard_callable_symbols() {
             static_cast<int>(expected_type), static_cast<int>(actual_type)));
       }};
 
+  symbols["do"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 2) {
+          throw std::runtime_error("do requires exactly 1 argument: body");
+        }
+
+        auto body_obj = list.at(1);
+        if (body_obj.type() != slp::slp_type_e::BRACKET_LIST) {
+          throw std::runtime_error("do: argument must be a bracket list");
+        }
+
+        context.push_loop_context();
+
+        while (true) {
+          context.push_scope();
+
+          std::int64_t current_iteration = context.get_current_iteration();
+          auto iteration_obj = slp::slp_object_c::create_int(current_iteration);
+          context.define_symbol("$iterations", iteration_obj);
+
+          auto body_copy = slp::slp_object_c::from_data(
+              body_obj.get_data(), body_obj.get_symbols(),
+              body_obj.get_root_offset());
+          context.eval(body_copy);
+
+          context.pop_scope();
+
+          if (context.should_exit_loop()) {
+            break;
+          }
+
+          context.increment_iteration();
+        }
+
+        auto return_value = context.get_loop_return_value();
+        context.pop_loop_context();
+
+        return return_value;
+      }};
+
+  symbols["done"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::NONE,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 2) {
+          throw std::runtime_error(
+              "done requires exactly 1 argument: return value");
+        }
+
+        if (!context.is_in_loop()) {
+          throw std::runtime_error("done called outside of do loop");
+        }
+
+        auto value_obj = list.at(1);
+        auto evaluated_value = context.eval(value_obj);
+
+        context.signal_loop_done(evaluated_value);
+
+        slp::slp_object_c result;
+        return result;
+      }};
+
   return symbols;
 }
 

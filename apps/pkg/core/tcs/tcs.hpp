@@ -49,6 +49,8 @@ private:
   type_info_s handle_export(slp::slp_object_c &args_list);
   type_info_s handle_debug(slp::slp_object_c &args_list);
   type_info_s handle_cast(slp::slp_object_c &args_list);
+  type_info_s handle_do(slp::slp_object_c &args_list);
+  type_info_s handle_done(slp::slp_object_c &args_list);
 
   type_info_s handle_import(slp::slp_object_c &args_list);
   type_info_s handle_load(slp::slp_object_c &args_list);
@@ -81,6 +83,7 @@ private:
   std::vector<std::string> check_stack_;
   std::map<std::string, type_info_s> current_exports_;
   std::string current_file_;
+  int loop_depth_{0};
 };
 
 } // namespace pkg::core::tcs

@@ -243,6 +243,10 @@ type_info_s tcs_c::eval_type(slp::slp_object_c &object) {
       return handle_debug(object);
     if (cmd == "cast")
       return handle_cast(object);
+    if (cmd == "do")
+      return handle_do(object);
+    if (cmd == "done")
+      return handle_done(object);
 
     if (has_symbol(cmd)) {
       auto sym_type = get_symbol_type(cmd);
@@ -792,6 +796,52 @@ type_info_s tcs_c::handle_cast(slp::slp_object_c &args_list) {
   eval_type(value_obj);
 
   return expected_type;
+}
+
+type_info_s tcs_c::handle_do(slp::slp_object_c &args_list) {
+  auto list = args_list.as_list();
+  if (list.size() != 2) {
+    throw std::runtime_error("do requires exactly 1 argument: body");
+  }
+
+  auto body_obj = list.at(1);
+  if (body_obj.type() != slp::slp_type_e::BRACKET_LIST) {
+    throw std::runtime_error("do: argument must be a bracket list");
+  }
+
+  loop_depth_++;
+  push_scope();
+
+  type_info_s iterations_type;
+  iterations_type.base_type = slp::slp_type_e::INTEGER;
+  define_symbol("$iterations", iterations_type);
+
+  eval_type(body_obj);
+
+  pop_scope();
+  loop_depth_--;
+
+  type_info_s result;
+  result.base_type = slp::slp_type_e::ABERRANT;
+  return result;
+}
+
+type_info_s tcs_c::handle_done(slp::slp_object_c &args_list) {
+  auto list = args_list.as_list();
+  if (list.size() != 2) {
+    throw std::runtime_error("done requires exactly 1 argument: return value");
+  }
+
+  if (loop_depth_ == 0) {
+    throw std::runtime_error("done called outside of do loop");
+  }
+
+  auto value_obj = list.at(1);
+  eval_type(value_obj);
+
+  type_info_s result;
+  result.base_type = slp::slp_type_e::NONE;
+  return result;
 }
 
 type_info_s tcs_c::handle_eval(slp::slp_object_c &args_list) {

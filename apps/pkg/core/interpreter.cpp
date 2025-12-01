@@ -2,6 +2,7 @@
 #include "core/imports/imports.hpp"
 #include "core/kernels/kernels.hpp"
 #include "datum/datum.hpp"
+#include <atomic>
 #include <fmt/core.h>
 #include <stdexcept>
 
@@ -12,6 +13,31 @@ struct function_definition_s {
   slp::slp_type_e return_type;
   slp::slp_object_c body;
   size_t scope_level;
+};
+
+struct loop_context_s {
+  std::atomic<bool> done_flag{false};
+  slp::slp_object_c return_value;
+  std::int64_t iteration{1};
+
+  loop_context_s() = default;
+
+  loop_context_s(loop_context_s &&other) noexcept
+      : done_flag(other.done_flag.load()),
+        return_value(std::move(other.return_value)),
+        iteration(other.iteration) {}
+
+  loop_context_s &operator=(loop_context_s &&other) noexcept {
+    if (this != &other) {
+      done_flag.store(other.done_flag.load());
+      return_value = std::move(other.return_value);
+      iteration = other.iteration;
+    }
+    return *this;
+  }
+
+  loop_context_s(const loop_context_s &) = delete;
+  loop_context_s &operator=(const loop_context_s &) = delete;
 };
 
 class interpreter_c : public callable_context_if {
@@ -361,6 +387,55 @@ public:
     return signature;
   }
 
+  void push_loop_context() override { loop_contexts_.emplace_back(); }
+
+  void pop_loop_context() override {
+    if (!loop_contexts_.empty()) {
+      loop_contexts_.pop_back();
+    }
+  }
+
+  bool is_in_loop() override { return !loop_contexts_.empty(); }
+
+  void signal_loop_done(slp::slp_object_c &value) override {
+    if (loop_contexts_.empty()) {
+      throw std::runtime_error("done called outside of do loop");
+    }
+    loop_contexts_.back().return_value = slp::slp_object_c::from_data(
+        value.get_data(), value.get_symbols(), value.get_root_offset());
+    loop_contexts_.back().done_flag.store(true);
+  }
+
+  bool should_exit_loop() override {
+    if (loop_contexts_.empty()) {
+      return false;
+    }
+    return loop_contexts_.back().done_flag.load();
+  }
+
+  slp::slp_object_c get_loop_return_value() override {
+    if (loop_contexts_.empty()) {
+      throw std::runtime_error("No loop context available");
+    }
+    return slp::slp_object_c::from_data(
+        loop_contexts_.back().return_value.get_data(),
+        loop_contexts_.back().return_value.get_symbols(),
+        loop_contexts_.back().return_value.get_root_offset());
+  }
+
+  std::int64_t get_current_iteration() override {
+    if (loop_contexts_.empty()) {
+      throw std::runtime_error("No loop context available");
+    }
+    return loop_contexts_.back().iteration;
+  }
+
+  void increment_iteration() override {
+    if (!loop_contexts_.empty()) {
+      loop_contexts_.back().iteration++;
+    }
+  }
+
 private:
   void trigger_import_locks() {
     if (import_context_) {
@@ -537,6 +612,7 @@ private:
       *import_interpreters_;
   std::map<std::string, std::shared_mutex> *import_interpreter_locks_;
   bool imports_locks_triggered_;
+  std::vector<loop_context_s> loop_contexts_;
 };
 
 std::unique_ptr<callable_context_if> create_interpreter(
