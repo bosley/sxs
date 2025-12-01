@@ -1,5 +1,5 @@
 #include "type_checker.hpp"
-#include "core/compiler_context.hpp"
+#include "core/context.hpp"
 #include "core/instructions/datum.hpp"
 #include "core/instructions/instructions.hpp"
 #include <filesystem>

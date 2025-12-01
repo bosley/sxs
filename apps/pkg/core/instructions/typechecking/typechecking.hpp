@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/compiler_context.hpp"
+#include "core/context.hpp"
 #include "sxs/slp/slp.hpp"
 
 namespace pkg::core::instructions::typechecking {
