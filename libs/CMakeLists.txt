@@ -26,13 +26,9 @@ FetchContent_Declare(
   GIT_TAG v1.2.5
 )
 
-set(SNITCH_DO_NOT_INSTALL ON CACHE INTERNAL "")
+set(SNITCH_DO_NOT_INSTALL OFF CACHE INTERNAL "")
 
-FetchContent_GetProperties(snitch)
-if(NOT snitch_POPULATED)
-  FetchContent_Populate(snitch)
-  add_subdirectory(${snitch_SOURCE_DIR} ${snitch_BINARY_DIR} EXCLUDE_FROM_ALL)
-endif()
+FetchContent_MakeAvailable(snitch)
 
 find_package(spdlog REQUIRED)
 find_package(RocksDB REQUIRED)
