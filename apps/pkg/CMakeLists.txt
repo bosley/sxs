@@ -13,7 +13,7 @@ add_library(pkg_core STATIC
     core/core.cpp
     core/interpreter.cpp
     core/compiler_context.cpp
-    core/datum/datum.cpp
+    core/instructions/datum.cpp
     core/instructions/instructions.cpp
     core/instructions/generation/generation.cpp
     core/instructions/interpretation/interpretation.cpp
