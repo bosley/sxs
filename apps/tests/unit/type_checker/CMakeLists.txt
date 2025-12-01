@@ -1,0 +1,8 @@
+add_executable(type_checker_basic_test type_checker_basic_test.cpp)
+target_link_libraries(type_checker_basic_test PRIVATE pkg_core snitch::snitch spdlog::spdlog)
+add_test(NAME type_checker_basic_test COMMAND type_checker_basic_test)
+
+add_executable(type_checker_lambda_test type_checker_lambda_test.cpp)
+target_link_libraries(type_checker_lambda_test PRIVATE pkg_core snitch::snitch spdlog::spdlog)
+add_test(NAME type_checker_lambda_test COMMAND type_checker_lambda_test)
+

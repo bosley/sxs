@@ -12,6 +12,7 @@ add_library(pkg::bytes ALIAS pkg_bytes)
 add_library(pkg_core STATIC
     core/core.cpp
     core/interpreter.cpp
+    core/compiler_context.cpp
     core/datum/datum.cpp
     core/instructions/instructions.cpp
     core/instructions/generation/generation.cpp
@@ -20,6 +21,7 @@ add_library(pkg_core STATIC
     core/imports/imports.cpp
     core/kernels/kernels.cpp
     core/tcs/tcs.cpp
+    core/type_checker/type_checker.cpp
 )
 
 target_include_directories(pkg_core PUBLIC

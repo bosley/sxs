@@ -1,15 +1,59 @@
-/*
+#pragma once
 
-    TODO:
+#include "core/compiler_context.hpp"
+#include "sxs/slp/slp.hpp"
 
-    Mimic generation and interpretation for each instruction. more similar t
-   interpretation, this should yield a function to call to pass typecheck
-   information to and args so these things can check all types symbols its
-   functionally almost the same as interpretation but instead of DOING the thing
-   at each stage we VALIDATE the thing by ensuring parameters and types of
-   symbols are all solid
+namespace pkg::core::instructions::typechecking {
 
-    the current TCS does this, but this implementation will be used along-side
-   its replacement to fulfill the TCS functionality
+extern type_info_s typecheck_define(compiler_context_if &context,
+                                    slp::slp_object_c &args_list);
 
-*/
+extern type_info_s typecheck_fn(compiler_context_if &context,
+                                slp::slp_object_c &args_list);
+
+extern type_info_s typecheck_debug(compiler_context_if &context,
+                                   slp::slp_object_c &args_list);
+
+extern type_info_s typecheck_export(compiler_context_if &context,
+                                    slp::slp_object_c &args_list);
+
+extern type_info_s typecheck_if(compiler_context_if &context,
+                                slp::slp_object_c &args_list);
+
+extern type_info_s typecheck_reflect(compiler_context_if &context,
+                                     slp::slp_object_c &args_list);
+
+extern type_info_s typecheck_try(compiler_context_if &context,
+                                 slp::slp_object_c &args_list);
+
+extern type_info_s typecheck_assert(compiler_context_if &context,
+                                    slp::slp_object_c &args_list);
+
+extern type_info_s typecheck_recover(compiler_context_if &context,
+                                     slp::slp_object_c &args_list);
+
+extern type_info_s typecheck_eval(compiler_context_if &context,
+                                  slp::slp_object_c &args_list);
+
+extern type_info_s typecheck_apply(compiler_context_if &context,
+                                   slp::slp_object_c &args_list);
+
+extern type_info_s typecheck_match(compiler_context_if &context,
+                                   slp::slp_object_c &args_list);
+
+extern type_info_s typecheck_cast(compiler_context_if &context,
+                                  slp::slp_object_c &args_list);
+
+extern type_info_s typecheck_do(compiler_context_if &context,
+                                slp::slp_object_c &args_list);
+
+extern type_info_s typecheck_done(compiler_context_if &context,
+                                  slp::slp_object_c &args_list);
+
+extern type_info_s typecheck_at(compiler_context_if &context,
+                                slp::slp_object_c &args_list);
+
+extern type_info_s typecheck_eq(compiler_context_if &context,
+                                slp::slp_object_c &args_list);
+
+} // namespace pkg::core::instructions::typechecking

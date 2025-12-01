@@ -12,6 +12,9 @@
 
 namespace pkg::core {
 
+class compiler_context_if;
+struct type_info_s;
+
 namespace imports {
 class import_context_if;
 }
@@ -112,6 +115,9 @@ struct callable_symbol_s {
   std::function<slp::slp_object_c(callable_context_if &context,
                                   slp::slp_object_c &args_list)>
       function;
+  std::function<type_info_s(compiler_context_if &context,
+                            slp::slp_object_c &args_list)>
+      typecheck_function;
 };
 
 std::unique_ptr<callable_context_if> create_interpreter(
