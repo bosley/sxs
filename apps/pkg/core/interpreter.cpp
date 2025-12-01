@@ -78,6 +78,18 @@ public:
     case slp::slp_type_e::ABERRANT:
       return std::move(object);
 
+    case slp::slp_type_e::SOME: {
+      const std::uint8_t *base_ptr = object.get_data().data();
+      const std::uint8_t *unit_ptr = base_ptr + object.get_root_offset();
+      const slp::slp_unit_of_store_t *unit =
+          reinterpret_cast<const slp::slp_unit_of_store_t *>(unit_ptr);
+      size_t inner_offset = static_cast<size_t>(unit->data.uint64);
+
+      auto inner_obj = slp::slp_object_c::from_data(
+          object.get_data(), object.get_symbols(), inner_offset);
+      return std::move(inner_obj);
+    }
+
     case slp::slp_type_e::PAREN_LIST: {
       auto list = object.as_list();
       if (list.empty()) {

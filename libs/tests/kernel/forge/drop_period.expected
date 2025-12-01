@@ -13,4 +13,3 @@ Drop period 1 from offset 2 - removes all from offset onwards
 Drop with offset beyond list - no change
 
 === All drop_period tests complete ===
-

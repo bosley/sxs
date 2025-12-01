@@ -1,28 +1,31 @@
 [
-    #(load "forge" "io")
+    #(load "forge" "io" "alu")
 
     (io/put "=== Forge Replace Test ===\n")
 
     (io/put "\n--- Replace integers ---\n")
     (def x0 '(1 2 3 2 4 2))
     (def x1 (forge/replace x0 2 99))
+    (assert (alu/eq (forge/count x1) 6) "Replaced list should still have 6 elements")
     (io/put "Replaced all 2s with 99 in (1 2 3 2 4 2)\n")
 
     (io/put "\n--- Replace symbols ---\n")
     (def y0 '(a b c b d))
     (def y1 (forge/replace y0 b x))
+    (assert (alu/eq (forge/count y1) 5) "Replaced list should still have 5 elements")
     (io/put "Replaced all b with x in (a b c b d)\n")
 
     (io/put "\n--- Replace non-existent ---\n")
     (def z0 '(1 2 3))
     (def z1 (forge/replace z0 99 0))
+    (assert (alu/eq (forge/count z1) 3) "Replace non-existent should not change size")
     (io/put "Replaced non-existent value - no change\n")
 
     (io/put "\n--- Replace in empty ---\n")
     (def w0 '())
     (def w1 (forge/replace w0 1 2))
+    (assert (alu/eq (forge/count w1) 0) "Replace in empty should still be empty")
     (io/put "Replace in empty list - still empty\n")
 
     (io/put "\n=== All replace tests complete ===\n")
 ]
-

@@ -14,6 +14,5 @@
     (define-function replace (target :any match :any replacement :any) :any)
     (define-function drop_match (target :any match :any) :any)
     (define-function drop_period (target :any start :int period :int) :any)
-    (define-function visit (target :any visitor :any) :any)
 ])
 

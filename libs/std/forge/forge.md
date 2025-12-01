@@ -63,22 +63,6 @@ this way bad types in yielding empty lists wont cause problems
 - forge/drop_match -> takes object in, any object found matching TYPE AND VALUE will be dropped
 - forge/drop_period -> <start> <period> ; removes the object starting at offset, and removes every n objects
 
-- forge/visit takes an any, but its a nop unless the given item is a lambda
-    the visit takes something like:
-```
-(forge/visit my_list (fn (val :any) :any [
-
-
-    ; Return 0 means no error, continue visiting
-    ; if the return is not an int, visiting stops and the non-int val is returned as the result
-    ; if the val is integer, but is non-0 (neg or pos) visiting stops and that value is returned as result
-    ; the only way visitng continues is if `0` is returned as the lambda value
-    0
-]))
-
-
-
-
 -------
 
 
@@ -107,6 +91,21 @@ Technically a kernel COULD still inject right now but that would lead to some wi
 given that we assume the kernel is doing exactly as it promised (in kernel.sxs) and nothing more.
 
 --------
+
+
+- forge/visit takes an any, but its a nop unless the given item is a lambda
+    the visit takes something like:
+```
+(forge/visit my_list (fn (val :any) :any [
+
+
+    ; Return 0 means no error, continue visiting
+    ; if the return is not an int, visiting stops and the non-int val is returned as the result
+    ; if the val is integer, but is non-0 (neg or pos) visiting stops and that value is returned as result
+    ; the only way visitng continues is if `0` is returned as the lambda value
+    0
+]))
+
 
 ```
 

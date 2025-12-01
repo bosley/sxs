@@ -1,5 +1,5 @@
 [
-    #(load "forge" "io")
+    #(load "forge" "io" "alu")
 
     (io/put "=== Forge Mixed Types Test ===\n")
 
@@ -7,23 +7,30 @@
     (def p0 '(1 2 3))
     (def p1 (forge/pf p0 0))
     (def p2 (forge/rev p0))
+    (assert (alu/eq (forge/count p1) 4) "Push front should give 4 elements")
+    (assert (alu/eq (forge/count p2) 3) "Reverse should preserve size")
     (io/put "Paren list operations: OK\n")
 
     (io/put "\n--- Bracket lists ---\n")
     (def b0 [1 2 3])
     (def b1 (forge/pf b0 0))
     (def b2 (forge/rev b0))
+    (assert (alu/eq (forge/count b1) 4) "Push front should give 4 elements")
+    (assert (alu/eq (forge/count b2) 3) "Reverse should preserve size")
     (io/put "Bracket list operations: OK\n")
 
     (io/put "\n--- Brace lists ---\n")
     (def br0 '{1 2 3})
     (def br1 (forge/pf br0 0))
     (def br2 (forge/rev br0))
+    (assert (alu/eq (forge/count br1) 4) "Push front should give 4 elements")
+    (assert (alu/eq (forge/count br2) 3) "Reverse should preserve size")
     (io/put "Brace list operations: OK\n")
 
     (io/put "\n--- String (DQ_LIST) ---\n")
     (def s0 "abc")
     (def s1 (forge/count s0))
+    (assert (alu/eq s1 3) "String count should be 3")
     (io/put "String count: %d\n" s1)
 
     (io/put "\n--- Mixed value types in list ---\n")
@@ -31,6 +38,9 @@
     (def m1 (forge/count m0))
     (def m2 (forge/rev m0))
     (def m3 (forge/replace m0 a x))
+    (assert (alu/eq m1 4) "Mixed list should have 4 elements")
+    (assert (alu/eq (forge/count m2) 4) "Reversed mixed should have 4 elements")
+    (assert (alu/eq (forge/count m3) 4) "Replaced mixed should have 4 elements")
     (io/put "Mixed value types: count=%d\n" m1)
     (io/put "Reverse mixed types: OK\n")
     (io/put "Replace in mixed types: OK\n")
@@ -39,9 +49,10 @@
     (def n0 '(1 (2 3) 4))
     (def n1 (forge/count n0))
     (def n2 (forge/rev n0))
+    (assert (alu/eq n1 3) "Nested list should have 3 top-level elements")
+    (assert (alu/eq (forge/count n2) 3) "Reversed nested should have 3 elements")
     (io/put "Nested list count: %d\n" n1)
     (io/put "Reverse nested list: OK\n")
 
     (io/put "\n=== All mixed type tests complete ===\n")
 ]
-

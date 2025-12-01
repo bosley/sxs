@@ -1,26 +1,29 @@
 [
-    #(load "forge" "io")
+    #(load "forge" "io" "alu")
 
     (io/put "=== Forge Count Test ===\n")
 
     (io/put "\n--- Count elements ---\n")
     (def x0 '(1 2 3 4 5))
     (def x1 (forge/count x0))
+    (assert (alu/eq x1 5) "Count of (1 2 3 4 5) should be 5")
     (io/put "Count of (1 2 3 4 5): %d\n" x1)
 
     (def y0 '())
     (def y1 (forge/count y0))
+    (assert (alu/eq y1 0) "Count of empty list should be 0")
     (io/put "Count of empty list: %d\n" y1)
 
     (def z0 '(a))
     (def z1 (forge/count z0))
+    (assert (alu/eq z1 1) "Count of single element should be 1")
     (io/put "Count of single element: %d\n" z1)
 
     (io/put "\n--- Count non-list ---\n")
     (def w0 42)
     (def w1 (forge/count w0))
+    (assert (alu/eq w1 1) "Count of scalar should be 1")
     (io/put "Count of scalar (upcast to list): %d\n" w1)
 
     (io/put "\n=== All count tests complete ===\n")
 ]
-

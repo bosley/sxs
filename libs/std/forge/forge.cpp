@@ -94,7 +94,9 @@ static slp::slp_object_c forge_resize(pkg::kernel::context_t ctx,
   std::vector<slp::slp_object_c> items;
   for (size_t i = 0; i < static_cast<size_t>(new_size); i++) {
     if (i < orig_list.size()) {
-      items.push_back(std::move(g_api->eval(ctx, orig_list.at(i))));
+      items.push_back(slp::slp_object_c::from_data(
+          orig_list.at(i).get_data(), orig_list.at(i).get_symbols(),
+          orig_list.at(i).get_root_offset()));
     } else {
       items.push_back(std::move(g_api->eval(ctx, default_val)));
     }
@@ -123,7 +125,9 @@ static slp::slp_object_c forge_pf(pkg::kernel::context_t ctx,
   std::vector<slp::slp_object_c> items;
   items.push_back(std::move(obj));
   for (size_t i = 0; i < orig_list.size(); i++) {
-    items.push_back(std::move(g_api->eval(ctx, orig_list.at(i))));
+    items.push_back(slp::slp_object_c::from_data(
+        orig_list.at(i).get_data(), orig_list.at(i).get_symbols(),
+        orig_list.at(i).get_root_offset()));
   }
 
   return create_list_of_type(orig_type, items);
@@ -148,7 +152,9 @@ static slp::slp_object_c forge_pb(pkg::kernel::context_t ctx,
 
   std::vector<slp::slp_object_c> items;
   for (size_t i = 0; i < orig_list.size(); i++) {
-    items.push_back(std::move(g_api->eval(ctx, orig_list.at(i))));
+    items.push_back(slp::slp_object_c::from_data(
+        orig_list.at(i).get_data(), orig_list.at(i).get_symbols(),
+        orig_list.at(i).get_root_offset()));
   }
   items.push_back(std::move(obj));
 
@@ -177,7 +183,9 @@ static slp::slp_object_c forge_rf(pkg::kernel::context_t ctx,
 
   std::vector<slp::slp_object_c> items;
   for (size_t i = 1; i < orig_list.size(); i++) {
-    items.push_back(std::move(g_api->eval(ctx, orig_list.at(i))));
+    items.push_back(slp::slp_object_c::from_data(
+        orig_list.at(i).get_data(), orig_list.at(i).get_symbols(),
+        orig_list.at(i).get_root_offset()));
   }
 
   return create_list_of_type(orig_type, items);
@@ -205,7 +213,9 @@ static slp::slp_object_c forge_rb(pkg::kernel::context_t ctx,
 
   std::vector<slp::slp_object_c> items;
   for (size_t i = 0; i < orig_list.size() - 1; i++) {
-    items.push_back(std::move(g_api->eval(ctx, orig_list.at(i))));
+    items.push_back(slp::slp_object_c::from_data(
+        orig_list.at(i).get_data(), orig_list.at(i).get_symbols(),
+        orig_list.at(i).get_root_offset()));
   }
 
   return create_list_of_type(orig_type, items);
@@ -246,14 +256,18 @@ static slp::slp_object_c forge_lsh(pkg::kernel::context_t ctx,
   if (actual_shift == 0) {
     std::vector<slp::slp_object_c> items;
     for (size_t i = 0; i < orig_list.size(); i++) {
-      items.push_back(std::move(g_api->eval(ctx, orig_list.at(i))));
+      items.push_back(slp::slp_object_c::from_data(
+          orig_list.at(i).get_data(), orig_list.at(i).get_symbols(),
+          orig_list.at(i).get_root_offset()));
     }
     return create_list_of_type(orig_type, items);
   }
 
   std::vector<slp::slp_object_c> items;
   for (size_t i = actual_shift; i < orig_list.size(); i++) {
-    items.push_back(std::move(g_api->eval(ctx, orig_list.at(i))));
+    items.push_back(slp::slp_object_c::from_data(
+        orig_list.at(i).get_data(), orig_list.at(i).get_symbols(),
+        orig_list.at(i).get_root_offset()));
   }
 
   return create_list_of_type(orig_type, items);
@@ -294,7 +308,9 @@ static slp::slp_object_c forge_rsh(pkg::kernel::context_t ctx,
   if (actual_shift == 0) {
     std::vector<slp::slp_object_c> items;
     for (size_t i = 0; i < orig_list.size(); i++) {
-      items.push_back(std::move(g_api->eval(ctx, orig_list.at(i))));
+      items.push_back(slp::slp_object_c::from_data(
+          orig_list.at(i).get_data(), orig_list.at(i).get_symbols(),
+          orig_list.at(i).get_root_offset()));
     }
     return create_list_of_type(orig_type, items);
   }
@@ -302,7 +318,9 @@ static slp::slp_object_c forge_rsh(pkg::kernel::context_t ctx,
   size_t new_size = orig_list.size() - actual_shift;
   std::vector<slp::slp_object_c> items;
   for (size_t i = 0; i < new_size; i++) {
-    items.push_back(std::move(g_api->eval(ctx, orig_list.at(i))));
+    items.push_back(slp::slp_object_c::from_data(
+        orig_list.at(i).get_data(), orig_list.at(i).get_symbols(),
+        orig_list.at(i).get_root_offset()));
   }
 
   return create_list_of_type(orig_type, items);
@@ -337,7 +355,9 @@ static slp::slp_object_c forge_rotr(pkg::kernel::context_t ctx,
   if (orig_list.empty() || orig_list.size() == 1) {
     std::vector<slp::slp_object_c> items;
     for (size_t i = 0; i < orig_list.size(); i++) {
-      items.push_back(std::move(g_api->eval(ctx, orig_list.at(i))));
+      items.push_back(slp::slp_object_c::from_data(
+          orig_list.at(i).get_data(), orig_list.at(i).get_symbols(),
+          orig_list.at(i).get_root_offset()));
     }
     return create_list_of_type(orig_type, items);
   }
@@ -346,7 +366,9 @@ static slp::slp_object_c forge_rotr(pkg::kernel::context_t ctx,
   if (actual_rotations == 0) {
     std::vector<slp::slp_object_c> items;
     for (size_t i = 0; i < orig_list.size(); i++) {
-      items.push_back(std::move(g_api->eval(ctx, orig_list.at(i))));
+      items.push_back(slp::slp_object_c::from_data(
+          orig_list.at(i).get_data(), orig_list.at(i).get_symbols(),
+          orig_list.at(i).get_root_offset()));
     }
     return create_list_of_type(orig_type, items);
   }
@@ -355,7 +377,9 @@ static slp::slp_object_c forge_rotr(pkg::kernel::context_t ctx,
   size_t start_pos = orig_list.size() - actual_rotations;
   for (size_t i = 0; i < orig_list.size(); i++) {
     size_t idx = (start_pos + i) % orig_list.size();
-    items.push_back(std::move(g_api->eval(ctx, orig_list.at(idx))));
+    items.push_back(slp::slp_object_c::from_data(
+        orig_list.at(idx).get_data(), orig_list.at(idx).get_symbols(),
+        orig_list.at(idx).get_root_offset()));
   }
 
   return create_list_of_type(orig_type, items);
@@ -390,7 +414,9 @@ static slp::slp_object_c forge_rotl(pkg::kernel::context_t ctx,
   if (orig_list.empty() || orig_list.size() == 1) {
     std::vector<slp::slp_object_c> items;
     for (size_t i = 0; i < orig_list.size(); i++) {
-      items.push_back(std::move(g_api->eval(ctx, orig_list.at(i))));
+      items.push_back(slp::slp_object_c::from_data(
+          orig_list.at(i).get_data(), orig_list.at(i).get_symbols(),
+          orig_list.at(i).get_root_offset()));
     }
     return create_list_of_type(orig_type, items);
   }
@@ -399,7 +425,9 @@ static slp::slp_object_c forge_rotl(pkg::kernel::context_t ctx,
   if (actual_rotations == 0) {
     std::vector<slp::slp_object_c> items;
     for (size_t i = 0; i < orig_list.size(); i++) {
-      items.push_back(std::move(g_api->eval(ctx, orig_list.at(i))));
+      items.push_back(slp::slp_object_c::from_data(
+          orig_list.at(i).get_data(), orig_list.at(i).get_symbols(),
+          orig_list.at(i).get_root_offset()));
     }
     return create_list_of_type(orig_type, items);
   }
@@ -407,7 +435,9 @@ static slp::slp_object_c forge_rotl(pkg::kernel::context_t ctx,
   std::vector<slp::slp_object_c> items;
   for (size_t i = 0; i < orig_list.size(); i++) {
     size_t idx = (actual_rotations + i) % orig_list.size();
-    items.push_back(std::move(g_api->eval(ctx, orig_list.at(idx))));
+    items.push_back(slp::slp_object_c::from_data(
+        orig_list.at(idx).get_data(), orig_list.at(idx).get_symbols(),
+        orig_list.at(idx).get_root_offset()));
   }
 
   return create_list_of_type(orig_type, items);
@@ -430,7 +460,9 @@ static slp::slp_object_c forge_rev(pkg::kernel::context_t ctx,
 
   std::vector<slp::slp_object_c> items;
   for (size_t i = orig_list.size(); i > 0; i--) {
-    items.push_back(std::move(g_api->eval(ctx, orig_list.at(i - 1))));
+    items.push_back(slp::slp_object_c::from_data(
+        orig_list.at(i - 1).get_data(), orig_list.at(i - 1).get_symbols(),
+        orig_list.at(i - 1).get_root_offset()));
   }
 
   return create_list_of_type(orig_type, items);
@@ -473,10 +505,14 @@ static slp::slp_object_c forge_concat(pkg::kernel::context_t ctx,
 
   std::vector<slp::slp_object_c> items;
   for (size_t i = 0; i < list1.size(); i++) {
-    items.push_back(std::move(g_api->eval(ctx, list1.at(i))));
+    items.push_back(slp::slp_object_c::from_data(
+        list1.at(i).get_data(), list1.at(i).get_symbols(),
+        list1.at(i).get_root_offset()));
   }
   for (size_t i = 0; i < list2.size(); i++) {
-    items.push_back(std::move(g_api->eval(ctx, list2.at(i))));
+    items.push_back(slp::slp_object_c::from_data(
+        list2.at(i).get_data(), list2.at(i).get_symbols(),
+        list2.at(i).get_root_offset()));
   }
 
   return create_list_of_type(orig_type, items);
@@ -575,48 +611,13 @@ static slp::slp_object_c forge_drop_period(pkg::kernel::context_t ctx,
   for (size_t i = 0; i < orig_list.size(); i++) {
     long long idx = static_cast<long long>(i);
     if (idx < start || (idx - start) % period != 0) {
-      items.push_back(std::move(g_api->eval(ctx, orig_list.at(i))));
+      items.push_back(slp::slp_object_c::from_data(
+          orig_list.at(i).get_data(), orig_list.at(i).get_symbols(),
+          orig_list.at(i).get_root_offset()));
     }
   }
 
   return create_list_of_type(orig_type, items);
-}
-
-static slp::slp_object_c forge_visit(pkg::kernel::context_t ctx,
-                                     const slp::slp_object_c &args) {
-  auto list = args.as_list();
-  if (list.size() < 3) {
-    return slp::slp_object_c::create_none();
-  }
-
-  auto target = g_api->eval(ctx, list.at(1));
-  auto visitor = list.at(2);
-
-  auto upcast = upcast_to_list(ctx, target);
-  auto orig_list = upcast.as_list();
-
-  for (size_t i = 0; i < orig_list.size(); i++) {
-    auto item = orig_list.at(i);
-
-    std::vector<slp::slp_object_c> call_args;
-    call_args.push_back(std::move(g_api->eval(ctx, visitor)));
-    call_args.push_back(std::move(g_api->eval(ctx, item)));
-    auto call_list = slp::slp_object_c::create_paren_list(call_args.data(),
-                                                          call_args.size());
-
-    auto result = g_api->eval(ctx, call_list);
-
-    if (result.type() != slp::slp_type_e::INTEGER) {
-      return result;
-    }
-
-    long long result_val = result.as_int();
-    if (result_val != 0) {
-      return result;
-    }
-  }
-
-  return slp::slp_object_c::create_int(0);
 }
 
 extern "C" void kernel_init(pkg::kernel::registry_t registry,
@@ -645,6 +646,4 @@ extern "C" void kernel_init(pkg::kernel::registry_t registry,
                          slp::slp_type_e::NONE, 0);
   api->register_function(registry, "drop_period", forge_drop_period,
                          slp::slp_type_e::NONE, 0);
-  api->register_function(registry, "visit", forge_visit, slp::slp_type_e::NONE,
-                         0);
 }
