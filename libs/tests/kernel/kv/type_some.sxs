@@ -13,6 +13,10 @@
     (def retrieved2 (kv/get store:quote2))
     (def retrieved3 (kv/get store:quote3))
     
+    (assert (eq retrieved1 '42) "Quoted int should match")
+    (assert (eq retrieved2 '"hello") "Quoted string should match")
+    (assert (eq retrieved3 'symbol) "Quoted symbol should match")
+    
     (io/put "Quoted integer stored and retrieved\n")
     (io/put "Quoted string stored and retrieved\n")
     (io/put "Quoted symbol stored and retrieved\n")

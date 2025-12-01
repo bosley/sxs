@@ -13,6 +13,10 @@
     (def retrieved2 (kv/get store:str2))
     (def retrieved3 (kv/get store:str3))
     
+    (assert (eq retrieved1 "hello") "Retrieved should be hello")
+    (assert (eq retrieved2 "bosley") "Retrieved should be bosley")
+    (assert (eq retrieved3 "world") "Retrieved should be world")
+    
     (io/put "hello: %s\n" retrieved1)
     (io/put "bosley: %s\n" retrieved2)
     (io/put "world: %s\n" retrieved3)
@@ -25,6 +29,10 @@
     (def retrieved_empty (kv/get store:empty))
     (def retrieved_escaped (kv/get store:escaped))
     (def retrieved_special (kv/get store:special))
+    
+    (assert (eq retrieved_empty "") "Empty string should match")
+    (assert (eq retrieved_escaped "line1\nline2\ttabbed") "Escaped string should match")
+    (assert (eq retrieved_special "special!@#$%^&*()") "Special chars should match")
     
     (io/put "empty: '%s'\n" retrieved_empty)
     (io/put "escaped: %s\n" retrieved_escaped)

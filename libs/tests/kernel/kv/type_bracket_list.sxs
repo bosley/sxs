@@ -13,6 +13,9 @@
     (def retrieved2 (kv/get store:env2))
     (def retrieved_empty (kv/get store:empty))
     
+    (assert (eq retrieved1 5) "Bracket env evaluates to last value")
+    (assert (eq retrieved2 'c) "Bracket env evaluates to last value")
+    
     (io/put "Simple numeric bracket list stored and retrieved\n")
     (io/put "Simple symbol bracket list stored and retrieved\n")
     (io/put "Empty bracket list stored and retrieved\n")

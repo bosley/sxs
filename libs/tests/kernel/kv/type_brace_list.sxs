@@ -13,6 +13,13 @@
     (def retrieved2 (kv/get store:set2))
     (def retrieved_empty (kv/get store:empty))
     
+    (def retrieved1_list (cast :list-p retrieved1))
+    (assert (eq (at 0 retrieved1_list) 1) "First element should be 1")
+    (assert (eq (at 4 retrieved1_list) 5) "Fifth element should be 5")
+    (def retrieved2_list (cast :list-p retrieved2))
+    (assert (eq (at 0 retrieved2_list) 'a) "First element should be a")
+    (assert (eq retrieved_empty '{}) "Empty brace list should match")
+    
     (io/put "Simple numeric brace list stored and retrieved\n")
     (io/put "Simple symbol brace list stored and retrieved\n")
     (io/put "Empty brace list stored and retrieved\n")

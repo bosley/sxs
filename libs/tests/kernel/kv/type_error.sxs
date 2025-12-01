@@ -13,6 +13,10 @@
     (def retrieved2 (kv/get store:err2))
     (def retrieved3 (kv/get store:err3))
     
+    (assert (eq retrieved1 @("simple error message")) "Error should match")
+    (assert (eq retrieved2 @("file not found")) "Error should match")
+    (assert (eq retrieved3 @("invalid input")) "Error should match")
+    
     (io/put "Error 1 stored and retrieved\n")
     (io/put "Error 2 stored and retrieved\n")
     (io/put "Error 3 stored and retrieved\n")

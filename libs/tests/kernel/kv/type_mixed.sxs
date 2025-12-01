@@ -7,6 +7,11 @@
     (io/put "\n--- Mixed List with All Basic Types ---\n")
     (kv/set store:basic '(42 3.14 "hello" symbol))
     (def retrieved_basic (kv/get store:basic))
+    (def retrieved_basic_list (cast :list-p retrieved_basic))
+    (assert (eq (at 0 retrieved_basic_list) 42) "First element should be 42")
+    (assert (eq (at 1 retrieved_basic_list) 3.14) "Second element should be 3.14")
+    (assert (eq (at 2 retrieved_basic_list) "hello") "Third element should be hello")
+    (assert (eq (at 3 retrieved_basic_list) 'symbol) "Fourth element should be symbol")
     (io/put "Mixed basic types stored and retrieved\n")
 
     (io/put "\n--- Mixed List with Operators ---\n")

@@ -109,7 +109,9 @@ static slp::slp_object_c forge_resize(pkg::kernel::context_t ctx,
           orig_list.at(i).get_data(), orig_list.at(i).get_symbols(),
           orig_list.at(i).get_root_offset()));
     } else {
-      items.push_back(std::move(g_api->eval(ctx, default_val)));
+      items.push_back(slp::slp_object_c::from_data(
+          default_val.get_data(), default_val.get_symbols(),
+          default_val.get_root_offset()));
     }
   }
 
@@ -555,11 +557,14 @@ static slp::slp_object_c forge_replace(pkg::kernel::context_t ctx,
 
   std::vector<slp::slp_object_c> items;
   for (size_t i = 0; i < orig_list.size(); i++) {
-    auto item = g_api->eval(ctx, orig_list.at(i));
+    auto item = orig_list.at(i);
     if (objects_equal(item, match)) {
-      items.push_back(std::move(g_api->eval(ctx, replacement)));
+      items.push_back(slp::slp_object_c::from_data(
+          replacement.get_data(), replacement.get_symbols(),
+          replacement.get_root_offset()));
     } else {
-      items.push_back(std::move(item));
+      items.push_back(slp::slp_object_c::from_data(
+          item.get_data(), item.get_symbols(), item.get_root_offset()));
     }
   }
 

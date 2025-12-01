@@ -15,6 +15,11 @@
     (def retrieved_empty_bracket (kv/get store:empty_bracket))
     (def retrieved_empty_brace (kv/get store:empty_brace))
     
+    (assert (eq retrieved_empty_str "") "Empty string should match")
+    (assert (eq retrieved_empty_list '()) "Empty list should match")
+    (assert (eq retrieved_empty_bracket []) "Empty bracket should match")
+    (assert (eq retrieved_empty_brace '{}) "Empty brace should match")
+    
     (io/put "Empty string stored and retrieved\n")
     (io/put "Empty paren list stored and retrieved\n")
     (io/put "Empty bracket list stored and retrieved\n")
@@ -32,6 +37,11 @@
     (def retrieved_neg_zero (kv/get store:neg_zero))
     (def retrieved_one (kv/get store:one))
     (def retrieved_neg_one (kv/get store:neg_one))
+    
+    (assert (eq retrieved_zero_int 0) "Zero int should match")
+    (assert (eq retrieved_zero_real 0.0) "Zero real should match")
+    (assert (eq retrieved_one 1) "One should match")
+    (assert (eq retrieved_neg_one -1) "Negative one should match")
     
     (io/put "Zero integer: %d\n" retrieved_zero_int)
     (io/put "Zero real: %f\n" retrieved_zero_real)

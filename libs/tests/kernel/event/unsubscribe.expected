@@ -1,7 +1,0 @@
-=== Unsubscribe Test ===
-Created subscription: 1
-Published event 1
-Unsubscribed
-Published event 2 (should not be received)
-
-=== Test complete ===

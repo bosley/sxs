@@ -13,6 +13,10 @@
     (def retrieved2 (kv/get store:sym2))
     (def retrieved3 (kv/get store:sym3))
     
+    (assert (eq retrieved1 'hello) "Symbol should be hello")
+    (assert (eq retrieved2 'world) "Symbol should be world")
+    (assert (eq retrieved3 'test-symbol) "Symbol should be test-symbol")
+    
     (io/put "Symbol stored and retrieved: hello\n")
     (io/put "Symbol stored and retrieved: world\n")
     (io/put "Symbol stored and retrieved: test-symbol\n")
