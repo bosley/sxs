@@ -568,6 +568,8 @@ type_info_s typecheck_export(compiler_context_if &context,
 type_info_s typecheck_debug(compiler_context_if &context,
                             slp::slp_object_c &args_list) {
   auto list = args_list.as_list();
+  validate_parameters(context, args_list, "debug");
+
   for (size_t i = 1; i < list.size(); i++) {
     auto elem = list.at(i);
     context.eval_type(elem);
@@ -581,10 +583,7 @@ type_info_s typecheck_debug(compiler_context_if &context,
 type_info_s typecheck_import(compiler_context_if &context,
                              slp::slp_object_c &args_list) {
   auto list = args_list.as_list();
-  if (list.size() < 3) {
-    throw std::runtime_error(
-        "import requires at least 2 arguments: symbol and file_path");
-  }
+  validate_parameters(context, args_list, "import");
 
   if ((list.size() - 1) % 2 != 0) {
     throw std::runtime_error("import requires pairs of arguments: symbol "
@@ -700,9 +699,7 @@ type_info_s typecheck_import(compiler_context_if &context,
 type_info_s typecheck_load(compiler_context_if &context,
                            slp::slp_object_c &args_list) {
   auto list = args_list.as_list();
-  if (list.size() < 2) {
-    throw std::runtime_error("load requires at least 1 argument: kernel_name");
-  }
+  validate_parameters(context, args_list, "load");
 
   for (size_t i = 1; i < list.size(); i++) {
     auto kernel_name_obj = list.at(i);

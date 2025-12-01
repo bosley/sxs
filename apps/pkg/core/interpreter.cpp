@@ -1,7 +1,7 @@
 #include "interpreter.hpp"
 #include "core/imports/imports.hpp"
-#include "core/kernels/kernels.hpp"
 #include "core/instructions/datum.hpp"
+#include "core/kernels/kernels.hpp"
 #include <atomic>
 #include <fmt/core.h>
 #include <stdexcept>
