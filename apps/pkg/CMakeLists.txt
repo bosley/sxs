@@ -14,6 +14,9 @@ add_library(pkg_core STATIC
     core/interpreter.cpp
     core/datum/datum.cpp
     core/instructions/instructions.cpp
+    core/instructions/generation/generation.cpp
+    core/instructions/interpretation/interpretation.cpp
+    core/instructions/typechecking/typechecking.cpp
     core/imports/imports.cpp
     core/kernels/kernels.cpp
     core/tcs/tcs.cpp
