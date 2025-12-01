@@ -51,6 +51,8 @@ private:
   type_info_s handle_cast(slp::slp_object_c &args_list);
   type_info_s handle_do(slp::slp_object_c &args_list);
   type_info_s handle_done(slp::slp_object_c &args_list);
+  type_info_s handle_at(slp::slp_object_c &args_list);
+  type_info_s handle_eq(slp::slp_object_c &args_list);
 
   type_info_s handle_import(slp::slp_object_c &args_list);
   type_info_s handle_load(slp::slp_object_c &args_list);

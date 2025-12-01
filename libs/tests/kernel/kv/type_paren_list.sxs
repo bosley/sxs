@@ -13,6 +13,13 @@
     (def retrieved2 (kv/get store:list2))
     (def retrieved_empty (kv/get store:empty))
     
+    (assert (eq retrieved1 '(1 2 3)) "Numeric list should match")
+    (def retrieved1_list (cast :list-p retrieved1))
+    (assert (eq (at 0 retrieved1_list) 1) "First element should be 1")
+    (assert (eq (at 2 retrieved1_list) 3) "Third element should be 3")
+    (assert (eq retrieved2 '(a b c)) "Symbol list should match")
+    (assert (eq retrieved_empty '()) "Empty list should match")
+    
     (io/put "Simple numeric list stored and retrieved\n")
     (io/put "Simple symbol list stored and retrieved\n")
     (io/put "Empty list stored and retrieved\n")

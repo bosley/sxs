@@ -1,6 +1,0 @@
-#(define-kernel event "libkernel_event.dylib" [
-    (define-function subscribe (topic :symbol callback :any) :int)
-    (define-function unsubscribe (id :int) :int)
-    (define-function publish (topic :symbol data :any) :int)
-])
-

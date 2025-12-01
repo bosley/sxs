@@ -247,6 +247,10 @@ type_info_s tcs_c::eval_type(slp::slp_object_c &object) {
       return handle_do(object);
     if (cmd == "done")
       return handle_done(object);
+    if (cmd == "at")
+      return handle_at(object);
+    if (cmd == "eq")
+      return handle_eq(object);
 
     if (has_symbol(cmd)) {
       auto sym_type = get_symbol_type(cmd);
@@ -841,6 +845,51 @@ type_info_s tcs_c::handle_done(slp::slp_object_c &args_list) {
 
   type_info_s result;
   result.base_type = slp::slp_type_e::NONE;
+  return result;
+}
+
+type_info_s tcs_c::handle_at(slp::slp_object_c &args_list) {
+  auto list = args_list.as_list();
+  if (list.size() != 3) {
+    throw std::runtime_error(
+        "at requires exactly 2 arguments: index and collection");
+  }
+
+  auto index_obj = list.at(1);
+  auto collection_obj = list.at(2);
+
+  auto index_type = eval_type(index_obj);
+  if (index_type.base_type != slp::slp_type_e::INTEGER) {
+    throw std::runtime_error("at: index must be an integer");
+  }
+
+  auto collection_type = eval_type(collection_obj);
+  if (collection_type.base_type != slp::slp_type_e::PAREN_LIST &&
+      collection_type.base_type != slp::slp_type_e::BRACKET_LIST &&
+      collection_type.base_type != slp::slp_type_e::BRACE_LIST &&
+      collection_type.base_type != slp::slp_type_e::DQ_LIST) {
+    throw std::runtime_error("at: collection must be a list or string type");
+  }
+
+  type_info_s result;
+  result.base_type = slp::slp_type_e::NONE;
+  return result;
+}
+
+type_info_s tcs_c::handle_eq(slp::slp_object_c &args_list) {
+  auto list = args_list.as_list();
+  if (list.size() != 3) {
+    throw std::runtime_error("eq requires exactly 2 arguments: lhs and rhs");
+  }
+
+  auto lhs_obj = list.at(1);
+  auto rhs_obj = list.at(2);
+
+  eval_type(lhs_obj);
+  eval_type(rhs_obj);
+
+  type_info_s result;
+  result.base_type = slp::slp_type_e::INTEGER;
   return result;
 }
 

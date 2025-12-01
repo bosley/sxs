@@ -13,6 +13,10 @@
     (def retrieved2 (kv/get store:dat2))
     (def retrieved3 (kv/get store:dat3))
     
+    (assert (eq retrieved1 #42) "Datum int should match")
+    (assert (eq retrieved2 #"data string") "Datum string should match")
+    (assert (eq retrieved3 #symbol) "Datum symbol should match")
+    
     (io/put "Datum integer stored and retrieved\n")
     (io/put "Datum string stored and retrieved\n")
     (io/put "Datum symbol stored and retrieved\n")

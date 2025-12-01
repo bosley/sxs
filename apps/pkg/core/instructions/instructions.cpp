@@ -777,6 +777,110 @@ get_standard_callable_symbols() {
           return parse_result.take();
         }
 
+        if (expected_type == slp::slp_type_e::DQ_LIST) {
+          std::string result_str;
+          switch (actual_type) {
+          case slp::slp_type_e::INTEGER:
+            result_str = std::to_string(evaluated_value.as_int());
+            break;
+          case slp::slp_type_e::REAL:
+            result_str = std::to_string(evaluated_value.as_real());
+            break;
+          case slp::slp_type_e::SYMBOL:
+            result_str = evaluated_value.as_symbol();
+            break;
+          case slp::slp_type_e::NONE:
+            result_str = "()";
+            break;
+          case slp::slp_type_e::ABERRANT:
+            result_str = "?lambda";
+            break;
+          case slp::slp_type_e::ERROR: {
+            const std::uint8_t *base_ptr = evaluated_value.get_data().data();
+            const std::uint8_t *unit_ptr =
+                base_ptr + evaluated_value.get_root_offset();
+            const slp::slp_unit_of_store_t *unit =
+                reinterpret_cast<const slp::slp_unit_of_store_t *>(unit_ptr);
+            size_t inner_offset = static_cast<size_t>(unit->data.uint64);
+            auto inner_obj = slp::slp_object_c::from_data(
+                evaluated_value.get_data(), evaluated_value.get_symbols(),
+                inner_offset);
+            context.push_scope();
+            context.define_symbol("cast_temp_inner", inner_obj);
+            auto inner_cast = slp::parse("(cast :str cast_temp_inner)");
+            if (!inner_cast.is_error()) {
+              auto inner_cast_obj = inner_cast.take();
+              auto inner_result = context.eval(inner_cast_obj);
+              context.pop_scope();
+              if (inner_result.type() == slp::slp_type_e::DQ_LIST) {
+                result_str = "@(" + inner_result.as_string().to_string() + ")";
+                return slp::create_string_direct(result_str);
+              }
+            }
+            context.pop_scope();
+            result_str = "@(error)";
+            break;
+          }
+          case slp::slp_type_e::SOME: {
+            const std::uint8_t *base_ptr = evaluated_value.get_data().data();
+            const std::uint8_t *unit_ptr =
+                base_ptr + evaluated_value.get_root_offset();
+            const slp::slp_unit_of_store_t *unit =
+                reinterpret_cast<const slp::slp_unit_of_store_t *>(unit_ptr);
+            size_t inner_offset = static_cast<size_t>(unit->data.uint64);
+            auto inner_obj = slp::slp_object_c::from_data(
+                evaluated_value.get_data(), evaluated_value.get_symbols(),
+                inner_offset);
+            context.push_scope();
+            context.define_symbol("cast_temp_inner", inner_obj);
+            auto inner_cast = slp::parse("(cast :str cast_temp_inner)");
+            if (!inner_cast.is_error()) {
+              auto inner_cast_obj = inner_cast.take();
+              auto inner_result = context.eval(inner_cast_obj);
+              context.pop_scope();
+              if (inner_result.type() == slp::slp_type_e::DQ_LIST) {
+                result_str = "'" + inner_result.as_string().to_string();
+                return slp::create_string_direct(result_str);
+              }
+            }
+            context.pop_scope();
+            result_str = "'()";
+            break;
+          }
+          case slp::slp_type_e::DATUM: {
+            const std::uint8_t *base_ptr = evaluated_value.get_data().data();
+            const std::uint8_t *unit_ptr =
+                base_ptr + evaluated_value.get_root_offset();
+            const slp::slp_unit_of_store_t *unit =
+                reinterpret_cast<const slp::slp_unit_of_store_t *>(unit_ptr);
+            size_t inner_offset = static_cast<size_t>(unit->data.uint64);
+            auto inner_obj = slp::slp_object_c::from_data(
+                evaluated_value.get_data(), evaluated_value.get_symbols(),
+                inner_offset);
+            context.push_scope();
+            context.define_symbol("cast_temp_inner", inner_obj);
+            auto inner_cast = slp::parse("(cast :str cast_temp_inner)");
+            if (!inner_cast.is_error()) {
+              auto inner_cast_obj = inner_cast.take();
+              auto inner_result = context.eval(inner_cast_obj);
+              context.pop_scope();
+              if (inner_result.type() == slp::slp_type_e::DQ_LIST) {
+                result_str = "#" + inner_result.as_string().to_string();
+                return slp::create_string_direct(result_str);
+              }
+            }
+            context.pop_scope();
+            result_str = "#()";
+            break;
+          }
+          default:
+            result_str =
+                fmt::format("[type:{}]", static_cast<int>(actual_type));
+            break;
+          }
+          return slp::create_string_direct(result_str);
+        }
+
         throw std::runtime_error(fmt::format(
             "cast: type mismatch: expected {}, got {}",
             static_cast<int>(expected_type), static_cast<int>(actual_type)));
@@ -850,6 +954,209 @@ get_standard_callable_symbols() {
 
         slp::slp_object_c result;
         return result;
+      }};
+
+  symbols["at"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 3) {
+          throw std::runtime_error(
+              "at requires exactly 2 arguments: index and collection");
+        }
+
+        auto index_obj = list.at(1);
+        auto collection_obj = list.at(2);
+
+        auto evaluated_index = context.eval(index_obj);
+        if (evaluated_index.type() != slp::slp_type_e::INTEGER) {
+          throw std::runtime_error("at: index must be an integer");
+        }
+
+        std::int64_t index = evaluated_index.as_int();
+        if (index < 0) {
+          std::string error_msg = "@(index out of bounds)";
+          auto error_parse = slp::parse(error_msg);
+          return error_parse.take();
+        }
+
+        auto evaluated_collection = context.eval(collection_obj);
+        auto collection_type = evaluated_collection.type();
+
+        if (collection_type == slp::slp_type_e::DQ_LIST) {
+          auto str_data = evaluated_collection.as_string();
+          if (static_cast<size_t>(index) >= str_data.size()) {
+            std::string error_msg = "@(index out of bounds)";
+            auto error_parse = slp::parse(error_msg);
+            return error_parse.take();
+          }
+          unsigned char byte = static_cast<unsigned char>(str_data.at(index));
+          return slp::slp_object_c::create_int(static_cast<std::int64_t>(byte));
+        }
+
+        if (collection_type == slp::slp_type_e::PAREN_LIST ||
+            collection_type == slp::slp_type_e::BRACKET_LIST ||
+            collection_type == slp::slp_type_e::BRACE_LIST) {
+          auto collection_list = evaluated_collection.as_list();
+          if (static_cast<size_t>(index) >= collection_list.size()) {
+            std::string error_msg = "@(index out of bounds)";
+            auto error_parse = slp::parse(error_msg);
+            return error_parse.take();
+          }
+          return collection_list.at(static_cast<size_t>(index));
+        }
+
+        throw std::runtime_error(
+            "at: collection must be a list or string type");
+      }};
+
+  symbols["eq"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::INTEGER,
+      .required_parameters = {},
+      .variadic = false,
+      .function = [](callable_context_if &context,
+                     slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 3) {
+          throw std::runtime_error(
+              "eq requires exactly 2 arguments: lhs and rhs");
+        }
+
+        auto lhs_obj = list.at(1);
+        auto rhs_obj = list.at(2);
+
+        auto evaluated_lhs = context.eval(lhs_obj);
+        auto evaluated_rhs = context.eval(rhs_obj);
+
+        auto lhs_type = evaluated_lhs.type();
+        auto rhs_type = evaluated_rhs.type();
+
+        if (lhs_type != rhs_type) {
+          return slp::slp_object_c::create_int(0);
+        }
+
+        if (lhs_type == slp::slp_type_e::ABERRANT) {
+          const std::uint8_t *lhs_base = evaluated_lhs.get_data().data();
+          const std::uint8_t *lhs_unit =
+              lhs_base + evaluated_lhs.get_root_offset();
+          const slp::slp_unit_of_store_t *lhs_u =
+              reinterpret_cast<const slp::slp_unit_of_store_t *>(lhs_unit);
+          std::uint64_t lhs_id = lhs_u->data.uint64;
+
+          const std::uint8_t *rhs_base = evaluated_rhs.get_data().data();
+          const std::uint8_t *rhs_unit =
+              rhs_base + evaluated_rhs.get_root_offset();
+          const slp::slp_unit_of_store_t *rhs_u =
+              reinterpret_cast<const slp::slp_unit_of_store_t *>(rhs_unit);
+          std::uint64_t rhs_id = rhs_u->data.uint64;
+
+          return slp::slp_object_c::create_int(lhs_id == rhs_id ? 1 : 0);
+        }
+
+        if (lhs_type == slp::slp_type_e::ERROR ||
+            lhs_type == slp::slp_type_e::SOME ||
+            lhs_type == slp::slp_type_e::DATUM) {
+          const std::uint8_t *lhs_base = evaluated_lhs.get_data().data();
+          const std::uint8_t *lhs_unit =
+              lhs_base + evaluated_lhs.get_root_offset();
+          const slp::slp_unit_of_store_t *lhs_u =
+              reinterpret_cast<const slp::slp_unit_of_store_t *>(lhs_unit);
+          size_t lhs_inner_offset = static_cast<size_t>(lhs_u->data.uint64);
+          auto lhs_inner = slp::slp_object_c::from_data(
+              evaluated_lhs.get_data(), evaluated_lhs.get_symbols(),
+              lhs_inner_offset);
+
+          const std::uint8_t *rhs_base = evaluated_rhs.get_data().data();
+          const std::uint8_t *rhs_unit =
+              rhs_base + evaluated_rhs.get_root_offset();
+          const slp::slp_unit_of_store_t *rhs_u =
+              reinterpret_cast<const slp::slp_unit_of_store_t *>(rhs_unit);
+          size_t rhs_inner_offset = static_cast<size_t>(rhs_u->data.uint64);
+          auto rhs_inner = slp::slp_object_c::from_data(
+              evaluated_rhs.get_data(), evaluated_rhs.get_symbols(),
+              rhs_inner_offset);
+
+          context.push_scope();
+          context.define_symbol("eq_lhs_inner", lhs_inner);
+          context.define_symbol("eq_rhs_inner", rhs_inner);
+          auto parse_result = slp::parse("(eq eq_lhs_inner eq_rhs_inner)");
+          if (!parse_result.is_error()) {
+            auto call_obj = parse_result.take();
+            auto result = context.eval(call_obj);
+            context.pop_scope();
+            return result;
+          }
+          context.pop_scope();
+          return slp::slp_object_c::create_int(0);
+        }
+
+        if (lhs_type == slp::slp_type_e::PAREN_LIST ||
+            lhs_type == slp::slp_type_e::BRACKET_LIST ||
+            lhs_type == slp::slp_type_e::BRACE_LIST) {
+          auto lhs_list = evaluated_lhs.as_list();
+          auto rhs_list = evaluated_rhs.as_list();
+
+          if (lhs_list.size() != rhs_list.size()) {
+            return slp::slp_object_c::create_int(0);
+          }
+
+          for (size_t i = 0; i < lhs_list.size(); i++) {
+            auto lhs_elem = lhs_list.at(i);
+            auto rhs_elem = rhs_list.at(i);
+
+            context.push_scope();
+            context.define_symbol("eq_lhs_elem", lhs_elem);
+            context.define_symbol("eq_rhs_elem", rhs_elem);
+            auto parse_result = slp::parse("(eq eq_lhs_elem eq_rhs_elem)");
+            if (parse_result.is_error()) {
+              context.pop_scope();
+              return slp::slp_object_c::create_int(0);
+            }
+            auto call_obj = parse_result.take();
+            auto result = context.eval(call_obj);
+            context.pop_scope();
+
+            if (result.type() != slp::slp_type_e::INTEGER ||
+                result.as_int() == 0) {
+              return slp::slp_object_c::create_int(0);
+            }
+          }
+          return slp::slp_object_c::create_int(1);
+        }
+
+        context.push_scope();
+        context.define_symbol("eq_temp_lhs", evaluated_lhs);
+        context.define_symbol("eq_temp_rhs", evaluated_rhs);
+
+        auto lhs_cast_parse = slp::parse("(cast :str eq_temp_lhs)");
+        auto rhs_cast_parse = slp::parse("(cast :str eq_temp_rhs)");
+
+        if (lhs_cast_parse.is_error() || rhs_cast_parse.is_error()) {
+          context.pop_scope();
+          return slp::slp_object_c::create_int(0);
+        }
+
+        auto lhs_cast_obj = lhs_cast_parse.take();
+        auto rhs_cast_obj = rhs_cast_parse.take();
+
+        auto lhs_cast_result = context.eval(lhs_cast_obj);
+        auto rhs_cast_result = context.eval(rhs_cast_obj);
+
+        context.pop_scope();
+
+        if (lhs_cast_result.type() != slp::slp_type_e::DQ_LIST ||
+            rhs_cast_result.type() != slp::slp_type_e::DQ_LIST) {
+          return slp::slp_object_c::create_int(0);
+        }
+
+        std::string lhs_string = lhs_cast_result.as_string().to_string();
+        std::string rhs_string = rhs_cast_result.as_string().to_string();
+
+        bool equal = (lhs_string == rhs_string);
+        return slp::slp_object_c::create_int(equal ? 1 : 0);
       }};
 
   return symbols;

@@ -16,6 +16,10 @@
     (def name (kv/get mem:name))
     (def pi (kv/get mem:pi))
 
+    (assert (eq x 42) "x should be 42")
+    (assert (eq name "bosley") "name should be bosley")
+    (assert (eq pi 3.14159) "pi should match")
+
     (io/put "x: %d\n" x)
     (io/put "name: %s\n" name)
     (io/put "pi: %f\n" pi)
@@ -23,23 +27,27 @@
     (io/put "\n--- Testing snx (set-if-not-exists) ---\n")
     (kv/snx mem:new_key 100)
     (def new_val (kv/get mem:new_key))
+    (assert (eq new_val 100) "snx should set new key to 100")
     (io/put "snx new_key: %d\n" new_val)
 
     (io/put "snx on existing key (should fail): ")
     (kv/snx mem:x 999)
     (def x_unchanged (kv/get mem:x))
+    (assert (eq x_unchanged 42) "snx should not change existing key")
     (io/put "%d\n" x_unchanged)
 
     (io/put "\n--- Testing cas (compare-and-swap) ---\n")
     (def current_x (kv/get mem:x))
     (kv/cas mem:x current_x 100)
     (def x_after_cas (kv/get mem:x))
+    (assert (eq x_after_cas 100) "cas should update to 100")
     (io/put "cas x using stored value to 100: %d\n" x_after_cas)
 
     (def current_x2 (kv/get mem:x))
     (io/put "cas with wrong expected (should fail): ")
     (kv/cas mem:x 999 200)
     (def x_after_failed_cas (kv/get mem:x))
+    (assert (eq x_after_failed_cas 100) "cas with wrong expected should not change value")
     (io/put "%d\n" x_after_failed_cas)
 
     (io/put "\n--- Testing del ---\n")

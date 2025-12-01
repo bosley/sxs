@@ -13,6 +13,10 @@
     (def retrieved_neg (kv/get store:neg))
     (def retrieved_zero (kv/get store:zero))
     
+    (assert (eq retrieved_pi 3.14159) "Pi should match")
+    (assert (eq retrieved_neg -2.5) "Negative should match")
+    (assert (eq retrieved_zero 0.0) "Zero should match")
+    
     (io/put "pi: %f\n" retrieved_pi)
     (io/put "negative: %f\n" retrieved_neg)
     (io/put "zero: %f\n" retrieved_zero)
