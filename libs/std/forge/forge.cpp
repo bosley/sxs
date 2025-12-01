@@ -148,8 +148,7 @@ static slp::slp_object_c forge_pb(pkg::kernel::context_t ctx,
                                   const slp::slp_object_c &args) {
   auto list = args.as_list();
   if (list.size() < 3) {
-    std::vector<slp::slp_object_c> empty;
-    return slp::slp_object_c::create_paren_list(empty.data(), 0);
+    return slp::slp_object_c::create_none();
   }
 
   auto target = g_api->eval(ctx, list.at(1));
