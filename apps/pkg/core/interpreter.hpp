@@ -8,6 +8,8 @@
 #include <sxs/slp/slp.hpp>
 #include <vector>
 
+#include "instructions/generation/generation.hpp"
+
 namespace pkg::core {
 
 namespace imports {
@@ -90,6 +92,21 @@ public:
 
 struct callable_symbol_s {
   slp::slp_type_e return_type;
+
+  // If they take "any" type use "aberrant"
+  // if returns more than one type (always one object, but more than one type)
+  // then use "aberrant"
+  std::vector<callable_parameter_s> required_parameters;
+
+  std::map<std::string, slp::slp_type_e> injected_symbols;
+
+  // The function to call when compiling - this will produce the raw binary equivalent
+  // of the builtin (stubbed in with function signatures expected to change)
+  instructions::generation::instruction_generator_fn_t instruction_generator;
+
+  // if they are strictly variadic, leave required_params 
+  // as minimum size required. (variadic that permits 0 should
+  // have 0 params. a variadic that takes at LEAST 1 has 1 ANY, etc)
   bool variadic{false};
   std::function<slp::slp_object_c(callable_context_if &context,
                                   slp::slp_object_c &args_list)>

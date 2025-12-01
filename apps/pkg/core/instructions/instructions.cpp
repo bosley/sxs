@@ -11,6 +11,9 @@ get_standard_callable_symbols() {
 
   symbols["def"] = callable_symbol_s{
       .return_type = slp::slp_type_e::NONE,
+      .instruction_generator = generation::make_define,
+      .required_parameters = {{.name = "symbol", .type = slp::slp_type_e::SYMBOL},
+                              {.name = "value", .type = slp::slp_type_e::ABERRANT}},
       .variadic = false,
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
@@ -43,6 +46,9 @@ get_standard_callable_symbols() {
 
   symbols["fn"] = callable_symbol_s{
       .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {{.name = "params", .type = slp::slp_type_e::PAREN_LIST},
+                              {.name = "return_type", .type = slp::slp_type_e::SYMBOL},
+                              {.name = "body", .type = slp::slp_type_e::BRACKET_LIST}},
       .variadic = false,
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
@@ -124,7 +130,8 @@ get_standard_callable_symbols() {
       }};
 
   symbols["debug"] = callable_symbol_s{
-      .return_type = slp::slp_type_e::INTEGER,
+      .return_type = slp::slp_type_e::NONE,
+      .required_parameters = {},
       .variadic = true,
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
@@ -164,6 +171,8 @@ get_standard_callable_symbols() {
 
   symbols["export"] = callable_symbol_s{
       .return_type = slp::slp_type_e::NONE,
+      .required_parameters = {{.name = "name", .type = slp::slp_type_e::SYMBOL},
+                              {.name = "value", .type = slp::slp_type_e::ABERRANT}},
       .variadic = false,
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
@@ -201,6 +210,9 @@ get_standard_callable_symbols() {
 
   symbols["if"] = callable_symbol_s{
       .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {{.name = "condition", .type = slp::slp_type_e::ABERRANT},
+                              {.name = "true_branch", .type = slp::slp_type_e::ABERRANT},
+                              {.name = "false_branch", .type = slp::slp_type_e::ABERRANT}},
       .variadic = false,
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
@@ -233,7 +245,9 @@ get_standard_callable_symbols() {
 
   symbols["reflect"] = callable_symbol_s{
       .return_type = slp::slp_type_e::ABERRANT,
-      .variadic = false,
+      .required_parameters = {{.name = "value", .type = slp::slp_type_e::ABERRANT},
+                              {.name = "handler", .type = slp::slp_type_e::PAREN_LIST}},
+      .variadic = true,
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
         auto list = args_list.as_list();
@@ -306,6 +320,9 @@ get_standard_callable_symbols() {
 
   symbols["try"] = callable_symbol_s{
       .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {{.name = "body", .type = slp::slp_type_e::ABERRANT},
+                              {.name = "handler", .type = slp::slp_type_e::ABERRANT}},
+      .injected_symbols = {{"$error", slp::slp_type_e::ABERRANT}},
       .variadic = false,
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
@@ -346,6 +363,8 @@ get_standard_callable_symbols() {
 
   symbols["assert"] = callable_symbol_s{
       .return_type = slp::slp_type_e::NONE,
+      .required_parameters = {{.name = "condition", .type = slp::slp_type_e::INTEGER},
+                              {.name = "message", .type = slp::slp_type_e::DQ_LIST}},
       .variadic = false,
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
@@ -382,6 +401,9 @@ get_standard_callable_symbols() {
 
   symbols["recover"] = callable_symbol_s{
       .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {{.name = "body", .type = slp::slp_type_e::BRACKET_LIST},
+                              {.name = "handler", .type = slp::slp_type_e::BRACKET_LIST}},
+      .injected_symbols = {{"$exception", slp::slp_type_e::DQ_LIST}},
       .variadic = false,
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
@@ -423,6 +445,7 @@ get_standard_callable_symbols() {
 
   symbols["eval"] = callable_symbol_s{
       .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {{.name = "code", .type = slp::slp_type_e::DQ_LIST}},
       .variadic = false,
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
@@ -459,6 +482,8 @@ get_standard_callable_symbols() {
 
   symbols["apply"] = callable_symbol_s{
       .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {{.name = "lambda", .type = slp::slp_type_e::ABERRANT},
+                              {.name = "args", .type = slp::slp_type_e::BRACE_LIST}},
       .variadic = false,
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
@@ -513,7 +538,9 @@ get_standard_callable_symbols() {
 
   symbols["match"] = callable_symbol_s{
       .return_type = slp::slp_type_e::ABERRANT,
-      .variadic = false,
+      .required_parameters = {{.name = "value", .type = slp::slp_type_e::ABERRANT},
+                              {.name = "handler", .type = slp::slp_type_e::PAREN_LIST}},
+      .variadic = true,
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
         auto list = args_list.as_list();
@@ -605,6 +632,8 @@ get_standard_callable_symbols() {
 
   symbols["cast"] = callable_symbol_s{
       .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {{.name = "type", .type = slp::slp_type_e::SYMBOL},
+                              {.name = "value", .type = slp::slp_type_e::ABERRANT}},
       .variadic = false,
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
@@ -875,6 +904,8 @@ get_standard_callable_symbols() {
 
   symbols["do"] = callable_symbol_s{
       .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {{.name = "body", .type = slp::slp_type_e::BRACKET_LIST}},
+      .injected_symbols = {{"$iterations", slp::slp_type_e::INTEGER}},
       .variadic = false,
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
@@ -919,6 +950,7 @@ get_standard_callable_symbols() {
 
   symbols["done"] = callable_symbol_s{
       .return_type = slp::slp_type_e::NONE,
+      .required_parameters = {{.name = "value", .type = slp::slp_type_e::ABERRANT}},
       .variadic = false,
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
@@ -943,6 +975,8 @@ get_standard_callable_symbols() {
 
   symbols["at"] = callable_symbol_s{
       .return_type = slp::slp_type_e::ABERRANT,
+      .required_parameters = {{.name = "index", .type = slp::slp_type_e::INTEGER},
+                              {.name = "collection", .type = slp::slp_type_e::ABERRANT}},
       .variadic = false,
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
@@ -999,6 +1033,8 @@ get_standard_callable_symbols() {
 
   symbols["eq"] = callable_symbol_s{
       .return_type = slp::slp_type_e::INTEGER,
+      .required_parameters = {{.name = "lhs", .type = slp::slp_type_e::ABERRANT},
+                              {.name = "rhs", .type = slp::slp_type_e::ABERRANT}},
       .variadic = false,
       .function = [](callable_context_if &context,
                      slp::slp_object_c &args_list) -> slp::slp_object_c {
