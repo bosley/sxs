@@ -8,9 +8,25 @@ find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(RocksDB REQUIRED)
 
-# Find and configure zstd for cpp-httplib
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(zstd REQUIRED IMPORTED_TARGET libzstd)
+include(FetchContent)
+
+if(POLICY CMP0169)
+  cmake_policy(SET CMP0169 OLD)
+endif()
+
+FetchContent_Declare(
+  snitch
+  GIT_REPOSITORY https://github.com/cschreib/snitch.git
+  GIT_TAG v1.2.5
+)
+
+set(SNITCH_DO_TEST OFF CACHE BOOL "" FORCE)
+
+FetchContent_GetProperties(snitch)
+if(NOT snitch_POPULATED)
+  FetchContent_Populate(snitch)
+  add_subdirectory(${snitch_SOURCE_DIR} ${snitch_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
 
 if(DEFINED ENV{SXS_HOME})
     set(SXS_STD_ROOT "$ENV{SXS_HOME}" CACHE PATH "sxs-std installation directory")
@@ -28,12 +44,6 @@ find_library(SXS_SLP_LIB
 )
 
 set(SXS_KERNEL_PATH "${SXS_STD_ROOT}/lib/kernels" CACHE PATH "Kernel modules directory")
-
-# Create the zstd::libzstd target that cpp-httplib expects
-if(TARGET PkgConfig::zstd)
-    add_library(zstd::libzstd ALIAS PkgConfig::zstd)
-    message(STATUS "Created zstd::libzstd target from pkg-config")
-endif()
 
 option(RUN_TESTS      "Run tests" ON)
 option(EXTRA_DEBUG_STMT     "Enable extra debug statements" OFF)
@@ -91,10 +101,8 @@ include(${PROJECT_SOURCE_DIR}/cmake/CheckGit.cmake)
 include(${PROJECT_SOURCE_DIR}/cmake/Platform.cmake)
 
 #
-# External code setup
+# Build project subdirectories
 #
-# Bring in external dependencies
-add_subdirectory(${PROJECT_SOURCE_DIR}/extern)
 add_subdirectory(${PROJECT_SOURCE_DIR}/pkg)
 add_subdirectory(${PROJECT_SOURCE_DIR}/cmd)
 

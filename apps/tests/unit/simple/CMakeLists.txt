@@ -3,7 +3,7 @@ add_executable(simple_tests
 )
 
 target_link_libraries(simple_tests PRIVATE 
-  extern::snitch
+  snitch::snitch
 )
 
 add_dependencies(build_tests simple_tests)
