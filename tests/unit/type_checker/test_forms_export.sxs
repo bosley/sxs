@@ -1,0 +1,11 @@
+[
+  #(define-form pair {:int :int})
+  #(define-form point {:real :real})
+  
+  (export make_pair (fn (a :int b :int) :pair [
+    (cast :pair {a b})
+  ]))
+  
+  (export origin (cast :point {0.0 0.0}))
+]
+

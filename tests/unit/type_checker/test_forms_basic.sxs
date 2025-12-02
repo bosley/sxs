@@ -1,0 +1,14 @@
+[
+  #(define-form pair {:int :int})
+  #(define-form point {:real :real})
+  #(define-form person {:str :int})
+  
+  (def p1 (cast :pair {1 2}))
+  (def p2 (cast :point {3.14 2.71}))
+  (def person1 (cast :person {"Alice" 30}))
+  
+  (debug p1)
+  (debug p2)
+  (debug person1)
+]
+

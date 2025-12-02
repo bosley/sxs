@@ -215,3 +215,1009 @@ TEST_CASE("define-form variadic type", "[type_checker][composite]") {
   auto obj = parse_result.take();
   REQUIRE_NOTHROW(context->eval_type(obj));
 }
+
+TEST_CASE("form mixed primitive types",
+          "[type_checker][composite][validation]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form mixed {:int :str :real :symbol})
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+
+  auto form_def = context->get_form_definition("mixed");
+  REQUIRE(form_def.size() == 4);
+  REQUIRE(form_def[0].base_type == slp::slp_type_e::INTEGER);
+  REQUIRE(form_def[1].base_type == slp::slp_type_e::DQ_LIST);
+  REQUIRE(form_def[2].base_type == slp::slp_type_e::REAL);
+  REQUIRE(form_def[3].base_type == slp::slp_type_e::SYMBOL);
+}
+
+TEST_CASE("form with list types", "[type_checker][composite][validation]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form container {:list-p :list-b :list-c})
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+
+  auto form_def = context->get_form_definition("container");
+  REQUIRE(form_def.size() == 3);
+  REQUIRE(form_def[0].base_type == slp::slp_type_e::PAREN_LIST);
+  REQUIRE(form_def[1].base_type == slp::slp_type_e::BRACKET_LIST);
+  REQUIRE(form_def[2].base_type == slp::slp_type_e::BRACE_LIST);
+}
+
+TEST_CASE("form with complex types", "[type_checker][composite][validation]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form complex {:some :error :datum})
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+
+  auto form_def = context->get_form_definition("complex");
+  REQUIRE(form_def.size() == 3);
+  REQUIRE(form_def[0].base_type == slp::slp_type_e::SOME);
+  REQUIRE(form_def[1].base_type == slp::slp_type_e::ERROR);
+  REQUIRE(form_def[2].base_type == slp::slp_type_e::DATUM);
+}
+
+TEST_CASE("form assignment to list-c compatible",
+          "[type_checker][composite][validation]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form pair {:int :int})
+    (def x (cast :pair {1 2}))
+    (def y (cast :list-c x))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+}
+
+TEST_CASE("form multiple parameters", "[type_checker][composite][function]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form pair {:int :int})
+    #(define-form triple {:int :int :int})
+    (def combine (fn (p :pair t :triple) :int [
+      42
+    ]))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+}
+
+TEST_CASE("form return type", "[type_checker][composite][function]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form pair {:int :int})
+    (def make_pair (fn (a :int b :int) :pair [
+      (cast :pair {a b})
+    ]))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+}
+
+TEST_CASE("form variadic parameters", "[type_checker][composite][function]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form point {:int :int})
+    (def process_points (fn (points :point..) :int [
+      42
+    ]))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+}
+
+TEST_CASE("form with lambda type", "[type_checker][composite][lambda]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form callback {:aberrant :int})
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+
+  auto form_def = context->get_form_definition("callback");
+  REQUIRE(form_def.size() == 2);
+  REQUIRE(form_def[0].base_type == slp::slp_type_e::ABERRANT);
+  REQUIRE(form_def[1].base_type == slp::slp_type_e::INTEGER);
+}
+
+TEST_CASE("lambda returning form", "[type_checker][composite][lambda]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form pair {:int :int})
+    (def factory (fn (x :int) :pair [
+      (cast :pair {x x})
+    ]))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+}
+
+TEST_CASE("lambda taking form", "[type_checker][composite][lambda]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form pair {:int :int})
+    (def process (fn (p :pair) :int [
+      42
+    ]))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+}
+
+TEST_CASE("form in if branches", "[type_checker][composite][control_flow]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form pair {:int :int})
+    (def x (if 1 
+      (cast :pair {1 2})
+      (cast :pair {3 4})
+    ))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+}
+
+TEST_CASE("form in try handler", "[type_checker][composite][control_flow]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form pair {:int :int})
+    (def x (try 
+      (cast :pair {1 2})
+      (cast :pair {0 0})
+    ))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+}
+
+TEST_CASE("empty form", "[type_checker][composite][edge_case]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form empty {})
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+
+  auto form_def = context->get_form_definition("empty");
+  REQUIRE(form_def.size() == 0);
+}
+
+TEST_CASE("single element form", "[type_checker][composite][edge_case]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form single {:int})
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+
+  auto form_def = context->get_form_definition("single");
+  REQUIRE(form_def.size() == 1);
+  REQUIRE(form_def[0].base_type == slp::slp_type_e::INTEGER);
+}
+
+TEST_CASE("large form", "[type_checker][composite][edge_case]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form large {:int :str :real :int :str :real :int :str :real :int :str :real})
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+
+  auto form_def = context->get_form_definition("large");
+  REQUIRE(form_def.size() == 12);
+}
+
+TEST_CASE("deeply nested forms", "[type_checker][composite][edge_case]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form level1 {:int :int})
+    #(define-form level2 {:level1 :str})
+    #(define-form level3 {:level2 :real})
+    #(define-form level4 {:level3 :symbol})
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+
+  REQUIRE(context->has_form("level1"));
+  REQUIRE(context->has_form("level2"));
+  REQUIRE(context->has_form("level3"));
+  REQUIRE(context->has_form("level4"));
+
+  auto level4_def = context->get_form_definition("level4");
+  REQUIRE(level4_def.size() == 2);
+  REQUIRE(level4_def[0].base_type == slp::slp_type_e::BRACE_LIST);
+  REQUIRE(level4_def[0].form_name == "level3");
+}
+
+TEST_CASE("form with any type", "[type_checker][composite][edge_case]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form flexible {:any :int})
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+
+  auto form_def = context->get_form_definition("flexible");
+  REQUIRE(form_def.size() == 2);
+  REQUIRE(form_def[0].base_type == slp::slp_type_e::NONE);
+  REQUIRE(form_def[1].base_type == slp::slp_type_e::INTEGER);
+}
+
+TEST_CASE("form forward reference fails", "[type_checker][composite][scope]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form uses_undefined {:undefined :int})
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  CHECK_THROWS_AS(context->eval_type(obj), std::exception);
+}
+
+TEST_CASE("form visibility in nested scopes",
+          "[type_checker][composite][scope]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form pair {:int :int})
+    (def outer (fn () :pair [
+      (def inner (fn () :pair [
+        (cast :pair {1 2})
+      ]))
+      (inner)
+    ]))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+}
+
+TEST_CASE("cast list-c to form validates", "[type_checker][composite][cast]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form pair {:int :int})
+    (def x {1 2})
+    (def y (cast :pair x))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+}
+
+TEST_CASE("cast form to list-c is noop", "[type_checker][composite][cast]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form pair {:int :int})
+    (def x (cast :pair {1 2}))
+    (def y (cast :list-c x))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+}
+
+TEST_CASE("cast form to different form", "[type_checker][composite][cast]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form pair {:int :int})
+    #(define-form point {:int :int})
+    (def x (cast :pair {1 2}))
+    (def y (cast :point x))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+}
+
+TEST_CASE("cast nested forms", "[type_checker][composite][cast]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form inner {:int :int})
+    #(define-form outer {:inner :str})
+    (def x (cast :inner {1 2}))
+    (def y (cast :outer {x "test"}))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+}
+
+TEST_CASE("cast with wrong element count", "[type_checker][composite][cast]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form pair {:int :int})
+    (def x (cast :pair {1 2 3}))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+}
+
+TEST_CASE("form in match pattern", "[type_checker][composite][control_flow]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form pair {:int :int})
+    (def x (cast :pair {1 2}))
+    (def result (match x
+      ((cast :pair {1 2}) 100)
+      ((cast :pair {3 4}) 200)
+    ))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+}
+
+TEST_CASE("form in recover", "[type_checker][composite][control_flow]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form pair {:int :int})
+    (def x (recover 
+      [(cast :pair {1 2})]
+      [(cast :pair {0 0})]
+    ))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+}
+
+TEST_CASE("nested function calls with forms",
+          "[type_checker][composite][function]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form pair {:int :int})
+    (def make (fn (x :int) :pair [
+      (cast :pair {x x})
+    ]))
+    (def process (fn (p :pair) :int [
+      42
+    ]))
+    (def result (process (make 5)))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+}
+
+TEST_CASE("form parameter accepts list-c",
+          "[type_checker][composite][function]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form pair {:int :int})
+    (def process (fn (p :pair) :int [42]))
+    (def x {1 2})
+    (def result (process x))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+}
+
+TEST_CASE("form with variadic list type",
+          "[type_checker][composite][validation]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form container {:int.. :str})
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+
+  auto form_def = context->get_form_definition("container");
+  REQUIRE(form_def.size() == 2);
+  REQUIRE(form_def[0].base_type == slp::slp_type_e::INTEGER);
+  REQUIRE(form_def[0].is_variadic == true);
+}
+
+TEST_CASE("form in do loop", "[type_checker][composite][control_flow]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form pair {:int :int})
+    (def result (do [
+      (def x (cast :pair {1 2}))
+      (done x)
+    ]))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+}
+
+TEST_CASE("export form definition",
+          "[type_checker][composite][import_export]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form pair {:int :int})
+    (export my_pair (cast :pair {1 2}))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+
+  auto exports = context->get_current_exports();
+  REQUIRE(exports.count("my_pair") == 1);
+  REQUIRE(exports["my_pair"].base_type == slp::slp_type_e::BRACE_LIST);
+}
+
+TEST_CASE("export function returning form",
+          "[type_checker][composite][import_export]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form pair {:int :int})
+    (export make_pair (fn (a :int b :int) :pair [
+      (cast :pair {a b})
+    ]))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+
+  auto exports = context->get_current_exports();
+  REQUIRE(exports.count("make_pair") == 1);
+  REQUIRE(exports["make_pair"].base_type == slp::slp_type_e::ABERRANT);
+}
+
+TEST_CASE("import with forms", "[type_checker][composite][import_export]") {
+  auto logger = spdlog::default_logger();
+  std::string test_data_dir = TEST_DATA_DIR;
+  std::vector<std::string> include_paths = {test_data_dir};
+  std::string working_directory = test_data_dir;
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(import forms_lib "test_forms_export.sxs")
+    (def my_pair (forms_lib/make_pair 10 20))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+
+  REQUIRE(context->has_symbol("my_pair"));
+  auto my_pair_type = context->get_symbol_type("my_pair");
+  REQUIRE(my_pair_type.base_type == slp::slp_type_e::BRACE_LIST);
+}
+
+TEST_CASE("form propagation across imports",
+          "[type_checker][composite][import_export]") {
+  auto logger = spdlog::default_logger();
+  std::string test_data_dir = TEST_DATA_DIR;
+  std::vector<std::string> include_paths = {test_data_dir};
+  std::string working_directory = test_data_dir;
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(import forms_lib "test_forms_export.sxs")
+    (def origin forms_lib/origin)
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+
+  REQUIRE(context->has_symbol("origin"));
+  auto origin_type = context->get_symbol_type("origin");
+  REQUIRE(origin_type.base_type == slp::slp_type_e::BRACE_LIST);
+}
+
+TEST_CASE("form types match across modules",
+          "[type_checker][composite][import_export]") {
+  auto logger = spdlog::default_logger();
+  std::vector<std::string> include_paths;
+  std::string working_directory = ".";
+
+  auto instructions_map = instructions::get_standard_callable_symbols();
+  auto datum_map = datum::get_standard_callable_symbols();
+  instructions_map.insert(datum_map.begin(), datum_map.end());
+
+  auto context =
+      create_compiler_context(logger, include_paths, working_directory,
+                              instructions_map, nullptr, nullptr);
+
+  std::string source = R"([
+    #(define-form pair {:int :int})
+    (export local_pair (cast :pair {1 2}))
+    (def another_pair (cast :pair {3 4}))
+  ])";
+
+  auto parse_result = slp::parse(source);
+  REQUIRE(!parse_result.is_error());
+
+  auto obj = parse_result.take();
+  REQUIRE_NOTHROW(context->eval_type(obj));
+
+  auto exports = context->get_current_exports();
+  REQUIRE(exports.count("local_pair") == 1);
+
+  auto local_type = context->get_symbol_type("another_pair");
+  REQUIRE(local_type.base_type == slp::slp_type_e::BRACE_LIST);
+  REQUIRE(local_type.form_name == "pair");
+}

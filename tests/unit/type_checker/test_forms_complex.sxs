@@ -1,0 +1,17 @@
+[
+  #(define-form empty {})
+  #(define-form single {:int})
+  #(define-form large {:int :str :real :symbol :int :str :real :symbol})
+  #(define-form mixed {:list-p :list-c :list-b})
+  
+  (def e (cast :empty {}))
+  (def s (cast :single {42}))
+  (def l (cast :large {1 "a" 1.0 sym 2 "b" 2.0 sym2}))
+  (def m (cast :mixed {(1 2) {3 4} [5 6]}))
+  
+  (debug e)
+  (debug s)
+  (debug l)
+  (debug m)
+]
+

@@ -10,6 +10,13 @@ set(TYPE_CHECKER_TEST_DATA_FILES
     test_import_nested_a.sxs
     test_import_nested_b.sxs
     test_integration_lib.sxs
+    test_forms_export.sxs
+    test_forms_import_user.sxs
+    test_forms_basic.sxs
+    test_forms_nested.sxs
+    test_forms_functions.sxs
+    test_forms_control_flow.sxs
+    test_forms_complex.sxs
 )
 
 foreach(TEST_FILE ${TYPE_CHECKER_TEST_DATA_FILES})
@@ -43,5 +50,10 @@ add_test(NAME type_checker_file_test COMMAND type_checker_file_test)
 
 add_executable(type_checker_composite_test type_checker_composite_test.cpp)
 target_link_libraries(type_checker_composite_test PRIVATE pkg_core snitch::snitch spdlog::spdlog)
+target_compile_definitions(type_checker_composite_test PRIVATE TEST_DATA_DIR="${TEST_DATA_DIR}")
 add_test(NAME type_checker_composite_test COMMAND type_checker_composite_test)
+
+add_executable(type_checker_composite_runtime_test type_checker_composite_runtime_test.cpp)
+target_link_libraries(type_checker_composite_runtime_test PRIVATE pkg_core snitch::snitch spdlog::spdlog)
+add_test(NAME type_checker_composite_runtime_test COMMAND type_checker_composite_runtime_test)
 
