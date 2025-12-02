@@ -48,10 +48,6 @@ if(NOT snitch_POPULATED)
   set(CMAKE_INSTALL_LIBDIR ${CMAKE_INSTALL_LIBDIR_SAVE})
 endif()
 
-install(FILES $<TARGET_FILE:snitch> DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
-install(DIRECTORY ${snitch_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include FILES_MATCHING PATTERN "*.hpp")
-install(FILES ${snitch_BINARY_DIR}/snitch/snitch_config.hpp DESTINATION ${CMAKE_INSTALL_PREFIX}/include/snitch)
-
 find_package(spdlog REQUIRED)
 find_package(RocksDB REQUIRED)
 
