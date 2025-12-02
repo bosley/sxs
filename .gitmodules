@@ -1,9 +1,0 @@
-[submodule "apps/extern/cpp-httplib"]
-	path = apps/extern/cpp-httplib
-	url = https://github.com/yhirose/cpp-httplib.git
-[submodule "apps/extern/snitch"]
-	path = apps/extern/snitch
-	url = https://github.com/snitch-org/snitch.git
-[submodule "apps/extern/json"]
-	path = apps/extern/json
-	url = https://github.com/nlohmann/json

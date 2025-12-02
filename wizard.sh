@@ -22,12 +22,12 @@ print_usage() {
     echo "Usage: $0 [COMMAND]"
     echo
     echo "Commands:"
-    echo "  --install      Build and install libs and apps to ~/.sxs"
+    echo "  --install      Build and install to ~/.sxs"
     echo "  --reinstall    Force reinstall (removes existing installation)"
     echo "  --uninstall    Remove sxs installation"
     echo "  --check        Check installation status and show directory tree"
-    echo "  --build        Build the apps project"
-    echo "  --test         Build and run all tests (libs + apps)"
+    echo "  --build        Build the project"
+    echo "  --test         Build and run all tests"
     echo
     exit 1
 }
@@ -72,7 +72,7 @@ check_installation() {
     echo
 }
 
-install_sxs_std() {
+install_sxs() {
     local force_reinstall=$1
     
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -102,126 +102,54 @@ install_sxs_std() {
         exit 1
     fi
     
-    echo -e "${YELLOW}Building libs...${NC}"
+    echo -e "${YELLOW}Building project...${NC}"
     echo
     
-    LIBS_BUILD_DIR="$SCRIPT_DIR/libs/build"
+    BUILD_DIR="$SCRIPT_DIR/build"
     
-    if ! cd "$SCRIPT_DIR/libs"; then
-        echo -e "${RED}✗ Failed to change to libs directory${NC}"
+    if ! cd "$SCRIPT_DIR"; then
+        echo -e "${RED}✗ Failed to change to project directory${NC}"
         exit 1
     fi
     
     if [ -d "build" ]; then
-        echo -e "${YELLOW}Cleaning previous libs build...${NC}"
+        echo -e "${YELLOW}Cleaning previous build...${NC}"
         if ! rm -rf build; then
-            echo -e "${RED}✗ Failed to clean libs build directory${NC}"
+            echo -e "${RED}✗ Failed to clean build directory${NC}"
             exit 1
         fi
     fi
     
     if ! mkdir build; then
-        echo -e "${RED}✗ Failed to create libs build directory${NC}"
+        echo -e "${RED}✗ Failed to create build directory${NC}"
         exit 1
     fi
     if ! cd build; then
-        echo -e "${RED}✗ Failed to change to libs build directory${NC}"
+        echo -e "${RED}✗ Failed to change to build directory${NC}"
         exit 1
     fi
     
-    echo -e "${YELLOW}Configuring libs with CMake...${NC}"
+    echo -e "${YELLOW}Configuring with CMake...${NC}"
     if ! cmake ..; then
-        echo -e "${RED}✗ Libs CMake configuration failed${NC}"
+        echo -e "${RED}✗ CMake configuration failed${NC}"
         exit 1
     fi
     
-    echo -e "${YELLOW}Building libs with make -j8...${NC}"
+    echo -e "${YELLOW}Building with make -j8...${NC}"
     if ! make -j8; then
-        echo -e "${RED}✗ Libs build failed${NC}"
+        echo -e "${RED}✗ Build failed${NC}"
         exit 1
     fi
     
-    echo -e "${YELLOW}Installing libs to ~/.sxs...${NC}"
+    echo
+    echo -e "${GREEN}✓ Build completed successfully!${NC}"
+    echo
+    
+    echo -e "${YELLOW}Installing to $SXS_HOME...${NC}"
     if ! make install; then
-        echo -e "${RED}✗ Libs installation failed${NC}"
+        echo -e "${RED}✗ Installation failed${NC}"
         exit 1
     fi
-    
-    echo
-    echo -e "${GREEN}✓ Libs installed successfully!${NC}"
-    echo
-    
-    echo -e "${YELLOW}Building apps...${NC}"
-    echo
-    
-    APPS_BUILD_DIR="$SCRIPT_DIR/apps/build"
-    
-    if ! cd "$SCRIPT_DIR/apps"; then
-        echo -e "${RED}✗ Failed to change to apps directory${NC}"
-        exit 1
-    fi
-    
-    if [ -d "build" ]; then
-        echo -e "${YELLOW}Cleaning previous apps build...${NC}"
-        if ! rm -rf build; then
-            echo -e "${RED}✗ Failed to clean apps build directory${NC}"
-            exit 1
-        fi
-    fi
-    
-    if ! mkdir build; then
-        echo -e "${RED}✗ Failed to create apps build directory${NC}"
-        exit 1
-    fi
-    if ! cd build; then
-        echo -e "${RED}✗ Failed to change to apps build directory${NC}"
-        exit 1
-    fi
-    
-    echo -e "${YELLOW}Configuring apps with CMake...${NC}"
-    if ! cmake ..; then
-        echo -e "${RED}✗ Apps CMake configuration failed${NC}"
-        exit 1
-    fi
-    
-    echo -e "${YELLOW}Building apps with make -j8...${NC}"
-    if ! make -j8; then
-        echo -e "${RED}✗ Apps build failed${NC}"
-        exit 1
-    fi
-    
-    echo
-    echo -e "${GREEN}✓ Apps build completed successfully!${NC}"
-    echo
-    
-    SXS_BINARY="$APPS_BUILD_DIR/cmd/sxs/sxs"
-    if [ ! -f "$SXS_BINARY" ]; then
-        echo -e "${RED}✗ SXS binary not found at $SXS_BINARY${NC}"
-        exit 1
-    fi
-    
-    echo -e "${YELLOW}Installing sxs binary to $SXS_HOME/bin...${NC}"
-    mkdir -p "$SXS_HOME/bin"
-    if ! cp "$SXS_BINARY" "$SXS_HOME/bin/sxs"; then
-        echo -e "${RED}✗ Failed to copy sxs binary${NC}"
-        exit 1
-    fi
-    chmod +x "$SXS_HOME/bin/sxs"
-    echo -e "  ${GREEN}✓${NC} sxs binary installed"
-    
-    SUP_BINARY="$APPS_BUILD_DIR/cmd/sup/sup"
-    if [ ! -f "$SUP_BINARY" ]; then
-        echo -e "${RED}✗ SUP binary not found at $SUP_BINARY${NC}"
-        exit 1
-    fi
-    
-    echo -e "${YELLOW}Installing sup binary to $SXS_HOME/bin...${NC}"
-    if ! cp "$SUP_BINARY" "$SXS_HOME/bin/sup"; then
-        echo -e "${RED}✗ Failed to copy sup binary${NC}"
-        exit 1
-    fi
-    chmod +x "$SXS_HOME/bin/sup"
-    echo -e "  ${GREEN}✓${NC} sup binary installed"
     
     echo
     echo -e "${GREEN}✓ Installation complete!${NC}"
@@ -241,7 +169,7 @@ install_sxs_std() {
     
     echo -e "${YELLOW}Running kernel tests...${NC}"
     echo
-    if ! cd "$SCRIPT_DIR/libs/tests/kernel"; then
+    if ! cd "$SCRIPT_DIR/tests/integration/kernel"; then
         echo -e "${RED}✗ Failed to change to kernel tests directory${NC}"
         exit 1
     fi
@@ -259,19 +187,19 @@ build_project() {
     print_header
     
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    BUILD_DIR="$SCRIPT_DIR/apps/build"
+    BUILD_DIR="$SCRIPT_DIR/build"
     
     if [ ! -d "$SXS_HOME" ]; then
-        echo -e "${RED}✗ libs not installed to ~/.sxs${NC}"
+        echo -e "${RED}✗ sxs not installed to ~/.sxs${NC}"
         echo -e "${YELLOW}Run: $0 --install${NC}"
         exit 1
     fi
     
-    echo -e "${YELLOW}Building apps...${NC}"
+    echo -e "${YELLOW}Building project...${NC}"
     echo
     
-    if ! cd "$SCRIPT_DIR/apps"; then
-        echo -e "${RED}✗ Failed to change to apps directory${NC}"
+    if ! cd "$SCRIPT_DIR"; then
+        echo -e "${RED}✗ Failed to change to project directory${NC}"
         exit 1
     fi
     
@@ -311,7 +239,7 @@ build_project() {
     echo
 }
 
-uninstall_sxs_std() {
+uninstall_sxs() {
     print_header
     
     if [ ! -d "$SXS_HOME" ]; then
@@ -352,145 +280,65 @@ run_tests() {
     print_header
     
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    LIBS_BUILD_DIR="$SCRIPT_DIR/libs/build"
-    APPS_BUILD_DIR="$SCRIPT_DIR/apps/build"
+    BUILD_DIR="$SCRIPT_DIR/build"
     
-    echo -e "${YELLOW}Building libs first...${NC}"
+    echo -e "${YELLOW}Building project...${NC}"
     echo
     
-    if ! cd "$SCRIPT_DIR/libs"; then
-        echo -e "${RED}✗ Failed to change to libs directory${NC}"
+    if ! cd "$SCRIPT_DIR"; then
+        echo -e "${RED}✗ Failed to change to project directory${NC}"
         exit 1
     fi
     
     if [ ! -d "build" ]; then
         if ! mkdir -p build; then
-            echo -e "${RED}✗ Failed to create libs build directory${NC}"
+            echo -e "${RED}✗ Failed to create build directory${NC}"
             exit 1
         fi
     fi
     
     if ! cd build; then
-        echo -e "${RED}✗ Failed to change to libs build directory${NC}"
+        echo -e "${RED}✗ Failed to change to build directory${NC}"
         exit 1
     fi
     
     if ! cmake ..; then
-        echo -e "${RED}✗ Libs CMake configuration failed${NC}"
+        echo -e "${RED}✗ CMake configuration failed${NC}"
         exit 1
     fi
     
     if ! make -j8; then
-        echo -e "${RED}✗ Libs build failed${NC}"
+        echo -e "${RED}✗ Build failed${NC}"
         exit 1
     fi
     
     echo
-    echo -e "${GREEN}✓ Libs built successfully!${NC}"
+    echo -e "${GREEN}✓ Built successfully!${NC}"
     echo
     
-    echo -e "${YELLOW}Running libs unit tests...${NC}"
+    echo -e "${YELLOW}Running unit tests...${NC}"
     echo
-    if ! cd "$LIBS_BUILD_DIR"; then
-        echo -e "${RED}✗ Failed to change to libs build directory${NC}"
+    if ! cd "$BUILD_DIR"; then
+        echo -e "${RED}✗ Failed to change to build directory${NC}"
         exit 1
     fi
     if ! ctest --output-on-failure; then
-        echo -e "${RED}✗ Libs unit tests failed${NC}"
+        echo -e "${RED}✗ Unit tests failed${NC}"
         exit 1
     fi
     
     echo
-    echo -e "${GREEN}✓ Libs unit tests passed!${NC}"
+    echo -e "${GREEN}✓ Unit tests passed!${NC}"
     echo
     
-    echo -e "${YELLOW}Running libs kernel tests...${NC}"
+    echo -e "${YELLOW}Running kernel tests...${NC}"
     echo
-    if ! cd "$SCRIPT_DIR/libs/tests/kernel"; then
-        echo -e "${RED}✗ Failed to change to libs kernel tests directory${NC}"
+    if ! cd "$SCRIPT_DIR/tests/integration/kernel"; then
+        echo -e "${RED}✗ Failed to change to kernel tests directory${NC}"
         exit 1
     fi
     if ! ./run.sh; then
-        echo -e "${RED}✗ Libs kernel tests failed${NC}"
-        exit 1
-    fi
-    
-    echo
-    echo -e "${GREEN}✓ Libs kernel tests passed!${NC}"
-    echo
-    
-    echo -e "${YELLOW}Building apps...${NC}"
-    echo
-    
-    if ! cd "$SCRIPT_DIR/apps"; then
-        echo -e "${RED}✗ Failed to change to apps directory${NC}"
-        exit 1
-    fi
-    
-    if [ ! -d "build" ]; then
-        if ! mkdir -p build; then
-            echo -e "${RED}✗ Failed to create apps build directory${NC}"
-            exit 1
-        fi
-    fi
-    
-    if ! cd build; then
-        echo -e "${RED}✗ Failed to change to apps build directory${NC}"
-        exit 1
-    fi
-    
-    if ! cmake ..; then
-        echo -e "${RED}✗ Apps CMake configuration failed${NC}"
-        exit 1
-    fi
-    
-    if ! make -j8; then
-        echo -e "${RED}✗ Apps build failed${NC}"
-        exit 1
-    fi
-    
-    echo
-    echo -e "${GREEN}✓ Apps built successfully!${NC}"
-    echo
-    
-    echo -e "${YELLOW}Running apps unit tests...${NC}"
-    echo
-    if ! cd "$APPS_BUILD_DIR"; then
-        echo -e "${RED}✗ Failed to change to apps build directory${NC}"
-        exit 1
-    fi
-    if ! ctest --output-on-failure; then
-        echo -e "${RED}✗ Apps unit tests failed${NC}"
-        exit 1
-    fi
-    
-    echo
-    echo -e "${GREEN}✓ Apps unit tests passed!${NC}"
-    echo
-    
-    echo -e "${YELLOW}Running apps kernel tests...${NC}"
-    echo
-    if ! cd "$SCRIPT_DIR/apps/tests/integration/kernel"; then
-        echo -e "${RED}✗ Failed to change to apps kernel tests directory${NC}"
-        exit 1
-    fi
-    if ! ./test.sh; then
-        echo -e "${RED}✗ Apps kernel tests failed${NC}"
-        exit 1
-    fi
-    
-    echo
-    echo -e "${GREEN}✓ Apps kernel tests passed!${NC}"
-    echo
-    
-    echo -e "${YELLOW}Running apps integration tests...${NC}"
-    echo
-    if ! cd "$SCRIPT_DIR/apps/tests/integration/app"; then
-        echo -e "${RED}✗ Failed to change to apps integration tests directory${NC}"
-        exit 1
-    fi
-    if ! ./test.sh; then
-        echo -e "${RED}✗ Apps integration tests failed${NC}"
+        echo -e "${RED}✗ Kernel tests failed${NC}"
         exit 1
     fi
     
@@ -505,13 +353,13 @@ fi
 
 case "$1" in
     --install)
-        install_sxs_std false
+        install_sxs false
         ;;
     --reinstall)
-        install_sxs_std true
+        install_sxs true
         ;;
     --uninstall)
-        uninstall_sxs_std
+        uninstall_sxs
         ;;
     --check)
         check_installation

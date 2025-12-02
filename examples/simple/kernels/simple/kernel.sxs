@@ -1,5 +1,0 @@
-#(define-kernel simple "libkernel_simple.dylib" [
-    (define-function hello_world () :str)
-    (define-function add_numbers (a :int b :int) :int)
-    (define-function greet_person (name :str) :str)
-])
