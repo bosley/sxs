@@ -1,0 +1,25 @@
+=== FS File Operations Test ===
+
+--- Test open/write/close ---
+Opened file with fid: 1
+Wrote 41 bytes
+Flushed file
+Closed file
+
+--- Test open/read ---
+Opened file for reading with fid: 2
+Read content: Hello, World!
+This is a test file.
+Line 3
+Closed file
+
+--- Test read_bytes ---
+Opened file with fid: 3
+Read first 5 bytes: Hello
+Read next 7 bytes: , World
+Closed file
+
+--- Cleanup ---
+Removed test file
+
+=== All file operations tests complete ===

@@ -15,6 +15,7 @@
     (define-function rmdir (path :str) :int)
     (define-function rmdir_recursive (path :str) :int)
     (define-function tmp () :str)
-    (define-function join_path (path1 :str path2 :str) :str)
+    (define-function join_path (path1 :str path2 :str..) :str)
+    (define-function ls (path :str) :list-b)
 ])
 

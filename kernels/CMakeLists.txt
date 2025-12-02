@@ -118,8 +118,31 @@ set_target_properties(kernel_forge PROPERTIES
   SUFFIX ".dylib"
 )
 
+add_library(kernel_fs SHARED
+  fs/fs.cpp
+)
+
+target_include_directories(kernel_fs PRIVATE
+  ${CMAKE_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/root
+)
+
+target_compile_definitions(kernel_fs PRIVATE
+  SXS_KERNEL_BUILD
+)
+
+target_link_libraries(kernel_fs PRIVATE
+  pkg::slp
+)
+
+set_target_properties(kernel_fs PROPERTIES
+  PREFIX "lib"
+  OUTPUT_NAME "kernel_fs"
+  SUFFIX ".dylib"
+)
+
 add_custom_target(build_kernels ALL
-  DEPENDS kernel_alu kernel_io kernel_random kernel_kv kernel_forge
+  DEPENDS kernel_alu kernel_io kernel_random kernel_kv kernel_forge kernel_fs
 )
 
 install(TARGETS kernel_alu
@@ -165,6 +188,15 @@ install(TARGETS kernel_forge
 
 install(FILES forge/kernel.sxs
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/kernels/forge
+)
+
+install(TARGETS kernel_fs
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/kernels/fs
+  RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/kernels/fs
+)
+
+install(FILES fs/kernel.sxs
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/kernels/fs
 )
 
 install(FILES sxs/kernel.sxs

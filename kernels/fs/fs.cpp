@@ -63,7 +63,7 @@ static slp::slp_object_c fs_open(pkg::kernel::context_t ctx,
 }
 
 static slp::slp_object_c fs_read(pkg::kernel::context_t ctx,
-                                  const slp::slp_object_c &args) {
+                                 const slp::slp_object_c &args) {
   auto list = args.as_list();
   if (list.size() < 2) {
     return slp::slp_object_c::create_string("");
@@ -98,7 +98,7 @@ static slp::slp_object_c fs_read(pkg::kernel::context_t ctx,
 }
 
 static slp::slp_object_c fs_read_bytes(pkg::kernel::context_t ctx,
-                                        const slp::slp_object_c &args) {
+                                       const slp::slp_object_c &args) {
   auto list = args.as_list();
   if (list.size() < 3) {
     return slp::slp_object_c::create_string("");
@@ -400,7 +400,7 @@ static slp::slp_object_c fs_rmdir(pkg::kernel::context_t ctx,
 }
 
 static slp::slp_object_c fs_rmdir_recursive(pkg::kernel::context_t ctx,
-                                             const slp::slp_object_c &args) {
+                                            const slp::slp_object_c &args) {
   auto list = args.as_list();
   if (list.size() < 2) {
     return slp::slp_object_c::create_int(-1);
@@ -422,7 +422,7 @@ static slp::slp_object_c fs_rmdir_recursive(pkg::kernel::context_t ctx,
 }
 
 static slp::slp_object_c fs_tmp(pkg::kernel::context_t ctx,
-                                 const slp::slp_object_c &args) {
+                                const slp::slp_object_c &args) {
   try {
     std::filesystem::path tmp_path = std::filesystem::temp_directory_path();
     std::string tmp_str = tmp_path.string();
@@ -433,7 +433,7 @@ static slp::slp_object_c fs_tmp(pkg::kernel::context_t ctx,
 }
 
 static slp::slp_object_c fs_join_path(pkg::kernel::context_t ctx,
-                                       const slp::slp_object_c &args) {
+                                      const slp::slp_object_c &args) {
   auto list = args.as_list();
   if (list.size() < 3) {
     return slp::slp_object_c::create_string("");
@@ -463,34 +463,76 @@ static slp::slp_object_c fs_join_path(pkg::kernel::context_t ctx,
   }
 }
 
+static slp::slp_object_c fs_ls(pkg::kernel::context_t ctx,
+                               const slp::slp_object_c &args) {
+  auto list = args.as_list();
+  if (list.size() < 2) {
+    return slp::slp_object_c::create_bracket_list(nullptr, 0);
+  }
+
+  auto path_obj = g_api->eval(ctx, list.at(1));
+  if (path_obj.type() != slp::slp_type_e::DQ_LIST) {
+    return slp::slp_object_c::create_bracket_list(nullptr, 0);
+  }
+
+  std::string path = path_obj.as_string().to_string();
+
+  try {
+    if (!std::filesystem::is_directory(path)) {
+      return slp::slp_object_c::create_bracket_list(nullptr, 0);
+    }
+
+    std::vector<slp::slp_object_c> entries;
+    for (const auto &entry : std::filesystem::directory_iterator(path)) {
+      std::string filename = entry.path().filename().string();
+      entries.push_back(slp::slp_object_c::create_string(filename));
+    }
+
+    return slp::slp_object_c::create_bracket_list(entries.data(),
+                                                  entries.size());
+  } catch (...) {
+    return slp::slp_object_c::create_bracket_list(nullptr, 0);
+  }
+}
+
 extern "C" void kernel_init(pkg::kernel::registry_t registry,
                             const struct pkg::kernel::api_table_s *api) {
   g_api = api;
-  api->register_function(registry, "open", fs_open, slp::slp_type_e::INTEGER, 0);
-  api->register_function(registry, "read", fs_read, slp::slp_type_e::DQ_LIST, 0);
+  api->register_function(registry, "open", fs_open, slp::slp_type_e::INTEGER,
+                         0);
+  api->register_function(registry, "read", fs_read, slp::slp_type_e::DQ_LIST,
+                         0);
   api->register_function(registry, "read_bytes", fs_read_bytes,
-                        slp::slp_type_e::DQ_LIST, 0);
+                         slp::slp_type_e::DQ_LIST, 0);
   api->register_function(registry, "write", fs_write, slp::slp_type_e::INTEGER,
                          0);
   api->register_function(registry, "close", fs_close, slp::slp_type_e::INTEGER,
                          0);
-  api->register_function(registry, "seek", fs_seek, slp::slp_type_e::INTEGER, 0);
-  api->register_function(registry, "tell", fs_tell, slp::slp_type_e::INTEGER, 0);
-  api->register_function(registry, "size", fs_size, slp::slp_type_e::INTEGER, 0);
-  api->register_function(registry, "exists", fs_exists, slp::slp_type_e::INTEGER,
+  api->register_function(registry, "seek", fs_seek, slp::slp_type_e::INTEGER,
                          0);
-  api->register_function(registry, "remove", fs_remove, slp::slp_type_e::INTEGER,
+  api->register_function(registry, "tell", fs_tell, slp::slp_type_e::INTEGER,
                          0);
-  api->register_function(registry, "rename", fs_rename, slp::slp_type_e::INTEGER,
+  api->register_function(registry, "size", fs_size, slp::slp_type_e::INTEGER,
                          0);
-  api->register_function(registry, "flush", fs_flush, slp::slp_type_e::INTEGER, 0);
-  api->register_function(registry, "mkdir", fs_mkdir, slp::slp_type_e::INTEGER, 0);
-  api->register_function(registry, "rmdir", fs_rmdir, slp::slp_type_e::INTEGER, 0);
+  api->register_function(registry, "exists", fs_exists,
+                         slp::slp_type_e::INTEGER, 0);
+  api->register_function(registry, "remove", fs_remove,
+                         slp::slp_type_e::INTEGER, 0);
+  api->register_function(registry, "rename", fs_rename,
+                         slp::slp_type_e::INTEGER, 0);
+  api->register_function(registry, "flush", fs_flush, slp::slp_type_e::INTEGER,
+                         0);
+  api->register_function(registry, "mkdir", fs_mkdir, slp::slp_type_e::INTEGER,
+                         0);
+  api->register_function(registry, "rmdir", fs_rmdir, slp::slp_type_e::INTEGER,
+                         0);
   api->register_function(registry, "rmdir_recursive", fs_rmdir_recursive,
-                        slp::slp_type_e::INTEGER, 0);
+                         slp::slp_type_e::INTEGER, 0);
   api->register_function(registry, "tmp", fs_tmp, slp::slp_type_e::DQ_LIST, 0);
   api->register_function(registry, "join_path", fs_join_path,
-                        slp::slp_type_e::DQ_LIST, 1);
+                         slp::slp_type_e::DQ_LIST, 1);
+  api->register_function(registry, "ls", fs_ls, slp::slp_type_e::BRACKET_LIST,
+                         0);
 }
 
 extern "C" void kernel_shutdown(const struct pkg::kernel::api_table_s *api) {
@@ -499,4 +541,3 @@ extern "C" void kernel_shutdown(const struct pkg::kernel::api_table_s *api) {
   }
   g_open_files.clear();
 }
-

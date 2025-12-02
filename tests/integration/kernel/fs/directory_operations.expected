@@ -1,0 +1,23 @@
+=== FS Directory Operations Test ===
+
+--- Test mkdir (single level) ---
+Created directory
+Directory exists: 1
+
+--- Test mkdir (nested, recursive) ---
+Created nested directory
+Nested directory exists: 1
+
+--- Test ls (list directory) ---
+Directory contains: subdir
+
+--- Test rmdir (empty directory) ---
+Removed empty nested directory
+Directory exists after rmdir: 0
+
+--- Test rmdir_recursive (directory with contents) ---
+Created file in subdir
+Removed directory recursively (count: 3)
+Directory exists after rmdir_recursive: 0
+
+=== All directory operations tests complete ===

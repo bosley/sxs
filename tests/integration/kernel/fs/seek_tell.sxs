@@ -1,0 +1,66 @@
+[
+    #(load "fs" "io")
+
+    (io/put "=== FS Seek/Tell Test ===\n\n")
+
+    (def tmp_dir (fs/tmp))
+    (def test_file (fs/join_path tmp_dir "test_seek_tell.txt"))
+
+    (io/put "--- Create test file ---\n")
+    (def fid (fs/open "w" test_file))
+    (assert (eq (eq fid -1) 0) "File should open")
+    (def write_result (fs/write fid "0123456789ABCDEF"))
+    (assert (eq (eq write_result -1) 0) "Write should succeed")
+    (def close_result (fs/close fid))
+    (assert (eq close_result 0) "Close should succeed")
+    (io/put "Created file with 16 bytes\n")
+
+    (io/put "\n--- Test tell (initial position) ---\n")
+    (def fid2 (fs/open "r" test_file))
+    (assert (eq (eq fid2 -1) 0) "File should open")
+    (def pos1 (fs/tell fid2))
+    (assert (eq pos1 0) "Initial position should be 0")
+    (io/put "Initial position: %d\n" pos1)
+
+    (io/put "\n--- Test seek SEEK_SET ---\n")
+    (def seek_result1 (fs/seek fid2 5 0))
+    (assert (eq (eq seek_result1 -1) 0) "Seek should succeed")
+    (io/put "Seek to position 5: %d\n" seek_result1)
+
+    (def pos2 (fs/tell fid2))
+    (assert (eq pos2 5) "Position should be 5")
+    (io/put "Current position: %d\n" pos2)
+
+    (def read1 (fs/read_bytes fid2 3))
+    (io/put "Read 3 bytes: %s\n" read1)
+    (assert (eq read1 "567") "Should read from position 5")
+
+    (io/put "\n--- Test seek SEEK_CUR ---\n")
+    (def seek_result2 (fs/seek fid2 2 1))
+    (assert (eq (eq seek_result2 -1) 0) "Seek should succeed")
+    (io/put "Seek forward 2 from current: %d\n" seek_result2)
+
+    (def pos3 (fs/tell fid2))
+    (assert (eq pos3 10) "Position should be 10")
+    (io/put "Current position: %d\n" pos3)
+
+    (io/put "\n--- Test seek SEEK_END ---\n")
+    (def seek_result3 (fs/seek fid2 0 2))
+    (assert (eq (eq seek_result3 -1) 0) "Seek should succeed")
+    (io/put "Seek to end: %d\n" seek_result3)
+
+    (def pos4 (fs/tell fid2))
+    (assert (eq pos4 16) "Position should be 16")
+    (io/put "Current position: %d\n" pos4)
+
+    (def close_result2 (fs/close fid2))
+    (assert (eq close_result2 0) "Close should succeed")
+
+    (io/put "\n--- Cleanup ---\n")
+    (def remove_result (fs/remove test_file))
+    (assert (eq remove_result 0) "Remove should succeed")
+    (io/put "Removed test file\n")
+
+    (io/put "\n=== All seek/tell tests complete ===\n")
+]
+
