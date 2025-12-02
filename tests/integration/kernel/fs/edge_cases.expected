@@ -1,0 +1,28 @@
+=== FS Edge Cases Test ===
+
+--- Test operations on non-existent file ---
+Non-existent file exists: 0
+Open non-existent file: -1
+
+--- Test operations on invalid file descriptor ---
+Read from invalid fd: empty
+Write to invalid fd: -1
+Close invalid fd: -1
+
+--- Test rmdir on non-existent directory ---
+rmdir non-existent dir: -1
+
+--- Test rmdir on file (not directory) ---
+rmdir on file: -1
+Removed test file
+
+--- Test ls on non-existent directory ---
+ls non-existent dir: empty
+
+--- Test ls on file (not directory) ---
+ls on file: empty
+
+--- Test size on empty file ---
+Empty file size: 0
+
+=== All edge case tests complete ===

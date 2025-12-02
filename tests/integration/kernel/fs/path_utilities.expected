@@ -1,0 +1,19 @@
+=== FS Path Utilities Test ===
+
+--- Test tmp (temp directory) ---
+Temp directory path retrieved
+Temp directory exists: 1
+
+--- Test join_path (two components) ---
+Joined /usr + local: /usr/local
+
+--- Test join_path (three components) ---
+Joined /usr + local + bin: /usr/local/bin
+
+--- Test join_path (with tmp) ---
+Joined temp + test_file.txt: OK
+
+--- Test join_path (relative paths) ---
+Joined dir1 + dir2 + file.txt: dir1/dir2/file.txt
+
+=== All path utilities tests complete ===

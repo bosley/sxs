@@ -1,0 +1,77 @@
+[
+    #(load "fs" "io")
+
+    (io/put "=== FS Seek Edge Cases Test ===\n\n")
+
+    (def tmp_dir (fs/tmp))
+    (def test_file (fs/join_path tmp_dir "test_seek_edge.txt"))
+
+    (io/put "--- Create test file ---\n")
+    (def fid1 (fs/open "w" test_file))
+    (assert (eq (eq fid1 -1) 0) "File should open")
+    (def write1 (fs/write fid1 "0123456789"))
+    (assert (eq (eq write1 -1) 0) "Write should succeed")
+    (def close1 (fs/close fid1))
+    (assert (eq close1 0) "Close should succeed")
+    (io/put "Created file with 10 bytes\n")
+
+    (io/put "\n--- Test seek past EOF ---\n")
+    (def fid2 (fs/open "r" test_file))
+    (assert (eq (eq fid2 -1) 0) "File should open")
+    (def seek1 (fs/seek fid2 100 0))
+    (assert (eq (eq seek1 -1) 0) "Seek past EOF should succeed")
+    (def tell1 (fs/tell fid2))
+    (assert (eq tell1 100) "Position should be 100")
+    (io/put "Seek past EOF: position %d\n" tell1)
+
+    (def read1 (fs/read_bytes fid2 5))
+    (assert (eq read1 "") "Reading past EOF should return empty")
+    (io/put "Read past EOF: OK\n")
+
+    (io/put "\n--- Test seek backwards with SEEK_CUR ---\n")
+    (def seek2 (fs/seek fid2 5 0))
+    (assert (eq (eq seek2 -1) 0) "Seek to position 5 should succeed")
+    (def seek3 (fs/seek fid2 -3 1))
+    (assert (eq (eq seek3 -1) 0) "Seek backwards should succeed")
+    (def tell2 (fs/tell fid2))
+    (assert (eq tell2 2) "Position should be 2")
+    (io/put "Seek backwards from 5: position %d\n" tell2)
+
+    (def read2 (fs/read_bytes fid2 3))
+    (assert (eq read2 "234") "Should read from position 2")
+    (io/put "Read after backwards seek: OK\n")
+
+    (io/put "\n--- Test seek from end with negative offset ---\n")
+    (def seek4 (fs/seek fid2 0 2))
+    (assert (eq (eq seek4 -1) 0) "Seek to end should succeed")
+    (def seek5 (fs/seek fid2 -5 1))
+    (assert (eq (eq seek5 -1) 0) "Seek backwards from end should succeed")
+    (def tell3 (fs/tell fid2))
+    (assert (eq tell3 5) "Position should be 5")
+    (io/put "Seek -5 from end: position %d\n" tell3)
+
+    (io/put "\n--- Test invalid whence values ---\n")
+    (def seek6 (fs/seek fid2 0 3))
+    (assert (eq seek6 -1) "Invalid whence (3) should fail")
+    (io/put "Invalid whence (3): OK\n")
+
+    (def seek7 (fs/seek fid2 0 -1))
+    (assert (eq seek7 -1) "Invalid whence (-1) should fail")
+    (io/put "Invalid whence (-1): OK\n")
+
+    (io/put "\n--- Test seek to negative position with SEEK_SET ---\n")
+    (def seek8 (fs/seek fid2 -1 0))
+    (assert (eq seek8 -1) "Seek to negative position should fail")
+    (io/put "Seek to negative position: OK\n")
+
+    (def close2 (fs/close fid2))
+    (assert (eq close2 0) "Close should succeed")
+
+    (io/put "\n--- Cleanup ---\n")
+    (def remove_result (fs/remove test_file))
+    (assert (eq remove_result 0) "Remove should succeed")
+    (io/put "Removed test file\n")
+
+    (io/put "\n=== All seek edge case tests complete ===\n")
+]
+

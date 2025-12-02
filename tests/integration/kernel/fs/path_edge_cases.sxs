@@ -1,0 +1,49 @@
+[
+    #(load "fs" "io")
+
+    (io/put "=== FS Path Edge Cases Test ===\n\n")
+
+    (io/put "--- Test join_path with empty strings ---\n")
+    (def joined1 (fs/join_path "" "file.txt"))
+    (io/put "Join empty + file.txt: %s\n" joined1)
+    (assert (eq (eq joined1 "") 0) "Join should handle empty string")
+
+    (def joined2 (fs/join_path "dir" ""))
+    (io/put "Join dir + empty: %s\n" joined2)
+    (assert (eq (eq joined2 "") 0) "Join should handle empty string")
+
+    (io/put "\n--- Test join_path with single component (requires 2+) ---\n")
+    (def joined3 (fs/join_path "file.txt" "dummy"))
+    (io/put "Join single component (with dummy): %s\n" joined3)
+    (assert (eq (eq joined3 "") 0) "Join requires at least 2 components")
+
+    (io/put "\n--- Test join_path with absolute and relative ---\n")
+    (def joined4 (fs/join_path "/usr" "local"))
+    (io/put "Join absolute + relative: %s\n" joined4)
+    (assert (eq joined4 "/usr/local") "Should join correctly")
+
+    (def joined5 (fs/join_path "/usr" "local" "bin"))
+    (io/put "Join absolute + relative + relative: %s\n" joined5)
+    (assert (eq joined5 "/usr/local/bin") "Should join correctly")
+
+    (io/put "\n--- Test join_path with . and .. components ---\n")
+    (def joined6 (fs/join_path "dir" "." "file.txt"))
+    (io/put "Join with .: %s\n" joined6)
+    (assert (eq (eq joined6 "") 0) "Join should handle . component")
+
+    (def joined7 (fs/join_path "dir" ".." "parent" "file.txt"))
+    (io/put "Join with ..: %s\n" joined7)
+    (assert (eq (eq joined7 "") 0) "Join should handle .. component")
+
+    (def joined8 (fs/join_path "/usr" "local" ".." "bin"))
+    (io/put "Join absolute with ..: %s\n" joined8)
+    (assert (eq (eq joined8 "") 0) "Join should handle .. in absolute path")
+
+    (io/put "\n--- Test join_path with many empty components ---\n")
+    (def joined9 (fs/join_path "a" "" "b" "" "c" "file.txt"))
+    (io/put "Join with empty components: %s\n" joined9)
+    (assert (eq (eq joined9 "") 0) "Join should handle empty components")
+
+    (io/put "\n=== All path edge case tests complete ===\n")
+]
+

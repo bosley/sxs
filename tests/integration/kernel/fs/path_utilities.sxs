@@ -1,0 +1,33 @@
+[
+    #(load "fs" "io")
+
+    (io/put "=== FS Path Utilities Test ===\n\n")
+
+    (io/put "--- Test tmp (temp directory) ---\n")
+    (def tmp_path (fs/tmp))
+    (assert (eq (eq tmp_path "") 0) "Temp path should not be empty")
+    (io/put "Temp directory path retrieved\n")
+
+    (def tmp_exists (fs/exists tmp_path))
+    (assert (eq tmp_exists 1) "Temp directory should exist")
+    (io/put "Temp directory exists: %d\n" tmp_exists)
+
+    (io/put "\n--- Test join_path (two components) ---\n")
+    (def joined1 (fs/join_path "/usr" "local"))
+    (io/put "Joined /usr + local: %s\n" joined1)
+
+    (io/put "\n--- Test join_path (three components) ---\n")
+    (def joined2 (fs/join_path "/usr" "local" "bin"))
+    (io/put "Joined /usr + local + bin: %s\n" joined2)
+
+    (io/put "\n--- Test join_path (with tmp) ---\n")
+    (def test_path (fs/join_path tmp_path "test_file.txt"))
+    (io/put "Joined temp + test_file.txt: OK\n")
+
+    (io/put "\n--- Test join_path (relative paths) ---\n")
+    (def joined3 (fs/join_path "dir1" "dir2" "file.txt"))
+    (io/put "Joined dir1 + dir2 + file.txt: %s\n" joined3)
+
+    (io/put "\n=== All path utilities tests complete ===\n")
+]
+

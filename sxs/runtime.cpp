@@ -314,7 +314,7 @@ void run(runtime_setup_data_s data) {
     }
   }
 
-  auto logger = spdlog::stdout_color_mt("sup");
+  auto logger = spdlog::stdout_color_mt("sxs");
   logger->set_level(spdlog::level::info);
 
   pkg::core::option_s options{.file_path = init_file.string(),

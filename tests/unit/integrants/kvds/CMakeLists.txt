@@ -41,22 +41,6 @@ add_test(NAME distributor_batch_operations
 add_test(NAME distributor_iteration
          COMMAND kvds_tests "distributor iteration")
 
-# Set ASAN options for all kvds tests when AddressSanitizer is enabled
-# This prevents false positive container overflow errors from RocksDB's thread pool
-#
-# Set ASAN options to avoid false positives with pre-compiled libraries like RocksDB
-# This needs to be set as an environment variable when tests run
-# 
-# RATIONALE: RocksDB (installed via Homebrew) is compiled without AddressSanitizer,
-# while our code is compiled with it. This causes false positive container overflow
-# errors in RocksDB's internal thread pool (std::vector<std::thread>) during DB::Open.
-# 
-# CONFIRMED BY:
-# - Memstore tests (using only std::map) pass without ASAN errors
-# - All datastore tests fail with identical ASAN errors in rocksdb::VersionBuilder
-# - Minimal standalone RocksDB test passes without errors
-# - Error only occurs when RocksDB is linked with ASAN-instrumented code
-
 if(WITH_ASAN)
   set_tests_properties(kvds_tests kvds_basic_operations kvds_with_manual_prefix_management 
                        kvds_batch_operations kvds_iteration kvds_error_conditions

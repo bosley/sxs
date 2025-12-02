@@ -1,0 +1,63 @@
+[
+    #(load "fs" "io")
+
+    (io/put "=== FS File Operations Test ===\n\n")
+
+    (def tmp_dir (fs/tmp))
+    (def test_file (fs/join_path tmp_dir "test_file_ops.txt"))
+
+    (io/put "--- Test open/write/close ---\n")
+    (def fid (fs/open "w" test_file))
+    (assert (eq (eq fid -1) 0) "File should open successfully")
+    (io/put "Opened file with fid: %d\n" fid)
+
+    (def write_result (fs/write fid "Hello, World!\nThis is a test file.\nLine 3"))
+    (assert (eq (eq write_result -1) 0) "Write should succeed")
+    (io/put "Wrote %d bytes\n" write_result)
+
+    (def flush_result (fs/flush fid))
+    (assert (eq flush_result 0) "Flush should succeed")
+    (io/put "Flushed file\n")
+
+    (def close_result (fs/close fid))
+    (assert (eq close_result 0) "Close should succeed")
+    (io/put "Closed file\n")
+
+    (io/put "\n--- Test open/read ---\n")
+    (def fid2 (fs/open "r" test_file))
+    (assert (eq (eq fid2 -1) 0) "File should open for reading")
+    (io/put "Opened file for reading with fid: %d\n" fid2)
+
+    (def content (fs/read fid2))
+    (io/put "Read content: %s\n" content)
+    (assert (eq (eq content "") 0) "Content should not be empty")
+
+    (def close_result2 (fs/close fid2))
+    (assert (eq close_result2 0) "Close should succeed")
+    (io/put "Closed file\n")
+
+    (io/put "\n--- Test read_bytes ---\n")
+    (def fid3 (fs/open "r" test_file))
+    (assert (eq (eq fid3 -1) 0) "File should open")
+    (io/put "Opened file with fid: %d\n" fid3)
+
+    (def partial (fs/read_bytes fid3 5))
+    (io/put "Read first 5 bytes: %s\n" partial)
+    (assert (eq partial "Hello") "First 5 bytes should be 'Hello'")
+
+    (def partial2 (fs/read_bytes fid3 7))
+    (io/put "Read next 7 bytes: %s\n" partial2)
+    (assert (eq partial2 ", World") "Next 7 bytes should be ', World'")
+
+    (def close_result3 (fs/close fid3))
+    (assert (eq close_result3 0) "Close should succeed")
+    (io/put "Closed file\n")
+
+    (io/put "\n--- Cleanup ---\n")
+    (def remove_result (fs/remove test_file))
+    (assert (eq remove_result 0) "Remove should succeed")
+    (io/put "Removed test file\n")
+
+    (io/put "\n=== All file operations tests complete ===\n")
+]
+

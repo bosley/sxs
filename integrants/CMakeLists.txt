@@ -39,6 +39,11 @@ target_link_libraries(pkg_kvds PUBLIC
   RocksDB::rocksdb
 )
 
+if(WITH_ASAN)
+  target_compile_options(pkg_kvds PRIVATE -fno-sanitize=address)
+  target_link_options(pkg_kvds PRIVATE -fno-sanitize=address)
+endif()
+
 add_library(pkg::kvds ALIAS pkg_kvds)
 
 add_library(pkg_types INTERFACE)

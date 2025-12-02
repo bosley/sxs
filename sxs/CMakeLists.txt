@@ -1,5 +1,9 @@
 add_executable(sxs
     main.cpp
+    clean.cpp
+    dep.cpp
+    project.cpp
+    runtime.cpp
 )
 
 target_link_libraries(sxs PRIVATE

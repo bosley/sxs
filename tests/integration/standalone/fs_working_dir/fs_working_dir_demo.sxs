@@ -1,0 +1,48 @@
+[
+    #(load "fs")
+    #(load "io")
+
+    (io/put "=== Working Directory Test ===\n\n")
+
+    (io/put "1. Creating file 'test_working_dir.txt' with relative path...\n")
+    (def fd (fs/open "w" "test_working_dir.txt"))
+    (io/put "   File descriptor: {}\n\n" fd)
+
+    (io/put "2. Writing content to file...\n")
+    (def bytes-written (fs/write fd "Hello from working directory test!"))
+    (io/put "   Bytes written: {}\n\n" bytes-written)
+
+    (io/put "3. Closing file...\n")
+    (fs/close fd)
+    (io/put "   File closed\n\n")
+
+    (io/put "4. Checking if file exists...\n")
+    (def exists (fs/exists "test_working_dir.txt"))
+    (if (eq exists 1)
+      (io/put "   SUCCESS: File exists!\n\n")
+      (io/put "   ERROR: File does not exist\n\n"))
+
+    (io/put "5. Reading file back...\n")
+    (def read-fd (fs/open "r" "test_working_dir.txt"))
+    (def content (fs/read read-fd))
+    (fs/close read-fd)
+    (io/put "   Content: {}\n\n" content)
+
+    (io/put "6. Creating test directory...\n")
+    (def dir-result (fs/mkdir "test_dir"))
+    (if (eq dir-result 0)
+      (io/put "   SUCCESS: Directory created!\n\n")
+      (io/put "   ERROR: Failed to create directory\n\n"))
+
+    (io/put "7. Cleaning up - removing test file...\n")
+    (fs/remove "test_working_dir.txt")
+    (io/put "   File removed\n\n")
+
+    (io/put "8. Cleaning up - removing test directory...\n")
+    (fs/rmdir "test_dir")
+    (io/put "   Directory removed\n\n")
+
+    (io/put "=== Test Complete ===\n")
+    (io/put "All operations used relative paths.\n")
+    (io/put "Files were created in the configured working directory.\n")
+]

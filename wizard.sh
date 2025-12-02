@@ -167,19 +167,19 @@ install_sxs() {
     
     sleep 0.25
     
-    echo -e "${YELLOW}Running kernel tests...${NC}"
+    echo -e "${YELLOW}Running integration tests...${NC}"
     echo
-    if ! cd "$SCRIPT_DIR/tests/integration/kernel"; then
-        echo -e "${RED}✗ Failed to change to kernel tests directory${NC}"
+    if ! cd "$SCRIPT_DIR/tests/integration"; then
+        echo -e "${RED}✗ Failed to change to integration tests directory${NC}"
         exit 1
     fi
-    if ! ./run.sh; then
-        echo -e "${RED}✗ Kernel tests failed${NC}"
+    if ! ./run_all.sh; then
+        echo -e "${RED}✗ Integration tests failed${NC}"
         exit 1
     fi
     
     echo
-    echo -e "${GREEN}✓ Kernel tests passed!${NC}"
+    echo -e "${GREEN}✓ All integration tests passed!${NC}"
     echo
 }
 
@@ -343,7 +343,22 @@ run_tests() {
     fi
     
     echo
-    echo -e "${GREEN}✓ All tests passed!${NC}"
+    echo -e "${GREEN}✓ Unit tests passed!${NC}"
+    echo
+    
+    echo -e "${YELLOW}Running integration tests...${NC}"
+    echo
+    if ! cd "$SCRIPT_DIR/tests/integration"; then
+        echo -e "${RED}✗ Failed to change to integration tests directory${NC}"
+        exit 1
+    fi
+    if ! ./run_all.sh; then
+        echo -e "${RED}✗ Integration tests failed${NC}"
+        exit 1
+    fi
+    
+    echo
+    echo -e "${GREEN}✓ All integration tests passed!${NC}"
     echo
 }
 

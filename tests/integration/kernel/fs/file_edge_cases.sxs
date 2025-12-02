@@ -1,0 +1,90 @@
+[
+    #(load "fs" "io")
+
+    (io/put "=== FS File Edge Cases Test ===\n\n")
+
+    (def tmp_dir (fs/tmp))
+    (def test_file (fs/join_path tmp_dir "test_file_edge.txt"))
+
+    (io/put "--- Test writing to read-only file ---\n")
+    (def fid1 (fs/open "w" test_file))
+    (assert (eq (eq fid1 -1) 0) "File should open")
+    (def write1 (fs/write fid1 "Initial content"))
+    (assert (eq (eq write1 -1) 0) "Write should succeed")
+    (def close1 (fs/close fid1))
+    (assert (eq close1 0) "Close should succeed")
+
+    (def fid2 (fs/open "r" test_file))
+    (assert (eq (eq fid2 -1) 0) "File should open in read mode")
+    (def write2 (fs/write fid2 "Attempted write"))
+    (assert (eq write2 -1) "Write to read-only file should fail")
+    (io/put "Write to read-only: OK\n")
+    (def close2 (fs/close fid2))
+    (assert (eq close2 0) "Close should succeed")
+
+    (io/put "\n--- Test reading from write-only file ---\n")
+    (def fid3 (fs/open "w" test_file))
+    (assert (eq (eq fid3 -1) 0) "File should open in write mode")
+    (def write3_temp (fs/write fid3 "test"))
+    (def read1 (fs/read fid3))
+    (assert (eq read1 "") "Read from write-only file should return empty")
+    (io/put "Read from write-only: OK\n")
+    (def close3 (fs/close fid3))
+    (assert (eq close3 0) "Close should succeed")
+
+    (io/put "\n--- Test multiple file descriptors to same file ---\n")
+    (def fid4 (fs/open "r" test_file))
+    (assert (eq (eq fid4 -1) 0) "File should open")
+    (def fid5 (fs/open "r" test_file))
+    (assert (eq (eq fid5 -1) 0) "File should open again")
+    (assert (eq (eq fid4 fid5) 0) "File descriptors should be different")
+    (io/put "Multiple FDs to same file: OK\n")
+
+    (def read2 (fs/read fid4))
+    (assert (eq (eq read2 "") 0) "Read from first FD should succeed")
+    (def read3 (fs/read fid5))
+    (assert (eq (eq read3 "") 0) "Read from second FD should succeed")
+    (io/put "Independent reads from multiple FDs: OK\n")
+
+    (def close4 (fs/close fid4))
+    (assert (eq close4 0) "Close should succeed")
+    (def close5 (fs/close fid5))
+    (assert (eq close5 0) "Close should succeed")
+
+    (io/put "\n--- Test file descriptor reuse after close ---\n")
+    (def fid6 (fs/open "w" test_file))
+    (assert (eq (eq fid6 -1) 0) "File should open")
+    (def close6 (fs/close fid6))
+    (assert (eq close6 0) "Close should succeed")
+
+    (def fid7 (fs/open "w" test_file))
+    (assert (eq (eq fid7 -1) 0) "File should open again")
+    (io/put "FD reuse after close: OK\n")
+
+    (def write3 (fs/write fid7 "New content"))
+    (assert (eq (eq write3 -1) 0) "Write should succeed")
+    (def close7 (fs/close fid7))
+    (assert (eq close7 0) "Close should succeed")
+
+    (io/put "\n--- Test operations on closed file descriptor ---\n")
+    (def fid8 (fs/open "r" test_file))
+    (assert (eq (eq fid8 -1) 0) "File should open")
+    (def close8 (fs/close fid8))
+    (assert (eq close8 0) "Close should succeed")
+
+    (def read4 (fs/read fid8))
+    (assert (eq read4 "") "Read from closed FD should return empty")
+    (def write4 (fs/write fid8 "test"))
+    (assert (eq write4 -1) "Write to closed FD should fail")
+    (def tell1 (fs/tell fid8))
+    (assert (eq tell1 -1) "Tell on closed FD should fail")
+    (io/put "Operations on closed FD: OK\n")
+
+    (io/put "\n--- Cleanup ---\n")
+    (def remove_result (fs/remove test_file))
+    (assert (eq remove_result 0) "Remove should succeed")
+    (io/put "Removed test file\n")
+
+    (io/put "\n=== All file edge case tests complete ===\n")
+]
+
