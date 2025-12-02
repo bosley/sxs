@@ -5,16 +5,16 @@ LDFLAGS = -shared -L$(SXS_HOME)/lib -lpkg_slp
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
-    TARGET = libkernel_alu.dylib
+    TARGET = libkernel_fs.dylib
     LDFLAGS += -dynamiclib
 else
-    TARGET = libkernel_alu.so
+    TARGET = libkernel_fs.so
 endif
 
 all: $(TARGET)
 
-$(TARGET): alu.cpp alu.hpp
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ alu.cpp
+$(TARGET): fs.cpp fs.hpp
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ fs.cpp
 
 clean:
 	rm -f $(TARGET)

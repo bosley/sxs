@@ -1,6 +1,7 @@
 CXX = clang++
-CXXFLAGS = -std=c++20 -fPIC -I../../pkg
-LDFLAGS = -shared -L../../build/pkg -L/opt/homebrew/opt/rocksdb/lib -lpkg_kvds -lpkg_slp -lrocksdb
+SXS_HOME ?= $(HOME)/.sxs
+CXXFLAGS = -std=c++20 -fPIC -I../../root -I../../integrants -I$(SXS_HOME)/include -I$(SXS_HOME)/include/sxs
+LDFLAGS = -shared -L$(SXS_HOME)/lib -L../../build/integrants -L/opt/homebrew/opt/rocksdb/lib -lpkg_slp -lpkg_kvds -lrocksdb
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)

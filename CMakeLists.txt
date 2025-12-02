@@ -83,7 +83,6 @@ add_subdirectory(core)
 add_subdirectory(integrants)
 add_subdirectory(kernels)
 add_subdirectory(sxs)
-add_subdirectory(sup)
 
 if(RUN_TESTS)
   message(STATUS "Tests enabled")

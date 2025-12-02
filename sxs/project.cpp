@@ -78,8 +78,8 @@ void new_project(project_mgmt_data_s data) {
     fmt::print("            └── hello_world.sxs\n");
     fmt::print("\nNext steps:\n");
     fmt::print("  1. cd {}\n", project_path.string());
-    fmt::print("  2. cd kernels/{} && make\n", data.project_name);
-    fmt::print("  3. sxs init.sxs\n");
+    fmt::print("  2. sxs project build\n");
+    fmt::print("  3. sxs project run\n");
 
   } catch (const std::exception &e) {
     fmt::print("Error creating project: {}\n", e.what());

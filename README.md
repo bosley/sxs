@@ -53,8 +53,8 @@ cd sxs
 ```
 
 This will:
-- Build the entire project (core runtime, kernels, and binaries) from source
-- Install the `sxs` and `sup` binaries to `~/.sxs/bin/`
+- Build the entire project (core runtime, kernels, and binary) from source
+- Install the `sxs` binary to `~/.sxs/bin/`
 - Install the SLP parser library to `~/.sxs/lib/`
 - Install headers (kernel API and SLP) to `~/.sxs/include/`
 - Set up standard kernels in `~/.sxs/lib/kernels/`
@@ -68,8 +68,7 @@ The install directory will look something like:
 ```
 /Users/bosley/.sxs
 ├── bin
-│   ├── sxs
-│   └── sup
+│   └── sxs
 ├── include
 │   └── sxs
 │       ├── kernel_api.h
@@ -95,12 +94,16 @@ The install directory will look something like:
 
 The slp package is the "simple list parser" that parses our sources, the kernel_api.h is the C header for interop with the runtime from a dylib (see kernels/.)
 
-We install `sxs` and `sup` into the same dir, and key off of `SXS_HOME` to find `kernels` at runtime so things like `#(load "io" "kv")` will work.
+We install `sxs` into `$SXS_HOME/bin`, and key off of `SXS_HOME` to find `kernels` at runtime so things like `#(load "io" "kv")` will work.
 
-### Two Runtimes: `sxs` and `sup`
+### Unified Runtime: `sxs`
 
-- **`sxs`**: Script runner for standalone `.sxs` files
-- **`sup`**: Project runtime for structured applications with custom kernels and modules 
+The `sxs` binary provides a unified interface for both script execution and project management:
+- **Script Mode**: Run standalone `.sxs` files directly: `sxs script.sxs`
+- **Project Mode**: Manage structured applications with custom kernels: `sxs project <command>`
+- **Additional Commands**: Type checking, testing, compilation (stubs), and more
+
+See `sxs help` for full command reference or consult `SXS_MANUAL.md` for detailed documentation. 
 
 ### 3. Configure Environment
 
@@ -131,7 +134,7 @@ The `wizard.sh` script provides several commands:
 
 ## Usage
 
-### Running Scripts with `sxs`
+### Running Scripts
 
 For standalone scripts:
 
@@ -146,9 +149,17 @@ sxs tests/integration/kernel/kv/kv_full.sxs
 sxs tests/integration/kernel/forge/concat.sxs
 ```
 
-### Managing Projects with `sup`
+With options:
 
-The `sup` runtime is for structured applications with custom kernels and modules.
+```bash
+sxs -i ./custom-kernels script.sxs     # Add custom kernel path
+sxs -v script.sxs                       # Verbose logging
+sxs -w /tmp script.sxs                  # Set working directory
+```
+
+### Managing Projects
+
+The `sxs` command provides project management for structured applications with custom kernels and modules.
 
 #### Project Structure
 
@@ -166,32 +177,44 @@ my_project/
         └── helper.sxs
 ```
 
-#### `sup` Commands
+#### Project Commands
 
 ```bash
-sup new <project_name> [dir]    # Create a new project
-sup build [project_dir]          # Build project kernels
-sup run [project_dir]            # Build (if needed) and run project
-sup deps [project_dir]           # Show project dependencies and cache status
-sup clean [project_dir]          # Clean project cache
+sxs project new <name> [dir]    # Create a new project
+sxs project build [dir]         # Build project kernels
+sxs project run [dir]           # Build (if needed) and run project
+sxs project clean [dir]         # Clean project cache
+sxs deps [dir]                  # Show project dependencies and cache status
 ```
 
 #### Workflow Example
 
 ```bash
-sup new my_app
+sxs project new my_app
 cd my_app
 
-sup build
+sxs project build
 
-sup run
+sxs project run
 
-sup deps
+sxs deps
 
-sup clean
+sxs project clean
 ```
 
 Projects automatically manage kernel building and caching. Custom kernels in `kernels/` override system kernels, allowing project-specific language extensions.
+
+### Additional Commands
+
+```bash
+sxs version                     # Show version information
+sxs help                        # Show help message
+sxs check <file>                # Type check code (stub)
+sxs test [dir]                  # Run tests (stub)
+sxs compile <file> -o <out>     # Compile program (stub)
+```
+
+For complete command reference, see `SXS_MANUAL.md` or run `sxs help`.
 
 ## SXS Language Features
 
