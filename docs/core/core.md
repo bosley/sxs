@@ -1,7 +1,5 @@
 # SXS Core Runtime Orchestrator
 
-`Note`: I had an AI generate this (GPT5.1) then I had another AI (sonnet 4.5) validate it, then I validated it. It appeard correct.
-
 ## Overview
 
 The SXS core (`core_c`) is the top-level orchestrator responsible for coordinating the entire runtime system. It creates and manages the imports subsystem, kernels subsystem, type checking, parsing, and primary interpreter execution. The core enforces a strict initialization sequence, manages bidirectional context wiring, and implements a two-phase locking protocol to ensure safe and predictable program execution.

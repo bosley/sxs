@@ -1,8 +1,5 @@
 # SXS Instructions System
 
-
-`Note`: I had an AI generate this (GPT5.1) then I had another AI (sonnet 4.5) validate it, then I validated it. I then found a shit ton of bugs and had sonnet go over it again. I then went over it another time. it appears correct but I didn't comb every piece of code against it myself. If it read-out correct to me then its correct.
-
 ## Overview
 
 The SXS instructions system provides the core language primitives that define program behavior. Instructions are C++-implemented callable symbols that handle control flow, variable binding, function definition, type reflection, error handling, loops, and data manipulation. The system operates through a three-phase architecture: generation (reserved for future compilation), interpretation (runtime execution), and type checking (compile-time validation).
