@@ -20,15 +20,37 @@ endif()
 
 include(FetchContent)
 
+if(POLICY CMP0169)
+  cmake_policy(SET CMP0169 OLD)
+endif()
+
 FetchContent_Declare(
   snitch
   GIT_REPOSITORY https://github.com/cschreib/snitch.git
   GIT_TAG v1.2.5
 )
 
-set(SNITCH_DO_NOT_INSTALL OFF CACHE INTERNAL "")
+set(SNITCH_DO_TEST OFF CACHE BOOL "" FORCE)
 
-FetchContent_MakeAvailable(snitch)
+FetchContent_GetProperties(snitch)
+if(NOT snitch_POPULATED)
+  FetchContent_Populate(snitch)
+  
+  set(CMAKE_INSTALL_INCLUDEDIR_SAVE ${CMAKE_INSTALL_INCLUDEDIR})
+  set(CMAKE_INSTALL_LIBDIR_SAVE ${CMAKE_INSTALL_LIBDIR})
+  
+  set(CMAKE_INSTALL_INCLUDEDIR "${CMAKE_BINARY_DIR}/_deps/_snitch_dummy/include")
+  set(CMAKE_INSTALL_LIBDIR "${CMAKE_BINARY_DIR}/_deps/_snitch_dummy/lib")
+  
+  add_subdirectory(${snitch_SOURCE_DIR} ${snitch_BINARY_DIR} EXCLUDE_FROM_ALL)
+  
+  set(CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR_SAVE})
+  set(CMAKE_INSTALL_LIBDIR ${CMAKE_INSTALL_LIBDIR_SAVE})
+endif()
+
+install(FILES $<TARGET_FILE:snitch> DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+install(DIRECTORY ${snitch_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include FILES_MATCHING PATTERN "*.hpp")
+install(FILES ${snitch_BINARY_DIR}/snitch/snitch_config.hpp DESTINATION ${CMAKE_INSTALL_PREFIX}/include/snitch)
 
 find_package(spdlog REQUIRED)
 find_package(RocksDB REQUIRED)
