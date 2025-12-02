@@ -1,10 +1,10 @@
 <div align="center">
   <img src="syntax/icons/sxs-icon-dark.svg" alt="SXS Logo" width="128"/>
+  <br/>
+  <h1><em>SXS (Side by side)</em></h1>
 </div>
 
-# SXS
-
-A dynamic extensible runtime based on the "simple list programs" slp.
+A dynamic extensible runtime based on the "simple list programs" slp. 
 
 Right now this is basically a "build a bear" of diy lisp projects. With the main libs installed to build the apps you'll have the ability
 to add any set of keywords to the sxs interpreter environment and extend the instruction set.
@@ -24,27 +24,26 @@ Install the following dependencies on your system:
 
 **macOS (Homebrew):**
 ```bash
-brew install rocksdb spdlog fmt zstd
+brew install rocksdb spdlog fmt zstd snitch
 ```
 
 **Ubuntu/Debian:**
 ```bash
-sudo apt-get install librocksdb-dev libspdlog-dev libfmt-dev libzstd-dev
+sudo apt-get install librocksdb-dev libspdlog-dev libfmt-dev libzstd-dev libsnitch-dev
 ```
 
 **Fedora/RHEL:**
 ```bash
-sudo dnf install rocksdb-devel spdlog-devel fmt-devel libzstd-devel
+sudo dnf install rocksdb-devel spdlog-devel fmt-devel libzstd-devel snitch-devel
 ```
 
 ## Installation
 
-### 1. Clone and Initialize
+### 1. Clone the Repository
 
 ```bash
 git clone <repository-url> sxs
 cd sxs
-git submodule update --init --recursive
 ```
 
 ### 2. Install Using Wizard
@@ -54,10 +53,12 @@ git submodule update --init --recursive
 ```
 
 This will:
-- Build and install the standard library (`libs/`) to `~/.sxs`
-- Build the applications (`apps/`)
+- Build the entire project (core runtime, kernels, and binaries) from source
 - Install the `sxs` and `sup` binaries to `~/.sxs/bin/`
-- Set up kernels and libraries in `~/.sxs/lib/kernels/`
+- Install the SLP parser library to `~/.sxs/lib/`
+- Install headers (kernel API and SLP) to `~/.sxs/include/`
+- Set up standard kernels in `~/.sxs/lib/kernels/`
+- Run kernel tests to verify the installation
 
 The base language handled is extraordinarily minimal. Kernels are language extensions written in c++ that extend the language.
 These are linked at runtime and you can swap out versions as you see fit. 
@@ -120,12 +121,12 @@ source ~/.bashrc
 The `wizard.sh` script provides several commands:
 
 ```bash
-./wizard.sh --install      # Build libs, install to ~/.sxs, build apps, install binary
+./wizard.sh --install      # Build and install to ~/.sxs
 ./wizard.sh --reinstall    # Force reinstall (removes existing ~/.sxs)
 ./wizard.sh --uninstall    # Remove ~/.sxs installation
 ./wizard.sh --check        # Check installation status
-./wizard.sh --build        # Build the apps project (requires libs installed)
-./wizard.sh --test         # Build and run all tests (libs + apps)
+./wizard.sh --build        # Build the project
+./wizard.sh --test         # Build and run all tests
 ```
 
 ## Usage
@@ -138,11 +139,11 @@ For standalone scripts:
 sxs script.sxs
 ```
 
-Example scripts are in `apps/scripts/`:
+Example test scripts are available in `tests/`:
 
 ```bash
-sxs apps/scripts/example.sxs
-sxs apps/scripts/test_kv_comprehensive.sxs
+sxs tests/integration/kernel/kv/kv_full.sxs
+sxs tests/integration/kernel/forge/concat.sxs
 ```
 
 ### Managing Projects with `sup`
@@ -205,7 +206,7 @@ Projects automatically manage kernel building and caching. Custom kernels in `ke
 
 ### VSCode Configuration
 
-For VSCode users, create `.vscode/c_cpp_properties.json` with the following configuration to support IntelliSense for both `apps/` and `libs/` directories:
+For VSCode users, create `.vscode/c_cpp_properties.json` with the following configuration to support IntelliSense:
 
 ```json
 {
@@ -213,13 +214,11 @@ For VSCode users, create `.vscode/c_cpp_properties.json` with the following conf
         {
             "name": "Mac",
             "includePath": [
-                "${workspaceFolder}/apps/**",
-                "${workspaceFolder}/apps/pkg/**",
-                "${workspaceFolder}/apps/extern/snitch/include/**",
-                "${workspaceFolder}/apps/extern/json/include/**",
-                "${workspaceFolder}/apps/extern/cpp-httplib/**",
-                "${workspaceFolder}/libs/**",
-                "${workspaceFolder}/libs/pkg/**",
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/root/**",
+                "${workspaceFolder}/core/**",
+                "${workspaceFolder}/integrants/**",
+                "${workspaceFolder}/kernels/**",
                 "/opt/homebrew/include/**",
                 "/usr/local/include/**",
                 "${HOME}/.sxs/include/**"
@@ -229,7 +228,7 @@ For VSCode users, create `.vscode/c_cpp_properties.json` with the following conf
             "cStandard": "c17",
             "cppStandard": "c++20",
             "intelliSenseMode": "macos-clang-arm64",
-            "compileCommands": "${workspaceFolder}/apps/build/compile_commands.json"
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json"
         }
     ],
     "version": 4
@@ -237,34 +236,32 @@ For VSCode users, create `.vscode/c_cpp_properties.json` with the following conf
 ```
 
 Adjust paths for your platform (Linux/Windows) as needed. The key include paths are:
-- `${workspaceFolder}/apps/**` - Apps source code
-- `${workspaceFolder}/libs/**` - Libs (standard library) source code
+- `${workspaceFolder}/root/**` - SLP parser and kernel API
+- `${workspaceFolder}/core/**` - Core runtime and interpreter
+- `${workspaceFolder}/integrants/**` - Utility packages (kvds, random, etc.)
+- `${workspaceFolder}/kernels/**` - Standard kernel implementations
 - `${HOME}/.sxs/include/**` - Installed headers (kernel_api.h, slp headers)
 
 ### Manual Build
 
 If you need to build without the wizard:
 
-**1. Build and install libs:**
 ```bash
-cd libs
 mkdir -p build && cd build
 cmake ..
 make -j8
-make install  # Installs to ~/.sxs
+make install
 ```
 
-**2. Build apps:**
-```bash
-cd ../../apps
-mkdir -p build && cd build
-cmake ..
-make -j8
-```
+This single build process:
+- Builds all components (root, core, integrants, kernels, binaries)
+- Installs libraries and headers to `~/.sxs`
+- Installs kernels to `~/.sxs/lib/kernels/`
+- Installs binaries to `~/.sxs/bin/`
 
 The binaries will be at:
-- `apps/build/cmd/sxs/sxs`
-- `apps/build/cmd/sup/sup`
+- `build/sxs/sxs`
+- `build/sup/sup`
 
 ### Running Tests
 
@@ -275,57 +272,68 @@ The recommended way to run all tests:
 ```
 
 This runs:
-1. Libs unit tests (ctest in `libs/build/`)
-2. Libs kernel tests (`libs/tests/kernel/`)
-3. Apps unit tests (ctest in `apps/build/`)
-4. Apps kernel integration tests (`apps/tests/integration/kernel/`)
-5. Apps integration tests (`apps/tests/integration/app/`)
+1. Unit tests (ctest in `build/`)
+2. Kernel integration tests (`tests/integration/kernel/`)
 
 Or manually run specific test suites:
 
 ```bash
-# Libs unit tests
-cd libs/build
+cd build
 ctest --output-on-failure
 
-# Apps unit tests
-cd apps/build
-ctest --output-on-failure
-
-# Kernel tests
-cd apps/tests/integration/kernel
-./test.sh
+cd tests/integration/kernel
+./run.sh
 ```
 
 ## Project Structure
 
-This is a monorepo with two main directories:
+This is a unified monorepo with the following structure:
 
 ```
 sxs/
-├── apps/                # Main application code
-│   ├── cmd/             # Entry points (sxs, sup binaries)
-│   ├── pkg/             # Core runtime libraries
-│   │   ├── core/        # Interpreter, VM, datum types
-│   │   └── bytes/       # Byte utilities
-│   ├── tests/           # Application tests
-│   │   ├── unit/        # Unit tests
-│   │   └── integration/ # Integration tests (kernel, app)
-│   ├── scripts/         # Example SXS scripts
-│   └── extern/          # External dependencies (submodules)
+├── root/                # Simple list parser (SLP) and kernel API
+│   ├── slp/             # Parser for .sxs source files
+│   │   ├── slp.hpp      # Main parser interface
+│   │   └── buffer.hpp   # Buffer management
+│   └── kernel_api.hpp   # C API for kernel development
 │
-├── libs/                # Standard library (installed to ~/.sxs)
-│   ├── pkg/             # Library packages
-│   │   ├── kvds/        # Key-value datastore
-│   │   ├── slp/         # Simple list parser
-│   │   ├── random/      # Random number generation
-│   │   └── kernel_api.h # C API for kernel development
-│   ├── std/             # Standard kernels
-│   │   ├── alu/         # Arithmetic operations kernel
-│   │   ├── io/          # I/O operations kernel
-│   │   ├── kv/          # Key-value store kernel
-│   │   └── random/      # Random generation kernel
-│   └── tests/           # Library tests
+├── core/                # Core interpreter and runtime
+│   ├── core.hpp         # Main runtime interface
+│   ├── interpreter.*    # Interpreter execution loop
+│   ├── context.*        # Execution context management
+│   ├── instructions/    # Instruction generation, interpretation, typechecking
+│   ├── imports/         # Import system with circular dependency detection
+│   ├── kernels/         # Kernel loading and management
+│   └── type_checker/    # Type checking system
+│
+├── integrants/          # Utility packages
+│   ├── kvds/            # Key-value datastore (memory and disk backends)
+│   ├── random/          # Random number generation
+│   ├── bytes/           # Byte manipulation utilities
+│   ├── cache/           # Caching utilities
+│   └── types/           # Type utilities (lifetime management)
+│
+├── kernels/             # Standard language extension kernels
+│   ├── alu/             # Arithmetic and logic operations
+│   ├── forge/           # List manipulation operations
+│   ├── io/              # I/O operations (print, read, file operations)
+│   ├── kv/              # Key-value store operations
+│   └── random/          # Random generation operations
+│
+├── sxs/                 # sxs binary (script runner)
+│   └── main.cpp         # Entry point for standalone script execution
+│
+├── sup/                 # sup binary (project manager)
+│   ├── main.cpp         # Entry point for project management
+│   ├── project.*        # Project creation and structure
+│   ├── runtime.*        # Project runtime execution
+│   ├── dep.*            # Dependency management
+│   └── clean.*          # Cache cleaning
+│
+├── tests/               # All tests (unit and integration)
+│   ├── unit/            # Unit tests for core components
+│   └── integration/     # Integration tests
+│       └── kernel/      # Kernel integration tests
 │
 └── wizard.sh            # Build and installation script
 ```
