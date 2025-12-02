@@ -35,6 +35,21 @@ static void close_file_descriptor(int fd) {
   }
 }
 
+static std::string resolve_path(const std::string &path) {
+  std::filesystem::path fs_path(path);
+  if (fs_path.is_absolute()) {
+    return path;
+  }
+  const auto *system_info = g_api->get_system_info(g_api->system);
+  if (system_info && system_info->root_working_path &&
+      system_info->root_working_path[0] != '\0') {
+    std::filesystem::path resolved =
+        std::filesystem::path(system_info->root_working_path) / path;
+    return resolved.string();
+  }
+  return path;
+}
+
 static slp::slp_object_c fs_open(pkg::kernel::context_t ctx,
                                  const slp::slp_object_c &args) {
   auto list = args.as_list();
@@ -52,8 +67,9 @@ static slp::slp_object_c fs_open(pkg::kernel::context_t ctx,
 
   std::string mode = mode_obj.as_string().to_string();
   std::string path = path_obj.as_string().to_string();
+  std::string resolved_path = resolve_path(path);
 
-  FILE *fp = fopen(path.c_str(), mode.c_str());
+  FILE *fp = fopen(resolved_path.c_str(), mode.c_str());
   if (!fp) {
     return slp::slp_object_c::create_int(-1);
   }
@@ -290,7 +306,8 @@ static slp::slp_object_c fs_exists(pkg::kernel::context_t ctx,
   }
 
   std::string path = path_obj.as_string().to_string();
-  bool exists = std::filesystem::exists(path);
+  std::string resolved_path = resolve_path(path);
+  bool exists = std::filesystem::exists(resolved_path);
 
   return slp::slp_object_c::create_int(exists ? 1 : 0);
 }
@@ -308,7 +325,8 @@ static slp::slp_object_c fs_remove(pkg::kernel::context_t ctx,
   }
 
   std::string path = path_obj.as_string().to_string();
-  bool success = std::filesystem::remove(path);
+  std::string resolved_path = resolve_path(path);
+  bool success = std::filesystem::remove(resolved_path);
 
   return slp::slp_object_c::create_int(success ? 0 : -1);
 }
@@ -330,9 +348,11 @@ static slp::slp_object_c fs_rename(pkg::kernel::context_t ctx,
 
   std::string old_path = old_path_obj.as_string().to_string();
   std::string new_path = new_path_obj.as_string().to_string();
+  std::string resolved_old_path = resolve_path(old_path);
+  std::string resolved_new_path = resolve_path(new_path);
 
   try {
-    std::filesystem::rename(old_path, new_path);
+    std::filesystem::rename(resolved_old_path, resolved_new_path);
     return slp::slp_object_c::create_int(0);
   } catch (...) {
     return slp::slp_object_c::create_int(-1);
@@ -374,9 +394,10 @@ static slp::slp_object_c fs_mkdir(pkg::kernel::context_t ctx,
   }
 
   std::string path = path_obj.as_string().to_string();
+  std::string resolved_path = resolve_path(path);
 
   try {
-    bool success = std::filesystem::create_directories(path);
+    bool success = std::filesystem::create_directories(resolved_path);
     return slp::slp_object_c::create_int(success ? 0 : -1);
   } catch (...) {
     return slp::slp_object_c::create_int(-1);
@@ -396,12 +417,13 @@ static slp::slp_object_c fs_rmdir(pkg::kernel::context_t ctx,
   }
 
   std::string path = path_obj.as_string().to_string();
+  std::string resolved_path = resolve_path(path);
 
   try {
-    if (!std::filesystem::is_directory(path)) {
+    if (!std::filesystem::is_directory(resolved_path)) {
       return slp::slp_object_c::create_int(-1);
     }
-    bool success = std::filesystem::remove(path);
+    bool success = std::filesystem::remove(resolved_path);
     return slp::slp_object_c::create_int(success ? 0 : -1);
   } catch (...) {
     return slp::slp_object_c::create_int(-1);
@@ -421,9 +443,10 @@ static slp::slp_object_c fs_rmdir_recursive(pkg::kernel::context_t ctx,
   }
 
   std::string path = path_obj.as_string().to_string();
+  std::string resolved_path = resolve_path(path);
 
   try {
-    std::uintmax_t count = std::filesystem::remove_all(path);
+    std::uintmax_t count = std::filesystem::remove_all(resolved_path);
     return slp::slp_object_c::create_int(static_cast<long long>(count));
   } catch (...) {
     return slp::slp_object_c::create_int(-1);
@@ -485,14 +508,16 @@ static slp::slp_object_c fs_ls(pkg::kernel::context_t ctx,
   }
 
   std::string path = path_obj.as_string().to_string();
+  std::string resolved_path = resolve_path(path);
 
   try {
-    if (!std::filesystem::is_directory(path)) {
+    if (!std::filesystem::is_directory(resolved_path)) {
       return slp::slp_object_c::create_bracket_list(nullptr, 0);
     }
 
     std::vector<slp::slp_object_c> entries;
-    for (const auto &entry : std::filesystem::directory_iterator(path)) {
+    for (const auto &entry :
+         std::filesystem::directory_iterator(resolved_path)) {
       std::string filename = entry.path().filename().string();
       entries.push_back(slp::slp_object_c::create_string(filename));
     }

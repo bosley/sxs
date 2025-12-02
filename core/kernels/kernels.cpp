@@ -33,6 +33,13 @@ struct registration_context_s {
   const pkg::kernel::api_table_s *api;
 };
 
+struct system_context_s {
+  pkg::kernel::system_info_s info;
+  std::string working_directory_storage;
+};
+
+static system_context_s g_system_context;
+
 struct kernel_definition_context_s {
   kernel_manager_c *manager;
   std::string kernel_name;
@@ -55,6 +62,12 @@ slp::slp_object_c eval_callback(pkg::kernel::context_t ctx,
                                 const slp::slp_object_c &obj) {
   auto *context = static_cast<callable_context_if *>(ctx);
   return context->eval(const_cast<slp::slp_object_c &>(obj));
+}
+
+const pkg::kernel::system_info_s *
+get_system_info_callback(pkg::kernel::system_t sys) {
+  auto *system_ctx = static_cast<system_context_s *>(sys);
+  return &system_ctx->info;
 }
 
 std::map<std::string, callable_symbol_s>
@@ -171,8 +184,14 @@ kernel_manager_c::kernel_manager_c(logger_t logger,
       api_table_(std::make_unique<pkg::kernel::api_table_s>()) {
   context_ = std::make_unique<kernel_context_c>(*this);
 
+  g_system_context.working_directory_storage = working_directory_;
+  g_system_context.info.root_working_path =
+      g_system_context.working_directory_storage.c_str();
+
   api_table_->register_function = register_function_callback;
   api_table_->eval = eval_callback;
+  api_table_->get_system_info = get_system_info_callback;
+  api_table_->system = &g_system_context;
 }
 
 kernel_manager_c::~kernel_manager_c() {
