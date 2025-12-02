@@ -91,6 +91,12 @@ public:
   virtual slp::slp_object_c get_loop_return_value() = 0;
   virtual std::int64_t get_current_iteration() = 0;
   virtual void increment_iteration() = 0;
+
+  virtual bool define_form(const std::string &name,
+                           const std::vector<slp::slp_type_e> &elements) = 0;
+  virtual bool has_form(const std::string &name) = 0;
+  virtual std::vector<slp::slp_type_e>
+  get_form_definition(const std::string &name) = 0;
 };
 
 struct callable_symbol_s {

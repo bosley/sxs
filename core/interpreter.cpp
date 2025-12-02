@@ -255,6 +255,21 @@ public:
       out_type = it->second;
       return true;
     }
+
+    if (symbol.size() > 1 && symbol[0] == ':') {
+      std::string form_name = symbol.substr(1);
+
+      if (form_name.size() > 2 &&
+          form_name.substr(form_name.size() - 2) == "..") {
+        form_name = form_name.substr(0, form_name.size() - 2);
+      }
+
+      if (form_definitions_.find(form_name) != form_definitions_.end()) {
+        out_type = slp::slp_type_e::BRACE_LIST;
+        return true;
+      }
+    }
+
     return false;
   }
 
@@ -436,6 +451,28 @@ public:
     }
   }
 
+  bool define_form(const std::string &name,
+                   const std::vector<slp::slp_type_e> &elements) override {
+    form_definitions_[name] = elements;
+    type_symbol_map_[":" + name] = slp::slp_type_e::BRACE_LIST;
+    type_symbol_map_[":" + name + ".."] = slp::slp_type_e::BRACE_LIST;
+    return true;
+  }
+
+  bool has_form(const std::string &name) override {
+    return form_definitions_.find(name) != form_definitions_.end();
+  }
+
+  std::vector<slp::slp_type_e>
+  get_form_definition(const std::string &name) override {
+    auto it = form_definitions_.find(name);
+    if (it != form_definitions_.end()) {
+      return it->second;
+    }
+    throw std::runtime_error(
+        fmt::format("Form '{}' not found in form definitions", name));
+  }
+
 private:
   void trigger_import_locks() {
     if (import_context_) {
@@ -604,6 +641,7 @@ private:
   std::vector<std::map<std::string, slp::slp_object_c>> scopes_;
   std::map<std::uint64_t, function_definition_s> lambda_definitions_;
   std::map<std::string, slp::slp_type_e> type_symbol_map_;
+  std::map<std::string, std::vector<slp::slp_type_e>> form_definitions_;
   std::uint64_t next_lambda_id_;
   size_t current_scope_level_;
   imports::import_context_if *import_context_;

@@ -104,6 +104,26 @@ public:
       out_type = it->second;
       return true;
     }
+
+    if (symbol.size() > 1 && symbol[0] == ':') {
+      std::string form_name = symbol.substr(1);
+      bool is_variadic = false;
+
+      if (form_name.size() > 2 &&
+          form_name.substr(form_name.size() - 2) == "..") {
+        form_name = form_name.substr(0, form_name.size() - 2);
+        is_variadic = true;
+      }
+
+      if (form_definitions_.find(form_name) != form_definitions_.end()) {
+        out_type.base_type = slp::slp_type_e::BRACE_LIST;
+        out_type.form_name = form_name;
+        out_type.form_elements = form_definitions_[form_name];
+        out_type.is_variadic = is_variadic;
+        return true;
+      }
+    }
+
     return false;
   }
 
@@ -229,6 +249,14 @@ public:
   bool load_kernel_types(const std::string &kernel_name,
                          const std::string &kernel_dir) override;
 
+  bool define_form(const std::string &name,
+                   const std::vector<type_info_s> &elements) override;
+  bool has_form(const std::string &name) override;
+  std::vector<type_info_s>
+  get_form_definition(const std::string &name) override;
+  const std::map<std::string, std::vector<type_info_s>> &
+  get_form_definitions() override;
+
 private:
   logger_t logger_;
   std::vector<std::string> include_paths_;
@@ -241,6 +269,7 @@ private:
   std::map<std::string, type_info_s> type_symbol_map_;
   std::map<std::uint64_t, function_signature_s> lambda_signatures_;
   std::map<std::string, function_signature_s> function_signatures_;
+  std::map<std::string, std::vector<type_info_s>> form_definitions_;
 
   std::uint64_t next_lambda_id_;
   int loop_depth_;
@@ -703,6 +732,45 @@ bool compiler_context_c::load_kernel_types(const std::string &kernel_name,
   }
 
   return true;
+}
+
+bool compiler_context_c::define_form(const std::string &name,
+                                     const std::vector<type_info_s> &elements) {
+  form_definitions_[name] = elements;
+
+  type_info_s form_type;
+  form_type.base_type = slp::slp_type_e::BRACE_LIST;
+  form_type.form_name = name;
+  form_type.form_elements = elements;
+  type_symbol_map_[":" + name] = form_type;
+
+  type_info_s form_variadic_type;
+  form_variadic_type.base_type = slp::slp_type_e::BRACE_LIST;
+  form_variadic_type.form_name = name;
+  form_variadic_type.form_elements = elements;
+  form_variadic_type.is_variadic = true;
+  type_symbol_map_[":" + name + ".."] = form_variadic_type;
+
+  return true;
+}
+
+bool compiler_context_c::has_form(const std::string &name) {
+  return form_definitions_.find(name) != form_definitions_.end();
+}
+
+std::vector<type_info_s>
+compiler_context_c::get_form_definition(const std::string &name) {
+  auto it = form_definitions_.find(name);
+  if (it != form_definitions_.end()) {
+    return it->second;
+  }
+  throw std::runtime_error(
+      fmt::format("Form '{}' not found in form definitions", name));
+}
+
+const std::map<std::string, std::vector<type_info_s>> &
+compiler_context_c::get_form_definitions() {
+  return form_definitions_;
 }
 
 std::unique_ptr<compiler_context_if> create_compiler_context(

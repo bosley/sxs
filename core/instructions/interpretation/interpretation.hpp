@@ -68,4 +68,8 @@ extern slp::slp_object_c interpret_datum_import(callable_context_if &context,
 extern slp::slp_object_c interpret_datum_load(callable_context_if &context,
                                               slp::slp_object_c &args_list);
 
+extern slp::slp_object_c
+interpret_datum_define_form(callable_context_if &context,
+                            slp::slp_object_c &args_list);
+
 } // namespace pkg::core::instructions::interpretation

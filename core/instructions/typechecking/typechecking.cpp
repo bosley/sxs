@@ -686,6 +686,11 @@ type_info_s typecheck_import(compiler_context_if &context,
       context.define_symbol(prefixed_name, remapped_type);
     }
 
+    for (const auto &[form_name, form_def] :
+         import_context->get_form_definitions()) {
+      context.define_form(form_name, form_def);
+    }
+
     context.get_currently_checking().erase(canonical_path);
     context.get_check_stack().pop_back();
     context.get_checked_files().insert(canonical_path);
@@ -721,6 +726,56 @@ type_info_s typecheck_load(compiler_context_if &context,
       throw std::runtime_error(
           fmt::format("load: failed to load kernel types for {}", kernel_name));
     }
+  }
+
+  type_info_s result;
+  result.base_type = slp::slp_type_e::NONE;
+  return result;
+}
+
+type_info_s typecheck_define_form(compiler_context_if &context,
+                                  slp::slp_object_c &args_list) {
+  auto list = args_list.as_list();
+  validate_parameters(context, args_list, "define-form");
+
+  auto name_obj = list.at(1);
+  if (name_obj.type() != slp::slp_type_e::SYMBOL) {
+    throw std::runtime_error(
+        "define-form: first argument must be a symbol (form name)");
+  }
+
+  std::string form_name = name_obj.as_symbol();
+
+  auto elements_obj = list.at(2);
+  if (elements_obj.type() != slp::slp_type_e::BRACE_LIST) {
+    throw std::runtime_error(
+        "define-form: second argument must be a brace list of type symbols");
+  }
+
+  auto elements_list = elements_obj.as_list();
+  std::vector<type_info_s> element_types;
+
+  for (size_t i = 0; i < elements_list.size(); i++) {
+    auto elem = elements_list.at(i);
+    if (elem.type() != slp::slp_type_e::SYMBOL) {
+      throw std::runtime_error(
+          "define-form: all elements must be type symbols");
+    }
+
+    std::string type_symbol = elem.as_symbol();
+    type_info_s elem_type;
+
+    if (!context.is_type_symbol(type_symbol, elem_type)) {
+      throw std::runtime_error(
+          fmt::format("define-form: invalid type symbol: {}", type_symbol));
+    }
+
+    element_types.push_back(elem_type);
+  }
+
+  if (!context.define_form(form_name, element_types)) {
+    throw std::runtime_error(
+        fmt::format("define-form: failed to define form {}", form_name));
   }
 
   type_info_s result;

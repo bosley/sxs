@@ -62,4 +62,7 @@ extern type_info_s typecheck_import(compiler_context_if &context,
 extern type_info_s typecheck_load(compiler_context_if &context,
                                   slp::slp_object_c &args_list);
 
+extern type_info_s typecheck_define_form(compiler_context_if &context,
+                                         slp::slp_object_c &args_list);
+
 } // namespace pkg::core::instructions::typechecking

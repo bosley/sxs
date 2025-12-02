@@ -581,6 +581,46 @@ slp::slp_object_c interpret_cast(callable_context_if &context,
     return evaluated_value;
   }
 
+  if (type_symbol.size() > 1 && type_symbol[0] == ':') {
+    std::string form_name = type_symbol.substr(1);
+
+    if (form_name.size() > 2 &&
+        form_name.substr(form_name.size() - 2) == "..") {
+      form_name = form_name.substr(0, form_name.size() - 2);
+    }
+
+    if (context.has_form(form_name)) {
+      auto form_def = context.get_form_definition(form_name);
+
+      if (actual_type == slp::slp_type_e::BRACE_LIST) {
+        auto list_items = evaluated_value.as_list();
+
+        if (list_items.size() != form_def.size()) {
+          throw std::runtime_error(
+              fmt::format("cast: form {} requires {} elements, got {}",
+                          form_name, form_def.size(), list_items.size()));
+        }
+
+        for (size_t i = 0; i < list_items.size(); i++) {
+          auto item = list_items.at(i);
+
+          if (item.type() != form_def[i]) {
+            throw std::runtime_error(
+                fmt::format("cast: form {} element {} expects type {}, got {}",
+                            form_name, i, static_cast<int>(form_def[i]),
+                            static_cast<int>(item.type())));
+          }
+        }
+
+        return evaluated_value;
+      }
+
+      if (expected_type == slp::slp_type_e::BRACE_LIST) {
+        return evaluated_value;
+      }
+    }
+  }
+
   if (expected_type == slp::slp_type_e::INTEGER &&
       actual_type == slp::slp_type_e::REAL) {
     double real_val = evaluated_value.as_real();
@@ -1176,6 +1216,58 @@ slp::slp_object_c interpret_datum_load(callable_context_if &context,
       throw std::runtime_error(
           fmt::format("load: failed to load kernel {}", kernel_name));
     }
+  }
+
+  slp::slp_object_c result;
+  return result;
+}
+
+slp::slp_object_c interpret_datum_define_form(callable_context_if &context,
+                                              slp::slp_object_c &args_list) {
+  auto list = args_list.as_list();
+  if (list.size() != 3) {
+    throw std::runtime_error(
+        "define-form requires exactly 2 arguments: name and elements");
+  }
+
+  auto name_obj = list.at(1);
+  if (name_obj.type() != slp::slp_type_e::SYMBOL) {
+    throw std::runtime_error(
+        "define-form: first argument must be a symbol (form name)");
+  }
+
+  std::string form_name = name_obj.as_symbol();
+
+  auto elements_obj = list.at(2);
+  if (elements_obj.type() != slp::slp_type_e::BRACE_LIST) {
+    throw std::runtime_error(
+        "define-form: second argument must be a brace list of type symbols");
+  }
+
+  auto elements_list = elements_obj.as_list();
+  std::vector<slp::slp_type_e> element_types;
+
+  for (size_t i = 0; i < elements_list.size(); i++) {
+    auto elem = elements_list.at(i);
+    if (elem.type() != slp::slp_type_e::SYMBOL) {
+      throw std::runtime_error(
+          "define-form: all elements must be type symbols");
+    }
+
+    std::string type_symbol = elem.as_symbol();
+    slp::slp_type_e elem_type;
+
+    if (!context.is_symbol_enscribing_valid_type(type_symbol, elem_type)) {
+      throw std::runtime_error(
+          fmt::format("define-form: invalid type symbol: {}", type_symbol));
+    }
+
+    element_types.push_back(elem_type);
+  }
+
+  if (!context.define_form(form_name, element_types)) {
+    throw std::runtime_error(
+        fmt::format("define-form: failed to define form {}", form_name));
   }
 
   slp::slp_object_c result;

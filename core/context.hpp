@@ -23,10 +23,12 @@ class kernel_context_if;
 typedef std::shared_ptr<spdlog::logger> logger_t;
 
 struct type_info_s {
-  slp::slp_type_e base_type;
+  slp::slp_type_e base_type{slp::slp_type_e::NONE};
   std::string lambda_signature;
   bool is_variadic{false};
   std::uint64_t lambda_id{0};
+  std::string form_name;
+  std::vector<type_info_s> form_elements;
 };
 
 struct function_signature_s {
@@ -100,6 +102,14 @@ public:
   virtual std::string resolve_kernel_path(const std::string &kernel_name) = 0;
   virtual bool load_kernel_types(const std::string &kernel_name,
                                  const std::string &kernel_dir) = 0;
+
+  virtual bool define_form(const std::string &name,
+                           const std::vector<type_info_s> &elements) = 0;
+  virtual bool has_form(const std::string &name) = 0;
+  virtual std::vector<type_info_s>
+  get_form_definition(const std::string &name) = 0;
+  virtual const std::map<std::string, std::vector<type_info_s>> &
+  get_form_definitions() = 0;
 };
 
 std::unique_ptr<compiler_context_if> create_compiler_context(

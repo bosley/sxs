@@ -41,3 +41,7 @@ add_executable(type_checker_file_test type_checker_file_test.cpp)
 target_link_libraries(type_checker_file_test PRIVATE pkg_core snitch::snitch spdlog::spdlog)
 add_test(NAME type_checker_file_test COMMAND type_checker_file_test)
 
+add_executable(type_checker_composite_test type_checker_composite_test.cpp)
+target_link_libraries(type_checker_composite_test PRIVATE pkg_core snitch::snitch spdlog::spdlog)
+add_test(NAME type_checker_composite_test COMMAND type_checker_composite_test)
+
