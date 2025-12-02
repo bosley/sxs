@@ -1,0 +1,15 @@
+=== FS LS Edge Cases Test ===
+
+--- Test ls on empty directory ---
+Empty directory: OK
+
+--- Test ls with subdirectories ---
+Directory with subdirs: OK
+
+--- Test ls with mixed files and subdirectories ---
+Mixed files and subdirs: OK
+
+--- Cleanup ---
+Removed test directory
+
+=== All ls edge case tests complete ===

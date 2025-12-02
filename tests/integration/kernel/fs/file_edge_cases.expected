@@ -1,0 +1,22 @@
+=== FS File Edge Cases Test ===
+
+--- Test writing to read-only file ---
+Write to read-only: OK
+
+--- Test reading from write-only file ---
+Read from write-only: OK
+
+--- Test multiple file descriptors to same file ---
+Multiple FDs to same file: OK
+Independent reads from multiple FDs: OK
+
+--- Test file descriptor reuse after close ---
+FD reuse after close: OK
+
+--- Test operations on closed file descriptor ---
+Operations on closed FD: OK
+
+--- Cleanup ---
+Removed test file
+
+=== All file edge case tests complete ===

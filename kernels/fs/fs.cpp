@@ -92,6 +92,11 @@ static slp::slp_object_c fs_read(pkg::kernel::context_t ctx,
 
   std::vector<char> buffer(file_size + 1);
   size_t read_count = fread(buffer.data(), 1, file_size, fp);
+  if (ferror(fp)) {
+    clearerr(fp);
+    fseek(fp, current_pos, SEEK_SET);
+    return slp::slp_object_c::create_string("");
+  }
   buffer[read_count] = '\0';
 
   return slp::slp_object_c::create_string(buffer.data());
@@ -151,6 +156,10 @@ static slp::slp_object_c fs_write(pkg::kernel::context_t ctx,
   }
 
   size_t written = fwrite(data.c_str(), 1, data.length(), fp);
+  if (ferror(fp) || written != data.length()) {
+    clearerr(fp);
+    return slp::slp_object_c::create_int(-1);
+  }
   return slp::slp_object_c::create_int(static_cast<long long>(written));
 }
 
