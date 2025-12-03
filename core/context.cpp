@@ -610,26 +610,119 @@ bool compiler_context_c::load_kernel_types(const std::string &kernel_name,
   }
 
   auto kernel_obj = parse_result.take();
-  if (kernel_obj.type() != slp::slp_type_e::DATUM) {
-    logger_->error("kernel.sxs must start with #(define-kernel ...)");
+
+  std::vector<slp::slp_object_c> datums;
+
+  if (kernel_obj.type() == slp::slp_type_e::BRACKET_LIST) {
+    auto list = kernel_obj.as_list();
+    for (size_t i = 0; i < list.size(); i++) {
+      datums.push_back(list.at(i));
+    }
+  } else if (kernel_obj.type() == slp::slp_type_e::DATUM) {
+    datums.push_back(std::move(kernel_obj));
+  } else {
+    logger_->error("kernel.sxs must contain datum declarations");
     return false;
   }
 
-  const std::uint8_t *base_ptr = kernel_obj.get_data().data();
-  const std::uint8_t *unit_ptr = base_ptr + kernel_obj.get_root_offset();
-  const slp::slp_unit_of_store_t *unit =
-      reinterpret_cast<const slp::slp_unit_of_store_t *>(unit_ptr);
-  size_t inner_offset = static_cast<size_t>(unit->data.uint64);
+  slp::slp_object_c define_kernel_obj;
+  bool found_define_kernel = false;
 
-  auto inner_obj = slp::slp_object_c::from_data(
-      kernel_obj.get_data(), kernel_obj.get_symbols(), inner_offset);
+  for (auto &datum : datums) {
+    if (datum.type() != slp::slp_type_e::DATUM) {
+      logger_->warn("kernel.sxs: skipping non-datum object");
+      continue;
+    }
 
-  if (inner_obj.type() != slp::slp_type_e::PAREN_LIST) {
-    logger_->error("kernel.sxs define-kernel must be a list");
+    const std::uint8_t *base_ptr = datum.get_data().data();
+    const std::uint8_t *unit_ptr = base_ptr + datum.get_root_offset();
+    const slp::slp_unit_of_store_t *unit =
+        reinterpret_cast<const slp::slp_unit_of_store_t *>(unit_ptr);
+    size_t inner_offset = static_cast<size_t>(unit->data.uint64);
+
+    auto inner_obj = slp::slp_object_c::from_data(
+        datum.get_data(), datum.get_symbols(), inner_offset);
+
+    if (inner_obj.type() != slp::slp_type_e::PAREN_LIST) {
+      logger_->warn("kernel.sxs: datum must contain a paren list");
+      continue;
+    }
+
+    auto list = inner_obj.as_list();
+    if (list.empty()) {
+      continue;
+    }
+
+    auto cmd = list.at(0);
+    if (cmd.type() != slp::slp_type_e::SYMBOL) {
+      continue;
+    }
+
+    std::string cmd_name = cmd.as_symbol();
+
+    if (cmd_name == "define-form") {
+      if (list.size() != 3) {
+        logger_->error("kernel.sxs: define-form requires 2 arguments");
+        continue;
+      }
+
+      auto form_name_obj = list.at(1);
+      if (form_name_obj.type() != slp::slp_type_e::SYMBOL) {
+        logger_->error("kernel.sxs: define-form name must be a symbol");
+        continue;
+      }
+      std::string form_name = form_name_obj.as_symbol();
+
+      auto elements_obj = list.at(2);
+      if (elements_obj.type() != slp::slp_type_e::BRACE_LIST) {
+        logger_->error("kernel.sxs: define-form elements must be a brace list");
+        continue;
+      }
+
+      auto elements_list = elements_obj.as_list();
+      std::vector<type_info_s> element_types;
+
+      for (size_t i = 0; i < elements_list.size(); i++) {
+        auto elem = elements_list.at(i);
+        if (elem.type() != slp::slp_type_e::SYMBOL) {
+          logger_->error(
+              "kernel.sxs: define-form elements must be type symbols");
+          continue;
+        }
+
+        std::string type_symbol = elem.as_symbol();
+        type_info_s elem_type;
+
+        if (!is_type_symbol(type_symbol, elem_type)) {
+          logger_->error("kernel.sxs: invalid type symbol in form: {}",
+                         type_symbol);
+          continue;
+        }
+
+        element_types.push_back(elem_type);
+      }
+
+      if (!define_form(form_name, element_types)) {
+        logger_->error("kernel.sxs: failed to define form: {}", form_name);
+        continue;
+      }
+
+      logger_->debug("Registered kernel form: {}", form_name);
+
+    } else if (cmd_name == "define-kernel") {
+      define_kernel_obj = slp::slp_object_c::from_data(
+          inner_obj.get_data(), inner_obj.get_symbols(),
+          inner_obj.get_root_offset());
+      found_define_kernel = true;
+    }
+  }
+
+  if (!found_define_kernel) {
+    logger_->error("kernel.sxs: no define-kernel declaration found");
     return false;
   }
 
-  auto list = inner_obj.as_list();
+  auto list = define_kernel_obj.as_list();
   if (list.size() < 4) {
     logger_->error("kernel.sxs define-kernel requires: name dylib functions");
     return false;
