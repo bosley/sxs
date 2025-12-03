@@ -27,19 +27,18 @@ struct formatted_error_s {
 };
 
 std::string format_type_error(const std::string &context_name,
-                               const std::string &error_type,
-                               const type_info_s &expected,
-                               const type_info_s &actual,
-                               const source_location_s &location);
+                              const std::string &error_type,
+                              const type_info_s &expected,
+                              const type_info_s &actual,
+                              const source_location_s &location);
 
 std::string colorize_error_output(const formatted_error_s &error);
 
 std::pair<size_t, size_t> byte_offset_to_line_col(const std::string &source,
-                                                   size_t byte_offset);
+                                                  size_t byte_offset);
 
 std::vector<std::string> get_context_lines(const std::string &source,
                                            size_t line_number,
                                            size_t context_size = 3);
 
 } // namespace pkg::core
-
