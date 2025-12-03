@@ -8,13 +8,6 @@ std::map<std::string, pkg::core::callable_symbol_s>
 get_standard_callable_symbols() {
   std::map<std::string, pkg::core::callable_symbol_s> symbols;
 
-  symbols["debug"] = callable_symbol_s{
-      .return_type = slp::slp_type_e::INTEGER,
-      .required_parameters = {},
-      .variadic = true,
-      .function = instructions::interpretation::interpret_datum_debug,
-      .typecheck_function = instructions::typechecking::typecheck_debug};
-
   symbols["load"] = callable_symbol_s{
       .return_type = slp::slp_type_e::NONE,
       .required_parameters = {{.name = "kernel_name",

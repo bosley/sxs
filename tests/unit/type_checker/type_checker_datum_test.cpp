@@ -12,61 +12,6 @@ pkg::core::logger_t create_test_logger() {
 
 } // namespace
 
-TEST_CASE("datum debug - returns integer",
-          "[unit][type_checker][datum][debug]") {
-  auto logger = create_test_logger();
-  pkg::core::type_checker::type_checker_c checker(logger, {}, ".");
-
-  auto type = checker.check_expression("#(debug 1 2 3)");
-  CHECK(type.base_type == slp::slp_type_e::INTEGER);
-}
-
-TEST_CASE("datum debug - empty args returns integer",
-          "[unit][type_checker][datum][debug]") {
-  auto logger = create_test_logger();
-  pkg::core::type_checker::type_checker_c checker(logger, {}, ".");
-
-  auto type = checker.check_expression("#(debug)");
-  CHECK(type.base_type == slp::slp_type_e::INTEGER);
-}
-
-TEST_CASE("datum debug - with strings and numbers",
-          "[unit][type_checker][datum][debug]") {
-  auto logger = create_test_logger();
-  pkg::core::type_checker::type_checker_c checker(logger, {}, ".");
-
-  auto type = checker.check_expression("#(debug \"test\" 42 3.14)");
-  CHECK(type.base_type == slp::slp_type_e::INTEGER);
-}
-
-TEST_CASE("datum debug - with variables",
-          "[unit][type_checker][datum][debug]") {
-  auto logger = create_test_logger();
-  pkg::core::type_checker::type_checker_c checker(logger, {}, ".");
-
-  auto type = checker.check_expression("[ (def x 42) #(debug x) ]");
-  CHECK(type.base_type == slp::slp_type_e::INTEGER);
-}
-
-TEST_CASE("datum debug - with expressions",
-          "[unit][type_checker][datum][debug]") {
-  auto logger = create_test_logger();
-  pkg::core::type_checker::type_checker_c checker(logger, {}, ".");
-
-  auto type = checker.check_expression("[ #(debug (if 1 10 20)) ]");
-  CHECK(type.base_type == slp::slp_type_e::INTEGER);
-}
-
-TEST_CASE("datum debug - nested in lambda",
-          "[unit][type_checker][datum][debug]") {
-  auto logger = create_test_logger();
-  pkg::core::type_checker::type_checker_c checker(logger, {}, ".");
-
-  auto type = checker.check_expression(
-      "[ (def f (fn (x :int) :int [ #(debug x) ])) (f 42) ]");
-  CHECK(type.base_type == slp::slp_type_e::INTEGER);
-}
-
 TEST_CASE("datum load - non-string argument fails",
           "[unit][type_checker][datum][load][error]") {
   auto logger = create_test_logger();

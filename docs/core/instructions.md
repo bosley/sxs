@@ -46,7 +46,6 @@ The SXS instructions system provides the core language primitives that define pr
 
 **Module System (Datum):**
 - `#(load ...)` - Load native kernel dylib
-- `#(debug ...)` - Debug output during initialization
 
 **Debugging:**
 - `debug` - Runtime debug output
@@ -149,7 +148,7 @@ namespace pkg::core::datum {
 }
 ```
 
-Registers: `debug` (datum variant), `load`
+Registers: `load`, `define-form`
 
 ### callable_context_if
 
@@ -391,8 +390,6 @@ Types encoded as integer enum values.
 (debug x y z)
 (debug "checkpoint" iteration)
 ```
-
-**Note:** Datum variant `#(debug ...)` executes during initialization phase.
 
 ### if - Conditional Branch
 
@@ -1062,27 +1059,6 @@ Datum instructions execute during the initialization phase before the runtime lo
 - Function registration failure
 
 **See:** `kernels.md` for detailed kernel system documentation.
-
-### #(debug ...) - Initialization Debug
-
-**Syntax:** `#(debug expr1 expr2 ...)`
-
-**Purpose:** Print debug output during initialization phase.
-
-**Parameters:** Variadic expressions
-
-**Return Type:** INTEGER (datum variant returns INTEGER, not NONE)
-
-**Runtime Behavior:** Same as standard `debug` instruction
-
-**Type Checking:** Same as standard `debug` instruction
-
-**Example:**
-```scheme
-#(debug "Loading kernels...")
-#(load "alu")
-#(debug "Kernels loaded")
-```
 
 ## Type Checking Architecture
 

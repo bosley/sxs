@@ -1066,42 +1066,6 @@ slp::slp_object_c interpret_eq(callable_context_if &context,
   return slp::slp_object_c::create_int(equal ? 1 : 0);
 }
 
-slp::slp_object_c interpret_datum_debug(callable_context_if &context,
-                                        slp::slp_object_c &args_list) {
-  fmt::print("[DEBUG DATUM]");
-
-  auto list = args_list.as_list();
-  for (size_t i = 1; i < list.size(); i++) {
-    auto elem = list.at(i);
-    auto evaled = context.eval(elem);
-
-    fmt::print(" ");
-
-    auto type = evaled.type();
-    switch (type) {
-    case slp::slp_type_e::INTEGER:
-      fmt::print("{}", evaled.as_int());
-      break;
-    case slp::slp_type_e::REAL:
-      fmt::print("{}", evaled.as_real());
-      break;
-    case slp::slp_type_e::SYMBOL:
-      fmt::print("{}", evaled.as_symbol());
-      break;
-    case slp::slp_type_e::DQ_LIST:
-      fmt::print("\"{}\"", evaled.as_string().to_string());
-      break;
-    default:
-      fmt::print("[{}]", static_cast<int>(type));
-      break;
-    }
-  }
-  fmt::print("\n");
-
-  slp::slp_object_c result;
-  return result;
-}
-
 slp::slp_object_c interpret_datum_load(callable_context_if &context,
                                        slp::slp_object_c &args_list) {
   auto list = args_list.as_list();
