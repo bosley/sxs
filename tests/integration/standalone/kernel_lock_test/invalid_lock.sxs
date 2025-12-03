@@ -1,0 +1,10 @@
+[
+    #(load "io")
+    
+    (io/put "First non-datum expression - this should trigger kernel lock\n")
+    
+    #(load "alu")
+    
+    (io/put "This should never execute\n")
+]
+

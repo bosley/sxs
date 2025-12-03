@@ -46,6 +46,8 @@ public:
 
   void set_parent_context(callable_context_if *context);
 
+  callable_context_if *get_parent_context() const;
+
   void register_kernel_function(const std::string &kernel_name,
                                 const std::string &function_name,
                                 void *function_ptr, int return_type,

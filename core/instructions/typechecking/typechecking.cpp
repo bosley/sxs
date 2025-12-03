@@ -546,25 +546,6 @@ type_info_s typecheck_apply(compiler_context_if &context,
   return result;
 }
 
-type_info_s typecheck_export(compiler_context_if &context,
-                             slp::slp_object_c &args_list) {
-  auto list = args_list.as_list();
-  validate_parameters(context, args_list, "export");
-
-  auto name_obj = list.at(1);
-  std::string export_name = name_obj.as_symbol();
-
-  auto value_obj = list.at(2);
-  auto value_type = context.eval_type(value_obj);
-
-  context.define_symbol(export_name, value_type);
-  context.get_current_exports()[export_name] = value_type;
-
-  type_info_s result;
-  result.base_type = slp::slp_type_e::NONE;
-  return result;
-}
-
 type_info_s typecheck_debug(compiler_context_if &context,
                             slp::slp_object_c &args_list) {
   auto list = args_list.as_list();
@@ -577,122 +558,6 @@ type_info_s typecheck_debug(compiler_context_if &context,
 
   type_info_s result;
   result.base_type = slp::slp_type_e::INTEGER;
-  return result;
-}
-
-type_info_s typecheck_import(compiler_context_if &context,
-                             slp::slp_object_c &args_list) {
-  auto list = args_list.as_list();
-  validate_parameters(context, args_list, "import");
-
-  if ((list.size() - 1) % 2 != 0) {
-    throw std::runtime_error("import requires pairs of arguments: symbol "
-                             "file_path [symbol file_path ...]");
-  }
-
-  for (size_t i = 1; i < list.size(); i += 2) {
-    auto symbol_obj = list.at(i);
-    auto file_path_obj = list.at(i + 1);
-
-    if (symbol_obj.type() != slp::slp_type_e::SYMBOL) {
-      throw std::runtime_error("import: symbol arguments must be symbols");
-    }
-
-    if (file_path_obj.type() != slp::slp_type_e::DQ_LIST) {
-      throw std::runtime_error("import: file path arguments must be strings");
-    }
-
-    std::string symbol = symbol_obj.as_symbol();
-    std::string file_path = file_path_obj.as_string().to_string();
-
-    auto resolved_path = context.resolve_file_path(file_path);
-    if (resolved_path.empty()) {
-      throw std::runtime_error(
-          fmt::format("import: could not resolve file: {}", file_path));
-    }
-
-    auto canonical_path = std::filesystem::canonical(resolved_path).string();
-
-    if (context.get_checked_files().count(canonical_path)) {
-      context.get_logger()->debug("File already checked: {}", canonical_path);
-      continue;
-    }
-
-    if (context.get_currently_checking().count(canonical_path)) {
-      std::string error_msg = "Circular import detected:\n";
-      for (const auto &check_file : context.get_check_stack()) {
-        error_msg += "  " + check_file + " imports\n";
-      }
-      error_msg += "  " + canonical_path + " (cycle detected)";
-      context.get_logger()->error("{}", error_msg);
-      throw std::runtime_error(error_msg);
-    }
-
-    context.get_currently_checking().insert(canonical_path);
-    context.get_check_stack().push_back(canonical_path);
-
-    std::ifstream file(canonical_path);
-    if (!file.is_open()) {
-      context.get_currently_checking().erase(canonical_path);
-      context.get_check_stack().pop_back();
-      throw std::runtime_error(
-          fmt::format("import: failed to open file: {}", canonical_path));
-    }
-
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    std::string source = buffer.str();
-    file.close();
-
-    auto parse_result = slp::parse(source);
-    if (parse_result.is_error()) {
-      context.get_currently_checking().erase(canonical_path);
-      context.get_check_stack().pop_back();
-      throw std::runtime_error(fmt::format("import: parse error in {}: {}",
-                                           canonical_path,
-                                           parse_result.error().message));
-    }
-
-    auto symbols = context.get_callable_symbols();
-    auto import_context = create_compiler_context(
-        context.get_logger(), context.get_include_paths(),
-        context.get_working_directory(), symbols);
-
-    import_context->set_current_file(canonical_path);
-
-    try {
-      auto obj = parse_result.take();
-      import_context->eval_type(obj);
-    } catch (const std::exception &e) {
-      context.get_currently_checking().erase(canonical_path);
-      context.get_check_stack().pop_back();
-      throw std::runtime_error(fmt::format(
-          "import: type checking failed for {}: {}", canonical_path, e.what()));
-    }
-
-    std::map<std::uint64_t, std::uint64_t> lambda_id_remapping;
-    for (const auto &[export_name, export_type] :
-         import_context->get_current_exports()) {
-      std::string prefixed_name = symbol + "/" + export_name;
-      type_info_s remapped_type = export_type;
-
-      if (export_type.lambda_id != 0) {
-        std::uint64_t new_lambda_id = context.allocate_lambda_id();
-        auto sig = import_context->get_lambda_signature(export_type.lambda_id);
-        context.register_lambda(new_lambda_id, sig);
-        remapped_type.lambda_id = new_lambda_id;
-      }
-
-      context.define_symbol(prefixed_name, remapped_type);
-    }
-
-    context.get_currently_checking().erase(canonical_path);
-    context.get_check_stack().pop_back();
-    context.get_checked_files().insert(canonical_path);
-  }
-
-  type_info_s result;
-  result.base_type = slp::slp_type_e::NONE;
   return result;
 }
 
@@ -721,6 +586,56 @@ type_info_s typecheck_load(compiler_context_if &context,
       throw std::runtime_error(
           fmt::format("load: failed to load kernel types for {}", kernel_name));
     }
+  }
+
+  type_info_s result;
+  result.base_type = slp::slp_type_e::NONE;
+  return result;
+}
+
+type_info_s typecheck_define_form(compiler_context_if &context,
+                                  slp::slp_object_c &args_list) {
+  auto list = args_list.as_list();
+  validate_parameters(context, args_list, "define-form");
+
+  auto name_obj = list.at(1);
+  if (name_obj.type() != slp::slp_type_e::SYMBOL) {
+    throw std::runtime_error(
+        "define-form: first argument must be a symbol (form name)");
+  }
+
+  std::string form_name = name_obj.as_symbol();
+
+  auto elements_obj = list.at(2);
+  if (elements_obj.type() != slp::slp_type_e::BRACE_LIST) {
+    throw std::runtime_error(
+        "define-form: second argument must be a brace list of type symbols");
+  }
+
+  auto elements_list = elements_obj.as_list();
+  std::vector<type_info_s> element_types;
+
+  for (size_t i = 0; i < elements_list.size(); i++) {
+    auto elem = elements_list.at(i);
+    if (elem.type() != slp::slp_type_e::SYMBOL) {
+      throw std::runtime_error(
+          "define-form: all elements must be type symbols");
+    }
+
+    std::string type_symbol = elem.as_symbol();
+    type_info_s elem_type;
+
+    if (!context.is_type_symbol(type_symbol, elem_type)) {
+      throw std::runtime_error(
+          fmt::format("define-form: invalid type symbol: {}", type_symbol));
+    }
+
+    element_types.push_back(elem_type);
+  }
+
+  if (!context.define_form(form_name, element_types)) {
+    throw std::runtime_error(
+        fmt::format("define-form: failed to define form {}", form_name));
   }
 
   type_info_s result;

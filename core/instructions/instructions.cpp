@@ -40,16 +40,6 @@ get_standard_callable_symbols() {
                         .function = interpretation::interpret_debug,
                         .typecheck_function = typechecking::typecheck_debug};
 
-  symbols["export"] = callable_symbol_s{
-      .return_type = slp::slp_type_e::NONE,
-      .instruction_generator = generation::make_export,
-      .required_parameters = {{.name = "name", .type = slp::slp_type_e::SYMBOL},
-                              {.name = "value",
-                               .type = slp::slp_type_e::ABERRANT}},
-      .variadic = false,
-      .function = interpretation::interpret_export,
-      .typecheck_function = typechecking::typecheck_export};
-
   symbols["if"] = callable_symbol_s{
       .return_type = slp::slp_type_e::ABERRANT,
       .instruction_generator = generation::make_if,

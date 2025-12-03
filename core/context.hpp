@@ -12,10 +12,6 @@ namespace pkg::core {
 
 struct callable_symbol_s;
 
-namespace imports {
-class import_context_if;
-}
-
 namespace kernels {
 class kernel_context_if;
 }
@@ -23,10 +19,12 @@ class kernel_context_if;
 typedef std::shared_ptr<spdlog::logger> logger_t;
 
 struct type_info_s {
-  slp::slp_type_e base_type;
+  slp::slp_type_e base_type{slp::slp_type_e::NONE};
   std::string lambda_signature;
   bool is_variadic{false};
   std::uint64_t lambda_id{0};
+  std::string form_name;
+  std::vector<type_info_s> form_elements;
 };
 
 struct function_signature_s {
@@ -74,7 +72,6 @@ public:
   virtual void pop_loop_context() = 0;
   virtual bool is_in_loop() = 0;
 
-  virtual imports::import_context_if *get_import_context() = 0;
   virtual kernels::kernel_context_if *get_kernel_context() = 0;
 
   virtual logger_t get_logger() = 0;
@@ -88,8 +85,6 @@ public:
   virtual std::set<std::string> &get_currently_checking() = 0;
   virtual std::vector<std::string> &get_check_stack() = 0;
 
-  virtual std::map<std::string, type_info_s> &get_current_exports() = 0;
-
   virtual bool types_match(const type_info_s &expected,
                            const type_info_s &actual) = 0;
 
@@ -100,13 +95,20 @@ public:
   virtual std::string resolve_kernel_path(const std::string &kernel_name) = 0;
   virtual bool load_kernel_types(const std::string &kernel_name,
                                  const std::string &kernel_dir) = 0;
+
+  virtual bool define_form(const std::string &name,
+                           const std::vector<type_info_s> &elements) = 0;
+  virtual bool has_form(const std::string &name) = 0;
+  virtual std::vector<type_info_s>
+  get_form_definition(const std::string &name) = 0;
+  virtual const std::map<std::string, std::vector<type_info_s>> &
+  get_form_definitions() = 0;
 };
 
 std::unique_ptr<compiler_context_if> create_compiler_context(
     logger_t logger, std::vector<std::string> include_paths,
     std::string working_directory,
     const std::map<std::string, callable_symbol_s> &callable_symbols,
-    imports::import_context_if *import_context = nullptr,
     kernels::kernel_context_if *kernel_context = nullptr);
 
 } // namespace pkg::core

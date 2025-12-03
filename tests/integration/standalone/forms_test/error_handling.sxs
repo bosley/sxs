@@ -1,0 +1,36 @@
+[
+    #(load "forms_test" "io")
+
+    (io/put "=== Error Handling Test ===\n")
+
+    (io/put "\n--- Testing valid form casts ---\n")
+    (def valid_pair (forms_test/make_pair 10 20))
+    (io/put "Created valid pair\n")
+
+    (def casted_pair (cast :pair valid_pair))
+    (io/put "Successfully cast to :pair\n")
+
+    (io/put "\n--- Testing form type validation ---\n")
+    (def wrong_size {1 2 3})
+    (io/put "Created brace list with 3 elements (pair expects 2)\n")
+    
+    (def wrong_types {"string" 42})
+    (io/put "Created brace list with wrong types (pair expects int int)\n")
+
+    (io/put "\n--- Testing valid point cast ---\n")
+    (def valid_point (forms_test/make_point 1.5 2.5))
+    (io/put "Created valid point\n")
+
+    (def casted_point (cast :point valid_point))
+    (io/put "Successfully cast to :point\n")
+
+    (io/put "\n--- Testing valid result cast ---\n")
+    (def valid_result (forms_test/make_result "ok" 0 @nil))
+    (io/put "Created valid result\n")
+
+    (def casted_result (cast :result valid_result))
+    (io/put "Successfully cast to :result\n")
+
+    (io/put "\n=== All error handling tests passed ===\n")
+]
+

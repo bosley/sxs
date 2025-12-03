@@ -1,8 +1,6 @@
 #pragma once
 
-#include <map>
 #include <memory>
-#include <shared_mutex>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <vector>
@@ -10,10 +8,6 @@
 namespace pkg::core {
 
 class callable_context_if;
-
-namespace imports {
-class imports_manager_c;
-}
 
 namespace kernels {
 class kernel_manager_c;
@@ -37,11 +31,7 @@ public:
 
 private:
   option_s options_;
-  std::unique_ptr<imports::imports_manager_c> imports_manager_;
   std::unique_ptr<kernels::kernel_manager_c> kernel_manager_;
-  std::map<std::string, std::unique_ptr<callable_context_if>>
-      import_interpreters_;
-  std::map<std::string, std::shared_mutex> import_interpreter_locks_;
 };
 
 } // namespace pkg::core

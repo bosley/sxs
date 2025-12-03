@@ -1,0 +1,35 @@
+[
+    #(load "forms_test" "io")
+
+    (io/put "=== Variadic Forms Test ===\n")
+
+    (io/put "\n--- Creating multiple pairs ---\n")
+    (def p1 (forms_test/make_pair 1 2))
+    (io/put "Created p1: {1 2}\n")
+
+    (def p2 (forms_test/make_pair 3 4))
+    (io/put "Created p2: {3 4}\n")
+
+    (def p3 (forms_test/make_pair 5 6))
+    (io/put "Created p3: {5 6}\n")
+
+    (io/put "\n--- Testing process_batch with variadic pairs ---\n")
+    (def result (forms_test/process_batch p1 p2 p3))
+    (io/put "Batch processing complete\n")
+
+    (def result_casted (cast :result result))
+    (io/put "Result cast to :result successfully\n")
+
+    (io/put "\n--- Testing process_batch with single pair ---\n")
+    (def result2 (forms_test/process_batch p1))
+    (io/put "Single pair batch complete\n")
+
+    (io/put "\n--- Testing process_batch with many pairs ---\n")
+    (def p4 (forms_test/make_pair 10 20))
+    (def p5 (forms_test/make_pair 30 40))
+    (def result3 (forms_test/process_batch p1 p2 p3 p4 p5))
+    (io/put "Large batch processing complete\n")
+
+    (io/put "\n=== All variadic forms tests passed ===\n")
+]
+

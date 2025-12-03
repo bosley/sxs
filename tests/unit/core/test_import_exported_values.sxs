@@ -1,8 +1,0 @@
-[
-    (def version_val 100)
-    (def max_count_val 500)
-    
-    (export version version_val)
-    (export max_count max_count_val)
-]
-

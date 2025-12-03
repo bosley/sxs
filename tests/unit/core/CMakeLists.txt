@@ -22,17 +22,6 @@ set(SXS_TEST_FILES
   test_do_loop.sxs
   test_at.sxs
   test_eq.sxs
-  test_import_basic.sxs
-  test_import_exported_basic.sxs
-  test_import_lambda.sxs
-  test_import_exported_lambda.sxs
-  test_import_values.sxs
-  test_import_exported_values.sxs
-  test_import_circular_a.sxs
-  test_import_circular_b.sxs
-  test_import_circular_3way_a.sxs
-  test_import_circular_3way_b.sxs
-  test_import_circular_3way_c.sxs
 )
 
 foreach(TEST_FILE ${SXS_TEST_FILES})
@@ -133,20 +122,6 @@ target_link_libraries(if_tests PRIVATE
 
 add_dependencies(build_tests if_tests)
 add_test(NAME if_tests COMMAND if_tests)
-
-add_executable(import_tests
-  import_test.cpp
-)
-
-target_link_libraries(import_tests PRIVATE 
-  snitch::snitch
-  pkg::core
-  pkg::slp
-  spdlog::spdlog
-)
-
-add_dependencies(build_tests import_tests)
-add_test(NAME import_tests COMMAND import_tests)
 
 add_executable(reflect_tests
   reflect_test.cpp

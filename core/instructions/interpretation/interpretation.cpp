@@ -1,5 +1,4 @@
 #include "interpretation.hpp"
-#include "core/imports/imports.hpp"
 #include "core/interpreter.hpp"
 #include "core/kernels/kernels.hpp"
 #include "slp/slp.hpp"
@@ -139,40 +138,6 @@ slp::slp_object_c interpret_debug(callable_context_if &context,
     }
   }
   fmt::print("\n");
-
-  slp::slp_object_c result;
-  return result;
-}
-
-slp::slp_object_c interpret_export(callable_context_if &context,
-                                   slp::slp_object_c &args_list) {
-  auto list = args_list.as_list();
-  if (list.size() != 3) {
-    throw std::runtime_error(
-        "export requires exactly 2 arguments: name and value");
-  }
-
-  auto name_obj = list.at(1);
-  if (name_obj.type() != slp::slp_type_e::SYMBOL) {
-    throw std::runtime_error(
-        "export: first argument must be a symbol (export name)");
-  }
-
-  std::string export_name = name_obj.as_symbol();
-  auto value_obj = list.at(2);
-  auto evaluated_value = context.eval(value_obj);
-
-  context.define_symbol(export_name, evaluated_value);
-
-  auto import_context = context.get_import_context();
-  if (!import_context) {
-    throw std::runtime_error("export: no import context available");
-  }
-
-  if (!import_context->register_export(export_name, evaluated_value)) {
-    throw std::runtime_error(
-        fmt::format("export: failed to register export {}", export_name));
-  }
 
   slp::slp_object_c result;
   return result;
@@ -579,6 +544,46 @@ slp::slp_object_c interpret_cast(callable_context_if &context,
 
   if (expected_type == actual_type) {
     return evaluated_value;
+  }
+
+  if (type_symbol.size() > 1 && type_symbol[0] == ':') {
+    std::string form_name = type_symbol.substr(1);
+
+    if (form_name.size() > 2 &&
+        form_name.substr(form_name.size() - 2) == "..") {
+      form_name = form_name.substr(0, form_name.size() - 2);
+    }
+
+    if (context.has_form(form_name)) {
+      auto form_def = context.get_form_definition(form_name);
+
+      if (actual_type == slp::slp_type_e::BRACE_LIST) {
+        auto list_items = evaluated_value.as_list();
+
+        if (list_items.size() != form_def.size()) {
+          throw std::runtime_error(
+              fmt::format("cast: form {} requires {} elements, got {}",
+                          form_name, form_def.size(), list_items.size()));
+        }
+
+        for (size_t i = 0; i < list_items.size(); i++) {
+          auto item = list_items.at(i);
+
+          if (item.type() != form_def[i]) {
+            throw std::runtime_error(
+                fmt::format("cast: form {} element {} expects type {}, got {}",
+                            form_name, i, static_cast<int>(form_def[i]),
+                            static_cast<int>(item.type())));
+          }
+        }
+
+        return evaluated_value;
+      }
+
+      if (expected_type == slp::slp_type_e::BRACE_LIST) {
+        return evaluated_value;
+      }
+    }
   }
 
   if (expected_type == slp::slp_type_e::INTEGER &&
@@ -1061,90 +1066,6 @@ slp::slp_object_c interpret_eq(callable_context_if &context,
   return slp::slp_object_c::create_int(equal ? 1 : 0);
 }
 
-slp::slp_object_c interpret_datum_debug(callable_context_if &context,
-                                        slp::slp_object_c &args_list) {
-  fmt::print("[DEBUG DATUM]");
-
-  auto list = args_list.as_list();
-  for (size_t i = 1; i < list.size(); i++) {
-    auto elem = list.at(i);
-    auto evaled = context.eval(elem);
-
-    fmt::print(" ");
-
-    auto type = evaled.type();
-    switch (type) {
-    case slp::slp_type_e::INTEGER:
-      fmt::print("{}", evaled.as_int());
-      break;
-    case slp::slp_type_e::REAL:
-      fmt::print("{}", evaled.as_real());
-      break;
-    case slp::slp_type_e::SYMBOL:
-      fmt::print("{}", evaled.as_symbol());
-      break;
-    case slp::slp_type_e::DQ_LIST:
-      fmt::print("\"{}\"", evaled.as_string().to_string());
-      break;
-    default:
-      fmt::print("[{}]", static_cast<int>(type));
-      break;
-    }
-  }
-  fmt::print("\n");
-
-  slp::slp_object_c result;
-  return result;
-}
-
-slp::slp_object_c interpret_datum_import(callable_context_if &context,
-                                         slp::slp_object_c &args_list) {
-  auto list = args_list.as_list();
-  if (list.size() < 3) {
-    throw std::runtime_error(
-        "import requires at least 2 arguments: symbol and file_path");
-  }
-
-  if ((list.size() - 1) % 2 != 0) {
-    throw std::runtime_error("import requires pairs of arguments: symbol "
-                             "file_path [symbol file_path ...]");
-  }
-
-  auto import_context = context.get_import_context();
-  if (!import_context) {
-    throw std::runtime_error("import: no import context available");
-  }
-
-  if (!import_context->is_import_allowed()) {
-    throw std::runtime_error(
-        "import: imports are locked (must occur at start of program)");
-  }
-
-  for (size_t i = 1; i < list.size(); i += 2) {
-    auto symbol_obj = list.at(i);
-    auto file_path_obj = list.at(i + 1);
-
-    if (symbol_obj.type() != slp::slp_type_e::SYMBOL) {
-      throw std::runtime_error("import: symbol arguments must be symbols");
-    }
-
-    if (file_path_obj.type() != slp::slp_type_e::DQ_LIST) {
-      throw std::runtime_error("import: file path arguments must be strings");
-    }
-
-    std::string symbol = symbol_obj.as_symbol();
-    std::string file_path = file_path_obj.as_string().to_string();
-
-    if (!import_context->attempt_import(symbol, file_path)) {
-      throw std::runtime_error(fmt::format(
-          "import: failed to import {} from {}", symbol, file_path));
-    }
-  }
-
-  slp::slp_object_c result;
-  return result;
-}
-
 slp::slp_object_c interpret_datum_load(callable_context_if &context,
                                        slp::slp_object_c &args_list) {
   auto list = args_list.as_list();
@@ -1176,6 +1097,58 @@ slp::slp_object_c interpret_datum_load(callable_context_if &context,
       throw std::runtime_error(
           fmt::format("load: failed to load kernel {}", kernel_name));
     }
+  }
+
+  slp::slp_object_c result;
+  return result;
+}
+
+slp::slp_object_c interpret_datum_define_form(callable_context_if &context,
+                                              slp::slp_object_c &args_list) {
+  auto list = args_list.as_list();
+  if (list.size() != 3) {
+    throw std::runtime_error(
+        "define-form requires exactly 2 arguments: name and elements");
+  }
+
+  auto name_obj = list.at(1);
+  if (name_obj.type() != slp::slp_type_e::SYMBOL) {
+    throw std::runtime_error(
+        "define-form: first argument must be a symbol (form name)");
+  }
+
+  std::string form_name = name_obj.as_symbol();
+
+  auto elements_obj = list.at(2);
+  if (elements_obj.type() != slp::slp_type_e::BRACE_LIST) {
+    throw std::runtime_error(
+        "define-form: second argument must be a brace list of type symbols");
+  }
+
+  auto elements_list = elements_obj.as_list();
+  std::vector<slp::slp_type_e> element_types;
+
+  for (size_t i = 0; i < elements_list.size(); i++) {
+    auto elem = elements_list.at(i);
+    if (elem.type() != slp::slp_type_e::SYMBOL) {
+      throw std::runtime_error(
+          "define-form: all elements must be type symbols");
+    }
+
+    std::string type_symbol = elem.as_symbol();
+    slp::slp_type_e elem_type;
+
+    if (!context.is_symbol_enscribing_valid_type(type_symbol, elem_type)) {
+      throw std::runtime_error(
+          fmt::format("define-form: invalid type symbol: {}", type_symbol));
+    }
+
+    element_types.push_back(elem_type);
+  }
+
+  if (!context.define_form(form_name, element_types)) {
+    throw std::runtime_error(
+        fmt::format("define-form: failed to define form {}", form_name));
   }
 
   slp::slp_object_c result;

@@ -1,5 +1,4 @@
 #include "interpreter.hpp"
-#include "core/imports/imports.hpp"
 #include "core/instructions/datum.hpp"
 #include "core/kernels/kernels.hpp"
 #include <atomic>
@@ -44,17 +43,10 @@ class interpreter_c : public callable_context_if {
 public:
   interpreter_c(
       const std::map<std::string, callable_symbol_s> &callable_symbols,
-      imports::import_context_if *import_context,
-      kernels::kernel_context_if *kernel_context,
-      std::map<std::string, std::unique_ptr<callable_context_if>>
-          *import_interpreters = nullptr,
-      std::map<std::string, std::shared_mutex> *import_interpreter_locks =
-          nullptr)
-      : callable_symbols_(callable_symbols), import_context_(import_context),
-        kernel_context_(kernel_context),
-        import_interpreters_(import_interpreters),
-        import_interpreter_locks_(import_interpreter_locks), next_lambda_id_(1),
-        current_scope_level_(0), imports_locks_triggered_(false) {
+      kernels::kernel_context_if *kernel_context)
+      : callable_symbols_(callable_symbols), kernel_context_(kernel_context),
+        next_lambda_id_(1), current_scope_level_(0),
+        kernels_locked_triggered_(false) {
     initialize_type_map();
     push_scope();
   }
@@ -79,22 +71,6 @@ public:
           return slp::slp_object_c::from_data(found->second.get_data(),
                                               found->second.get_symbols(),
                                               found->second.get_root_offset());
-        }
-      }
-
-      auto slash_pos = sym.find('/');
-      if (slash_pos != std::string::npos) {
-        std::string prefix = sym.substr(0, slash_pos);
-        std::string suffix = sym.substr(slash_pos + 1);
-
-        auto *import_interp = get_import_interpreter(prefix);
-        if (import_interp) {
-          auto parse_result = slp::parse(suffix);
-          if (parse_result.is_error()) {
-            throw std::runtime_error("Failed to parse import symbol suffix");
-          }
-          auto suffix_obj = parse_result.take();
-          return import_interp->eval(suffix_obj);
         }
       }
 
@@ -138,17 +114,6 @@ public:
         auto *kernel_func = kernel_context_->get_function(cmd);
         if (kernel_func) {
           return kernel_func->function(*this, object);
-        }
-      }
-
-      auto slash_pos = cmd.find('/');
-      if (slash_pos != std::string::npos) {
-        std::string prefix = cmd.substr(0, slash_pos);
-        std::string suffix = cmd.substr(slash_pos + 1);
-
-        auto *import_interp = get_import_interpreter(prefix);
-        if (import_interp) {
-          return call_in_import_context(import_interp, prefix, suffix, list);
         }
       }
 
@@ -208,10 +173,10 @@ public:
       for (size_t i = 0; i < list.size(); i++) {
         auto elem = list.at(i);
 
-        if (!imports_locks_triggered_ &&
+        if (!kernels_locked_triggered_ &&
             elem.type() != slp::slp_type_e::DATUM) {
-          trigger_import_locks();
-          imports_locks_triggered_ = true;
+          trigger_kernel_lock();
+          kernels_locked_triggered_ = true;
         }
 
         result = eval(elem);
@@ -255,6 +220,21 @@ public:
       out_type = it->second;
       return true;
     }
+
+    if (symbol.size() > 1 && symbol[0] == ':') {
+      std::string form_name = symbol.substr(1);
+
+      if (form_name.size() > 2 &&
+          form_name.substr(form_name.size() - 2) == "..") {
+        form_name = form_name.substr(0, form_name.size() - 2);
+      }
+
+      if (form_definitions_.find(form_name) != form_definitions_.end()) {
+        out_type = slp::slp_type_e::BRACE_LIST;
+        return true;
+      }
+    }
+
     return false;
   }
 
@@ -290,48 +270,8 @@ public:
     return true;
   }
 
-  imports::import_context_if *get_import_context() override {
-    return import_context_;
-  }
-
   kernels::kernel_context_if *get_kernel_context() override {
     return kernel_context_;
-  }
-
-  bool copy_lambda_from(callable_context_if *source,
-                        std::uint64_t lambda_id) override {
-    auto *source_interpreter = dynamic_cast<interpreter_c *>(source);
-    if (!source_interpreter) {
-      return false;
-    }
-
-    auto it = source_interpreter->lambda_definitions_.find(lambda_id);
-    if (it == source_interpreter->lambda_definitions_.end()) {
-      return false;
-    }
-
-    function_definition_s def;
-    def.parameters = it->second.parameters;
-    def.return_type = it->second.return_type;
-    def.body = slp::slp_object_c::from_data(it->second.body.get_data(),
-                                            it->second.body.get_symbols(),
-                                            it->second.body.get_root_offset());
-    def.scope_level = current_scope_level_;
-
-    lambda_definitions_[lambda_id] = std::move(def);
-    return true;
-  }
-
-  callable_context_if *
-  get_import_interpreter(const std::string &symbol_prefix) override {
-    if (!import_interpreters_) {
-      return nullptr;
-    }
-    auto it = import_interpreters_->find(symbol_prefix);
-    if (it == import_interpreters_->end()) {
-      return nullptr;
-    }
-    return it->second.get();
   }
 
   std::string get_lambda_signature(std::uint64_t lambda_id) override {
@@ -436,15 +376,35 @@ public:
     }
   }
 
-private:
-  void trigger_import_locks() {
-    if (import_context_) {
-      import_context_->lock();
+  bool define_form(const std::string &name,
+                   const std::vector<slp::slp_type_e> &elements) override {
+    form_definitions_[name] = elements;
+    type_symbol_map_[":" + name] = slp::slp_type_e::BRACE_LIST;
+    type_symbol_map_[":" + name + ".."] = slp::slp_type_e::BRACE_LIST;
+    return true;
+  }
+
+  bool has_form(const std::string &name) override {
+    return form_definitions_.find(name) != form_definitions_.end();
+  }
+
+  std::vector<slp::slp_type_e>
+  get_form_definition(const std::string &name) override {
+    auto it = form_definitions_.find(name);
+    if (it != form_definitions_.end()) {
+      return it->second;
     }
+    throw std::runtime_error(
+        fmt::format("Form '{}' not found in form definitions", name));
+  }
+
+private:
+  void trigger_kernel_lock() {
     if (kernel_context_) {
       kernel_context_->lock();
     }
   }
+
   void initialize_type_map() {
     std::vector<std::pair<std::string, slp::slp_type_e>> base_types = {
         {"int", slp::slp_type_e::INTEGER},
@@ -479,54 +439,6 @@ private:
         ++it;
       }
     }
-  }
-
-  slp::slp_object_c call_in_import_context(callable_context_if *import_interp,
-                                           const std::string &import_prefix,
-                                           const std::string &function_name,
-                                           slp::slp_object_c::list_c list) {
-    std::string call_str = "(" + function_name;
-
-    std::vector<slp::slp_object_c> evaled_args;
-    for (size_t i = 1; i < list.size(); i++) {
-      auto arg = list.at(i);
-      evaled_args.push_back(eval(arg));
-    }
-
-    for (const auto &arg : evaled_args) {
-      call_str += " ";
-      auto arg_type = arg.type();
-      if (arg_type == slp::slp_type_e::INTEGER) {
-        call_str += std::to_string(arg.as_int());
-      } else if (arg_type == slp::slp_type_e::REAL) {
-        call_str += std::to_string(arg.as_real());
-      } else if (arg_type == slp::slp_type_e::SYMBOL) {
-        call_str += arg.as_symbol();
-      } else if (arg_type == slp::slp_type_e::DQ_LIST) {
-        call_str += "\"" + arg.as_string().to_string() + "\"";
-      } else {
-        throw std::runtime_error(
-            "Unsupported argument type for cross-context call");
-      }
-    }
-
-    call_str += ")";
-
-    auto parse_result = slp::parse(call_str);
-    if (parse_result.is_error()) {
-      throw std::runtime_error("Failed to construct call for import context");
-    }
-
-    auto call_obj = parse_result.take();
-
-    std::shared_lock<std::shared_mutex> lock;
-    if (import_interpreter_locks_ &&
-        import_interpreter_locks_->count(import_prefix)) {
-      lock = std::shared_lock<std::shared_mutex>(
-          (*import_interpreter_locks_)[import_prefix]);
-    }
-
-    return import_interp->eval(call_obj);
   }
 
   slp::slp_object_c handle_aberrant_call(slp::slp_object_c &aberrant_obj,
@@ -604,27 +516,18 @@ private:
   std::vector<std::map<std::string, slp::slp_object_c>> scopes_;
   std::map<std::uint64_t, function_definition_s> lambda_definitions_;
   std::map<std::string, slp::slp_type_e> type_symbol_map_;
+  std::map<std::string, std::vector<slp::slp_type_e>> form_definitions_;
   std::uint64_t next_lambda_id_;
   size_t current_scope_level_;
-  imports::import_context_if *import_context_;
   kernels::kernel_context_if *kernel_context_;
-  std::map<std::string, std::unique_ptr<callable_context_if>>
-      *import_interpreters_;
-  std::map<std::string, std::shared_mutex> *import_interpreter_locks_;
-  bool imports_locks_triggered_;
+  bool kernels_locked_triggered_;
   std::vector<loop_context_s> loop_contexts_;
 };
 
 std::unique_ptr<callable_context_if> create_interpreter(
     const std::map<std::string, callable_symbol_s> &callable_symbols,
-    imports::import_context_if *import_context,
-    kernels::kernel_context_if *kernel_context,
-    std::map<std::string, std::unique_ptr<callable_context_if>>
-        *import_interpreters,
-    std::map<std::string, std::shared_mutex> *import_interpreter_locks) {
-  return std::make_unique<interpreter_c>(callable_symbols, import_context,
-                                         kernel_context, import_interpreters,
-                                         import_interpreter_locks);
+    kernels::kernel_context_if *kernel_context) {
+  return std::make_unique<interpreter_c>(callable_symbols, kernel_context);
 }
 
 } // namespace pkg::core

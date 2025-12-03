@@ -45,6 +45,7 @@ struct kernel_definition_context_s {
   std::string kernel_name;
   std::string kernel_dir;
   std::set<std::string> declared_functions;
+  std::map<std::string, std::vector<slp::slp_type_e>> declared_forms;
   std::string dylib_name;
 };
 
@@ -140,6 +141,65 @@ get_kernel_definition_symbols(kernel_definition_context_s *ctx) {
         return result;
       }};
 
+  symbols["define-form"] = callable_symbol_s{
+      .return_type = slp::slp_type_e::NONE,
+      .variadic = false,
+      .function = [ctx](callable_context_if &context,
+                        slp::slp_object_c &args_list) -> slp::slp_object_c {
+        auto list = args_list.as_list();
+        if (list.size() != 3) {
+          throw std::runtime_error(
+              "define-form requires exactly 2 arguments: name and elements");
+        }
+
+        auto form_name_obj = list.at(1);
+        if (form_name_obj.type() != slp::slp_type_e::SYMBOL) {
+          throw std::runtime_error(
+              "define-form: first argument must be a symbol (form name)");
+        }
+        std::string form_name = form_name_obj.as_symbol();
+
+        auto elements_obj = list.at(2);
+        if (elements_obj.type() != slp::slp_type_e::BRACE_LIST) {
+          throw std::runtime_error("define-form: second argument must be a "
+                                   "brace list of type symbols");
+        }
+
+        auto elements_list = elements_obj.as_list();
+        std::vector<slp::slp_type_e> element_types;
+
+        for (size_t i = 0; i < elements_list.size(); i++) {
+          auto elem = elements_list.at(i);
+          if (elem.type() != slp::slp_type_e::SYMBOL) {
+            throw std::runtime_error(
+                "define-form: all elements must be type symbols");
+          }
+
+          std::string type_symbol = elem.as_symbol();
+          slp::slp_type_e elem_type;
+
+          if (!context.is_symbol_enscribing_valid_type(type_symbol,
+                                                       elem_type)) {
+            throw std::runtime_error(fmt::format(
+                "define-form: invalid type symbol: {}", type_symbol));
+          }
+
+          element_types.push_back(elem_type);
+        }
+
+        ctx->declared_forms[form_name] = element_types;
+
+        context.define_form(form_name, element_types);
+
+        if (ctx->manager->get_parent_context()) {
+          ctx->manager->get_parent_context()->define_form(form_name,
+                                                          element_types);
+        }
+
+        slp::slp_object_c result;
+        return result;
+      }};
+
   symbols["define-kernel"] = callable_symbol_s{
       .return_type = slp::slp_type_e::NONE,
       .variadic = false,
@@ -211,7 +271,7 @@ kernel_context_if &kernel_manager_c::get_kernel_context() { return *context_; }
 
 void kernel_manager_c::lock_kernels() {
   kernels_locked_ = true;
-  logger_->debug("Kernels locked - no more kernel loads allowed");
+  logger_->info("Kernels locked - no more kernel loads allowed");
 }
 
 std::map<std::string, callable_symbol_s>
@@ -221,6 +281,10 @@ kernel_manager_c::get_registered_functions() const {
 
 void kernel_manager_c::set_parent_context(callable_context_if *context) {
   parent_context_ = context;
+}
+
+callable_context_if *kernel_manager_c::get_parent_context() const {
+  return parent_context_;
 }
 
 std::string
@@ -274,10 +338,6 @@ bool kernel_manager_c::load_kernel_dylib(const std::string &kernel_name,
   }
 
   auto kernel_obj = parse_result.take();
-  if (kernel_obj.type() != slp::slp_type_e::DATUM) {
-    logger_->error("kernel.sxs must start with #(define-kernel ...)");
-    return false;
-  }
 
   kernel_definition_context_s def_ctx;
   def_ctx.manager = this;
@@ -285,10 +345,26 @@ bool kernel_manager_c::load_kernel_dylib(const std::string &kernel_name,
   def_ctx.kernel_dir = kernel_dir;
 
   auto def_symbols = get_kernel_definition_symbols(&def_ctx);
-  auto def_interpreter = create_interpreter(def_symbols, nullptr, nullptr);
+  auto def_interpreter = create_interpreter(def_symbols, nullptr);
+
+  std::vector<slp::slp_object_c> datums;
+
+  if (kernel_obj.type() == slp::slp_type_e::BRACKET_LIST) {
+    auto list = kernel_obj.as_list();
+    for (size_t i = 0; i < list.size(); i++) {
+      datums.push_back(list.at(i));
+    }
+  } else if (kernel_obj.type() == slp::slp_type_e::DATUM) {
+    datums.push_back(std::move(kernel_obj));
+  } else {
+    logger_->error("kernel.sxs must contain datum declarations");
+    return false;
+  }
 
   try {
-    def_interpreter->eval(kernel_obj);
+    for (auto &datum : datums) {
+      def_interpreter->eval(datum);
+    }
   } catch (const std::exception &e) {
     logger_->error("Error processing kernel.sxs: {}", e.what());
     return false;
@@ -340,6 +416,13 @@ bool kernel_manager_c::load_kernel_dylib(const std::string &kernel_name,
   }
 
   logger_->info("All declared functions successfully registered");
+
+  for (const auto &[form_name, form_elements] : def_ctx.declared_forms) {
+    if (parent_context_) {
+      parent_context_->define_form(form_name, form_elements);
+      logger_->debug("Registered kernel form: {}", form_name);
+    }
+  }
 
   typedef void (*shutdown_fn_t)(const pkg::kernel::api_table_s *);
   auto kernel_shutdown_fn =

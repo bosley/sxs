@@ -97,29 +97,24 @@ clean:
 )";
 
 inline constexpr const char *INIT_SXS = R"([
-    #(import hello "modules/hello_world/hello_world.sxs")
-
     (debug "Starting {PROJECT_NAME}...")
     
-    (hello/greet)
-    (hello/say_message "Welcome to {PROJECT_NAME}!")
-    
-    (debug "Finished initialization")
-]
-)";
-
-inline constexpr const char *HELLO_WORLD_MODULE = R"([
     (def greeting_count 0)
-
-    (export greet (fn () :int [
-        (debug "Hello from the hello_world module!")
+    
+    (def greet (fn () :int [
+        (debug "Hello from {PROJECT_NAME}!")
         greeting_count
     ]))
-
-    (export say_message (fn (msg :str) :str [
+    
+    (def say_message (fn (msg :str) :str [
         (debug "Message:" msg)
         msg
     ]))
+    
+    (greet)
+    (say_message "Welcome to {PROJECT_NAME}!")
+    
+    (debug "Finished initialization")
 ]
 )";
 

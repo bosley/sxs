@@ -1,6 +1,0 @@
-[
-    (export helper (fn (val :int) :int [
-        42
-    ]))
-]
-

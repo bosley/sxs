@@ -25,7 +25,6 @@ void new_project(project_mgmt_data_s data) {
 
   try {
     fs::create_directories(project_path / "kernels" / data.project_name);
-    fs::create_directories(project_path / "modules" / "hello_world");
 
     auto write_file = [&](const fs::path &path, const std::string &content) {
       std::ofstream file(path);
@@ -56,11 +55,6 @@ void new_project(project_mgmt_data_s data) {
         templates::INIT_SXS, "{PROJECT_NAME}", data.project_name);
     write_file(project_path / "init.sxs", init_sxs);
 
-    std::string hello_module = templates::replace_placeholder(
-        templates::HELLO_WORLD_MODULE, "{PROJECT_NAME}", data.project_name);
-    write_file(project_path / "modules" / "hello_world" / "hello_world.sxs",
-               hello_module);
-
     write_file(project_path / ".gitignore", templates::GITIGNORE);
 
     fmt::print("✓ Successfully created project: {}\n", data.project_name);
@@ -68,14 +62,11 @@ void new_project(project_mgmt_data_s data) {
     fmt::print("  {}/\n", project_path.string());
     fmt::print("    ├── .gitignore\n");
     fmt::print("    ├── init.sxs\n");
-    fmt::print("    ├── kernels/\n");
-    fmt::print("    │   └── {}/\n", data.project_name);
-    fmt::print("    │       ├── kernel.sxs\n");
-    fmt::print("    │       ├── {}.cpp\n", data.project_name);
-    fmt::print("    │       └── Makefile\n");
-    fmt::print("    └── modules/\n");
-    fmt::print("        └── hello_world/\n");
-    fmt::print("            └── hello_world.sxs\n");
+    fmt::print("    └── kernels/\n");
+    fmt::print("        └── {}/\n", data.project_name);
+    fmt::print("            ├── kernel.sxs\n");
+    fmt::print("            ├── {}.cpp\n", data.project_name);
+    fmt::print("            └── Makefile\n");
     fmt::print("\nNext steps:\n");
     fmt::print("  1. cd {}\n", project_path.string());
     fmt::print("  2. sxs project build\n");

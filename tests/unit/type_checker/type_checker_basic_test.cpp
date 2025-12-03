@@ -496,25 +496,6 @@ TEST_CASE("type_checker eq - with reals returns integer",
   CHECK(type.base_type == slp::slp_type_e::INTEGER);
 }
 
-TEST_CASE("type_checker export - returns none",
-          "[unit][type_checker][export]") {
-  auto logger = create_test_logger();
-  pkg::core::type_checker::type_checker_c checker(logger, {}, ".");
-
-  auto type = checker.check_expression("[ (def x 42) (export x x) ]");
-  CHECK(type.base_type == slp::slp_type_e::NONE);
-}
-
-TEST_CASE("type_checker export - multiple exports return none",
-          "[unit][type_checker][export]") {
-  auto logger = create_test_logger();
-  pkg::core::type_checker::type_checker_c checker(logger, {}, ".");
-
-  auto type = checker.check_expression(
-      "[ (def x 42) (def y \"test\") (export x x) (export y y) ]");
-  CHECK(type.base_type == slp::slp_type_e::NONE);
-}
-
 TEST_CASE("type_checker debug - returns integer",
           "[unit][type_checker][debug]") {
   auto logger = create_test_logger();

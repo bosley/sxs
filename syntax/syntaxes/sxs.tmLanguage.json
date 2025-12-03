@@ -125,7 +125,7 @@
         },
         {
           "name": "keyword.other.sxs",
-          "match": "\\b(def|fn|apply|eval|debug|export|cast|at|eq)\\b"
+          "match": "\\b(def|fn|apply|eval|debug|cast|at|eq)\\b"
         }
       ]
     },
@@ -133,7 +133,7 @@
       "patterns": [
         {
           "name": "keyword.control.datum.sxs",
-          "match": "\\b(load|import)\\b"
+          "match": "\\b(load|define-form|define-kernel|define-function)\\b"
         }
       ]
     },

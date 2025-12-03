@@ -1,9 +1,0 @@
-[(export add (fn (a :int b :int) :int [
-    42
-  ]))
-
-  (export multiply (fn (x :int y :int) :int [
-    100
-  ]))
-]
-

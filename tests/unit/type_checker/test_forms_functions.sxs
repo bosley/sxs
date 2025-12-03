@@ -1,0 +1,25 @@
+[
+  #(define-form pair {:int :int})
+  #(define-form triple {:int :int :int})
+  
+  (def make_pair (fn (a :int b :int) :pair [
+    (cast :pair {a b})
+  ]))
+  
+  (def make_triple (fn (a :int b :int c :int) :triple [
+    (cast :triple {a b c})
+  ]))
+  
+  (def sum_pair (fn (p :pair) :int [
+    42
+  ]))
+  
+  (def p (make_pair 10 20))
+  (def t (make_triple 1 2 3))
+  (def result (sum_pair p))
+  
+  (debug p)
+  (debug t)
+  (debug result)
+]
+

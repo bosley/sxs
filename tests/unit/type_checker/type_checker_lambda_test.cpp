@@ -421,17 +421,6 @@ TEST_CASE("lambda many params - mixed types five params",
   CHECK(type.base_type == slp::slp_type_e::INTEGER);
 }
 
-TEST_CASE("lambda export - exported lambda can be called",
-          "[unit][type_checker][lambda][export]") {
-  auto logger = create_test_logger();
-  pkg::core::type_checker::type_checker_c checker(logger, {}, ".");
-
-  auto type =
-      checker.check_expression("[ (def add (fn (x :int y :int) :int [ (debug x "
-                               "y) ])) (export add add) (add 1 2) ]");
-  CHECK(type.base_type == slp::slp_type_e::INTEGER);
-}
-
 TEST_CASE("lambda store - lambda stored and called later",
           "[unit][type_checker][lambda][store]") {
   auto logger = create_test_logger();
