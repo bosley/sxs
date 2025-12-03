@@ -221,20 +221,6 @@ public:
       return true;
     }
 
-    if (symbol.size() > 1 && symbol[0] == ':') {
-      std::string form_name = symbol.substr(1);
-
-      if (form_name.size() > 2 &&
-          form_name.substr(form_name.size() - 2) == "..") {
-        form_name = form_name.substr(0, form_name.size() - 2);
-      }
-
-      if (form_definitions_.find(form_name) != form_definitions_.end()) {
-        out_type = slp::slp_type_e::BRACE_LIST;
-        return true;
-      }
-    }
-
     return false;
   }
 
