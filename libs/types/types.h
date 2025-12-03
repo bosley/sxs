@@ -1,6 +1,10 @@
 #ifndef SXS_TYPES_TYPES_H
 #define SXS_TYPES_TYPES_H
 
+// NOTE: This file is only for "types" that "sit on" or "exist in" a slp buffer
+//       This file is NOT for random C types that the libraries need
+
+#include <stddef.h>
 #include <stdint.h>
 
 /*
@@ -33,22 +37,11 @@ typedef enum slp_static_base_e {
    own the buffers. We typedef like this to visually remind us not to try
    freeing them
 */
-typedef void *slp_ref_none_t;
-typedef int64_t *slp_ref_integer_t;
-typedef double *slp_ref_real_t;
-typedef char *slp_ref_symbol_t;
-
-typedef union slp_static_union_s {
-  slp_ref_none_t none;
-  slp_ref_integer_t integer;
-  slp_ref_real_t real;
-  slp_ref_symbol_t symbol;
-} slp_static_union_t;
-
 typedef struct slp_static_type_s {
   slp_static_base_e base;
-  slp_static_union_t data; // union of unowned pointers into buffer region that
-                           // matched the type
+  uint8_t *data;
+  size_t byte_length;
 } slp_static_type_t;
+
 
 #endif
