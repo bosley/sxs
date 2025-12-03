@@ -372,6 +372,10 @@ Only the immediate previous byte is checked for escape detection. This means:
 - `\\)` → backslash is escaped, `)` is NOT escaped
 - Caller must handle multi-byte escape sequences if needed
 
+**Important Limitation:** The first byte immediately following the opening delimiter cannot be escaped, as this would require the opening delimiter itself to act as the escape character. Escape detection begins at the second byte after the opening delimiter (position `start_index + 2`).
+
+  Note: This "limitation" seems like "no shit" but is _is_ worth mentioning
+
 ### Depth Counter Range
 Uses signed integer for depth tracking, supporting up to INT_MAX nesting levels in practice.
 
