@@ -14,9 +14,6 @@ extern type_info_s typecheck_fn(compiler_context_if &context,
 extern type_info_s typecheck_debug(compiler_context_if &context,
                                    slp::slp_object_c &args_list);
 
-extern type_info_s typecheck_export(compiler_context_if &context,
-                                    slp::slp_object_c &args_list);
-
 extern type_info_s typecheck_if(compiler_context_if &context,
                                 slp::slp_object_c &args_list);
 
@@ -55,9 +52,6 @@ extern type_info_s typecheck_at(compiler_context_if &context,
 
 extern type_info_s typecheck_eq(compiler_context_if &context,
                                 slp::slp_object_c &args_list);
-
-extern type_info_s typecheck_import(compiler_context_if &context,
-                                    slp::slp_object_c &args_list);
 
 extern type_info_s typecheck_load(compiler_context_if &context,
                                   slp::slp_object_c &args_list);

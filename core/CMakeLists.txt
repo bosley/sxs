@@ -8,7 +8,6 @@ add_library(pkg_core SHARED
     instructions/generation/generation.cpp
     instructions/interpretation/interpretation.cpp
     instructions/typechecking/typechecking.cpp
-    imports/imports.cpp
     kernels/kernels.cpp
     type_checker/type_checker.cpp
 )
@@ -59,11 +58,6 @@ install(FILES
 install(FILES
     instructions/typechecking/typechecking.hpp
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/sxs/core/instructions/typechecking
-)
-
-install(FILES
-    imports/imports.hpp
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/sxs/core/imports
 )
 
 install(FILES

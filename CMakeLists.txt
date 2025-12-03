@@ -16,7 +16,7 @@ endif()
 
 include(GNUInstallDirs)
 
-option(WITH_ASAN "Enable AddressSanitizer" ON)
+option(WITH_ASAN "Enable AddressSanitizer" OFF)
 option(RUN_TESTS "Run tests" ON)
 option(EXTRA_DEBUG_STMT "Enable extra debug statements" OFF)
 

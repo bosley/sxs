@@ -1,8 +1,0 @@
-[
-  #(import math "test_import_exported.sxs")
-  
-  (def use-import (fn () :int [
-    0
-  ]))
-]
-

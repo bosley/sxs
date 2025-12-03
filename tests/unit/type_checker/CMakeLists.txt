@@ -3,15 +3,7 @@ set(TYPE_CHECKER_TEST_DATA_FILES
     test_functions.sxs
     test_control_flow.sxs
     test_error_handling.sxs
-    test_imports.sxs
-    test_import_exported.sxs
-    test_import_lambda_a.sxs
-    test_import_lambda_b.sxs
-    test_import_nested_a.sxs
-    test_import_nested_b.sxs
     test_integration_lib.sxs
-    test_forms_export.sxs
-    test_forms_import_user.sxs
     test_forms_basic.sxs
     test_forms_nested.sxs
     test_forms_functions.sxs

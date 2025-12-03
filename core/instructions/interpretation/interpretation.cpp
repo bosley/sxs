@@ -1,5 +1,4 @@
 #include "interpretation.hpp"
-#include "core/imports/imports.hpp"
 #include "core/interpreter.hpp"
 #include "core/kernels/kernels.hpp"
 #include "slp/slp.hpp"
@@ -139,40 +138,6 @@ slp::slp_object_c interpret_debug(callable_context_if &context,
     }
   }
   fmt::print("\n");
-
-  slp::slp_object_c result;
-  return result;
-}
-
-slp::slp_object_c interpret_export(callable_context_if &context,
-                                   slp::slp_object_c &args_list) {
-  auto list = args_list.as_list();
-  if (list.size() != 3) {
-    throw std::runtime_error(
-        "export requires exactly 2 arguments: name and value");
-  }
-
-  auto name_obj = list.at(1);
-  if (name_obj.type() != slp::slp_type_e::SYMBOL) {
-    throw std::runtime_error(
-        "export: first argument must be a symbol (export name)");
-  }
-
-  std::string export_name = name_obj.as_symbol();
-  auto value_obj = list.at(2);
-  auto evaluated_value = context.eval(value_obj);
-
-  context.define_symbol(export_name, evaluated_value);
-
-  auto import_context = context.get_import_context();
-  if (!import_context) {
-    throw std::runtime_error("export: no import context available");
-  }
-
-  if (!import_context->register_export(export_name, evaluated_value)) {
-    throw std::runtime_error(
-        fmt::format("export: failed to register export {}", export_name));
-  }
 
   slp::slp_object_c result;
   return result;
@@ -1132,54 +1097,6 @@ slp::slp_object_c interpret_datum_debug(callable_context_if &context,
     }
   }
   fmt::print("\n");
-
-  slp::slp_object_c result;
-  return result;
-}
-
-slp::slp_object_c interpret_datum_import(callable_context_if &context,
-                                         slp::slp_object_c &args_list) {
-  auto list = args_list.as_list();
-  if (list.size() < 3) {
-    throw std::runtime_error(
-        "import requires at least 2 arguments: symbol and file_path");
-  }
-
-  if ((list.size() - 1) % 2 != 0) {
-    throw std::runtime_error("import requires pairs of arguments: symbol "
-                             "file_path [symbol file_path ...]");
-  }
-
-  auto import_context = context.get_import_context();
-  if (!import_context) {
-    throw std::runtime_error("import: no import context available");
-  }
-
-  if (!import_context->is_import_allowed()) {
-    throw std::runtime_error(
-        "import: imports are locked (must occur at start of program)");
-  }
-
-  for (size_t i = 1; i < list.size(); i += 2) {
-    auto symbol_obj = list.at(i);
-    auto file_path_obj = list.at(i + 1);
-
-    if (symbol_obj.type() != slp::slp_type_e::SYMBOL) {
-      throw std::runtime_error("import: symbol arguments must be symbols");
-    }
-
-    if (file_path_obj.type() != slp::slp_type_e::DQ_LIST) {
-      throw std::runtime_error("import: file path arguments must be strings");
-    }
-
-    std::string symbol = symbol_obj.as_symbol();
-    std::string file_path = file_path_obj.as_string().to_string();
-
-    if (!import_context->attempt_import(symbol, file_path)) {
-      throw std::runtime_error(fmt::format(
-          "import: failed to import {} from {}", symbol, file_path));
-    }
-  }
 
   slp::slp_object_c result;
   return result;

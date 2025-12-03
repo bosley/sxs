@@ -1,7 +1,0 @@
-[
-  #(import forms_lib "test_forms_export.sxs")
-  
-  (def my_pair (forms_lib/make_pair 10 20))
-  (def my_origin forms_lib/origin)
-]
-

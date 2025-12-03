@@ -14,9 +14,8 @@ TEST_CASE("define-form basic", "[type_checker][composite]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form pair {:int :int})
@@ -55,9 +54,8 @@ TEST_CASE("define-form nested", "[type_checker][composite]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form pair {:int :int})
@@ -91,9 +89,8 @@ TEST_CASE("define-form in cast", "[type_checker][composite]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"(
     [
@@ -119,9 +116,8 @@ TEST_CASE("define-form in function signature", "[type_checker][composite]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"(
     [
@@ -148,9 +144,8 @@ TEST_CASE("define-form invalid type", "[type_checker][composite]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form bad {:invalid :int})
@@ -172,9 +167,8 @@ TEST_CASE("define-form not brace list", "[type_checker][composite]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form bad (:int :int))
@@ -196,9 +190,8 @@ TEST_CASE("define-form variadic type", "[type_checker][composite]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"(
     [
@@ -226,9 +219,8 @@ TEST_CASE("form mixed primitive types",
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form mixed {:int :str :real :symbol})
@@ -257,9 +249,8 @@ TEST_CASE("form with list types", "[type_checker][composite][validation]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form container {:list-p :list-b :list-c})
@@ -287,9 +278,8 @@ TEST_CASE("form with complex types", "[type_checker][composite][validation]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form complex {:some :error :datum})
@@ -318,9 +308,8 @@ TEST_CASE("form assignment to list-c compatible",
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form pair {:int :int})
@@ -344,9 +333,8 @@ TEST_CASE("form multiple parameters", "[type_checker][composite][function]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form pair {:int :int})
@@ -372,9 +360,8 @@ TEST_CASE("form return type", "[type_checker][composite][function]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form pair {:int :int})
@@ -399,9 +386,8 @@ TEST_CASE("form variadic parameters", "[type_checker][composite][function]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form point {:int :int})
@@ -426,9 +412,8 @@ TEST_CASE("form with lambda type", "[type_checker][composite][lambda]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form callback {:aberrant :int})
@@ -455,9 +440,8 @@ TEST_CASE("lambda returning form", "[type_checker][composite][lambda]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form pair {:int :int})
@@ -482,9 +466,8 @@ TEST_CASE("lambda taking form", "[type_checker][composite][lambda]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form pair {:int :int})
@@ -509,9 +492,8 @@ TEST_CASE("form in if branches", "[type_checker][composite][control_flow]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form pair {:int :int})
@@ -537,9 +519,8 @@ TEST_CASE("form in try handler", "[type_checker][composite][control_flow]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form pair {:int :int})
@@ -565,9 +546,8 @@ TEST_CASE("empty form", "[type_checker][composite][edge_case]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form empty {})
@@ -592,9 +572,8 @@ TEST_CASE("single element form", "[type_checker][composite][edge_case]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form single {:int})
@@ -620,9 +599,8 @@ TEST_CASE("large form", "[type_checker][composite][edge_case]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form large {:int :str :real :int :str :real :int :str :real :int :str :real})
@@ -647,9 +625,8 @@ TEST_CASE("deeply nested forms", "[type_checker][composite][edge_case]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form level1 {:int :int})
@@ -684,9 +661,8 @@ TEST_CASE("form with any type", "[type_checker][composite][edge_case]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form flexible {:any :int})
@@ -713,9 +689,8 @@ TEST_CASE("form forward reference fails", "[type_checker][composite][scope]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form uses_undefined {:undefined :int})
@@ -738,9 +713,8 @@ TEST_CASE("form visibility in nested scopes",
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form pair {:int :int})
@@ -768,9 +742,8 @@ TEST_CASE("cast list-c to form validates", "[type_checker][composite][cast]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form pair {:int :int})
@@ -794,9 +767,8 @@ TEST_CASE("cast form to list-c is noop", "[type_checker][composite][cast]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form pair {:int :int})
@@ -820,9 +792,8 @@ TEST_CASE("cast form to different form", "[type_checker][composite][cast]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form pair {:int :int})
@@ -847,9 +818,8 @@ TEST_CASE("cast nested forms", "[type_checker][composite][cast]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form inner {:int :int})
@@ -874,9 +844,8 @@ TEST_CASE("cast with wrong element count", "[type_checker][composite][cast]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form pair {:int :int})
@@ -899,9 +868,8 @@ TEST_CASE("form in match pattern", "[type_checker][composite][control_flow]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form pair {:int :int})
@@ -928,9 +896,8 @@ TEST_CASE("form in recover", "[type_checker][composite][control_flow]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form pair {:int :int})
@@ -957,9 +924,8 @@ TEST_CASE("nested function calls with forms",
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form pair {:int :int})
@@ -989,9 +955,8 @@ TEST_CASE("form parameter accepts list-c",
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form pair {:int :int})
@@ -1017,9 +982,8 @@ TEST_CASE("form with variadic list type",
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form container {:int.. :str})
@@ -1046,9 +1010,8 @@ TEST_CASE("form in do loop", "[type_checker][composite][control_flow]") {
   auto datum_map = datum::get_standard_callable_symbols();
   instructions_map.insert(datum_map.begin(), datum_map.end());
 
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
+  auto context = create_compiler_context(
+      logger, include_paths, working_directory, instructions_map, nullptr);
 
   std::string source = R"([
     #(define-form pair {:int :int})
@@ -1063,161 +1026,4 @@ TEST_CASE("form in do loop", "[type_checker][composite][control_flow]") {
 
   auto obj = parse_result.take();
   REQUIRE_NOTHROW(context->eval_type(obj));
-}
-
-TEST_CASE("export form definition",
-          "[type_checker][composite][import_export]") {
-  auto logger = spdlog::default_logger();
-  std::vector<std::string> include_paths;
-  std::string working_directory = ".";
-
-  auto instructions_map = instructions::get_standard_callable_symbols();
-  auto datum_map = datum::get_standard_callable_symbols();
-  instructions_map.insert(datum_map.begin(), datum_map.end());
-
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
-
-  std::string source = R"([
-    #(define-form pair {:int :int})
-    (export my_pair (cast :pair {1 2}))
-  ])";
-
-  auto parse_result = slp::parse(source);
-  REQUIRE(!parse_result.is_error());
-
-  auto obj = parse_result.take();
-  REQUIRE_NOTHROW(context->eval_type(obj));
-
-  auto exports = context->get_current_exports();
-  REQUIRE(exports.count("my_pair") == 1);
-  REQUIRE(exports["my_pair"].base_type == slp::slp_type_e::BRACE_LIST);
-}
-
-TEST_CASE("export function returning form",
-          "[type_checker][composite][import_export]") {
-  auto logger = spdlog::default_logger();
-  std::vector<std::string> include_paths;
-  std::string working_directory = ".";
-
-  auto instructions_map = instructions::get_standard_callable_symbols();
-  auto datum_map = datum::get_standard_callable_symbols();
-  instructions_map.insert(datum_map.begin(), datum_map.end());
-
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
-
-  std::string source = R"([
-    #(define-form pair {:int :int})
-    (export make_pair (fn (a :int b :int) :pair [
-      (cast :pair {a b})
-    ]))
-  ])";
-
-  auto parse_result = slp::parse(source);
-  REQUIRE(!parse_result.is_error());
-
-  auto obj = parse_result.take();
-  REQUIRE_NOTHROW(context->eval_type(obj));
-
-  auto exports = context->get_current_exports();
-  REQUIRE(exports.count("make_pair") == 1);
-  REQUIRE(exports["make_pair"].base_type == slp::slp_type_e::ABERRANT);
-}
-
-TEST_CASE("import with forms", "[type_checker][composite][import_export]") {
-  auto logger = spdlog::default_logger();
-  std::string test_data_dir = TEST_DATA_DIR;
-  std::vector<std::string> include_paths = {test_data_dir};
-  std::string working_directory = test_data_dir;
-
-  auto instructions_map = instructions::get_standard_callable_symbols();
-  auto datum_map = datum::get_standard_callable_symbols();
-  instructions_map.insert(datum_map.begin(), datum_map.end());
-
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
-
-  std::string source = R"([
-    #(import forms_lib "test_forms_export.sxs")
-    (def my_pair (forms_lib/make_pair 10 20))
-  ])";
-
-  auto parse_result = slp::parse(source);
-  REQUIRE(!parse_result.is_error());
-
-  auto obj = parse_result.take();
-  REQUIRE_NOTHROW(context->eval_type(obj));
-
-  REQUIRE(context->has_symbol("my_pair"));
-  auto my_pair_type = context->get_symbol_type("my_pair");
-  REQUIRE(my_pair_type.base_type == slp::slp_type_e::BRACE_LIST);
-}
-
-TEST_CASE("form propagation across imports",
-          "[type_checker][composite][import_export]") {
-  auto logger = spdlog::default_logger();
-  std::string test_data_dir = TEST_DATA_DIR;
-  std::vector<std::string> include_paths = {test_data_dir};
-  std::string working_directory = test_data_dir;
-
-  auto instructions_map = instructions::get_standard_callable_symbols();
-  auto datum_map = datum::get_standard_callable_symbols();
-  instructions_map.insert(datum_map.begin(), datum_map.end());
-
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
-
-  std::string source = R"([
-    #(import forms_lib "test_forms_export.sxs")
-    (def origin forms_lib/origin)
-  ])";
-
-  auto parse_result = slp::parse(source);
-  REQUIRE(!parse_result.is_error());
-
-  auto obj = parse_result.take();
-  REQUIRE_NOTHROW(context->eval_type(obj));
-
-  REQUIRE(context->has_symbol("origin"));
-  auto origin_type = context->get_symbol_type("origin");
-  REQUIRE(origin_type.base_type == slp::slp_type_e::BRACE_LIST);
-}
-
-TEST_CASE("form types match across modules",
-          "[type_checker][composite][import_export]") {
-  auto logger = spdlog::default_logger();
-  std::vector<std::string> include_paths;
-  std::string working_directory = ".";
-
-  auto instructions_map = instructions::get_standard_callable_symbols();
-  auto datum_map = datum::get_standard_callable_symbols();
-  instructions_map.insert(datum_map.begin(), datum_map.end());
-
-  auto context =
-      create_compiler_context(logger, include_paths, working_directory,
-                              instructions_map, nullptr, nullptr);
-
-  std::string source = R"([
-    #(define-form pair {:int :int})
-    (export local_pair (cast :pair {1 2}))
-    (def another_pair (cast :pair {3 4}))
-  ])";
-
-  auto parse_result = slp::parse(source);
-  REQUIRE(!parse_result.is_error());
-
-  auto obj = parse_result.take();
-  REQUIRE_NOTHROW(context->eval_type(obj));
-
-  auto exports = context->get_current_exports();
-  REQUIRE(exports.count("local_pair") == 1);
-
-  auto local_type = context->get_symbol_type("another_pair");
-  REQUIRE(local_type.base_type == slp::slp_type_e::BRACE_LIST);
-  REQUIRE(local_type.form_name == "pair");
 }

@@ -15,16 +15,6 @@ get_standard_callable_symbols() {
       .function = instructions::interpretation::interpret_datum_debug,
       .typecheck_function = instructions::typechecking::typecheck_debug};
 
-  symbols["import"] = callable_symbol_s{
-      .return_type = slp::slp_type_e::NONE,
-      .required_parameters = {{.name = "symbol",
-                               .type = slp::slp_type_e::SYMBOL},
-                              {.name = "file_path",
-                               .type = slp::slp_type_e::DQ_LIST}},
-      .variadic = true,
-      .function = instructions::interpretation::interpret_datum_import,
-      .typecheck_function = instructions::typechecking::typecheck_import};
-
   symbols["load"] = callable_symbol_s{
       .return_type = slp::slp_type_e::NONE,
       .required_parameters = {{.name = "kernel_name",

@@ -1,8 +1,0 @@
-[
-    #(import lib_b "test_import_nested_b.sxs")
-
-    (export wrapper (fn (x :int) :int [
-        (lib_b/helper x)
-    ]))
-]
-

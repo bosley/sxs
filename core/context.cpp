@@ -1,5 +1,4 @@
 #include "context.hpp"
-#include "imports/imports.hpp"
 #include "interpreter.hpp"
 #include "kernels/kernels.hpp"
 #include <filesystem>
@@ -15,12 +14,11 @@ public:
       logger_t logger, std::vector<std::string> include_paths,
       std::string working_directory,
       const std::map<std::string, callable_symbol_s> &callable_symbols,
-      imports::import_context_if *import_context,
       kernels::kernel_context_if *kernel_context)
       : logger_(logger), include_paths_(std::move(include_paths)),
         working_directory_(std::move(working_directory)),
-        callable_symbols_(callable_symbols), import_context_(import_context),
-        kernel_context_(kernel_context), next_lambda_id_(1), loop_depth_(0) {
+        callable_symbols_(callable_symbols), kernel_context_(kernel_context),
+        next_lambda_id_(1), loop_depth_(0) {
 
     std::vector<std::pair<std::string, slp::slp_type_e>> base_types = {
         {"int", slp::slp_type_e::INTEGER},
@@ -186,10 +184,6 @@ public:
 
   bool is_in_loop() override { return loop_depth_ > 0; }
 
-  imports::import_context_if *get_import_context() override {
-    return import_context_;
-  }
-
   kernels::kernel_context_if *get_kernel_context() override {
     return kernel_context_;
   }
@@ -215,10 +209,6 @@ public:
   }
 
   std::vector<std::string> &get_check_stack() override { return check_stack_; }
-
-  std::map<std::string, type_info_s> &get_current_exports() override {
-    return current_exports_;
-  }
 
   bool types_match(const type_info_s &expected,
                    const type_info_s &actual) override {
@@ -262,7 +252,6 @@ private:
   std::vector<std::string> include_paths_;
   std::string working_directory_;
   const std::map<std::string, callable_symbol_s> &callable_symbols_;
-  imports::import_context_if *import_context_;
   kernels::kernel_context_if *kernel_context_;
 
   std::vector<std::map<std::string, type_info_s>> scopes_;
@@ -277,7 +266,6 @@ private:
   std::set<std::string> checked_files_;
   std::set<std::string> currently_checking_;
   std::vector<std::string> check_stack_;
-  std::map<std::string, type_info_s> current_exports_;
   std::string current_file_;
 };
 
@@ -870,11 +858,10 @@ std::unique_ptr<compiler_context_if> create_compiler_context(
     logger_t logger, std::vector<std::string> include_paths,
     std::string working_directory,
     const std::map<std::string, callable_symbol_s> &callable_symbols,
-    imports::import_context_if *import_context,
     kernels::kernel_context_if *kernel_context) {
-  return std::make_unique<compiler_context_c>(
-      logger, std::move(include_paths), std::move(working_directory),
-      callable_symbols, import_context, kernel_context);
+  return std::make_unique<compiler_context_c>(logger, std::move(include_paths),
+                                              std::move(working_directory),
+                                              callable_symbols, kernel_context);
 }
 
 } // namespace pkg::core

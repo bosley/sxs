@@ -15,10 +15,6 @@ namespace pkg::core {
 class compiler_context_if;
 struct type_info_s;
 
-namespace imports {
-class import_context_if;
-}
-
 namespace kernels {
 class kernel_context_if;
 }
@@ -72,14 +68,7 @@ public:
       std::uint64_t id, const std::vector<callable_parameter_s> &parameters,
       slp::slp_type_e return_type, const slp::slp_object_c &body) = 0;
 
-  virtual imports::import_context_if *get_import_context() = 0;
   virtual kernels::kernel_context_if *get_kernel_context() = 0;
-
-  virtual bool copy_lambda_from(callable_context_if *source,
-                                std::uint64_t lambda_id) = 0;
-
-  virtual callable_context_if *
-  get_import_interpreter(const std::string &symbol_prefix) = 0;
 
   virtual std::string get_lambda_signature(std::uint64_t lambda_id) = 0;
 
@@ -128,11 +117,6 @@ struct callable_symbol_s {
 
 std::unique_ptr<callable_context_if> create_interpreter(
     const std::map<std::string, callable_symbol_s> &callable_symbols,
-    imports::import_context_if *import_context = nullptr,
-    kernels::kernel_context_if *kernel_context = nullptr,
-    std::map<std::string, std::unique_ptr<callable_context_if>>
-        *import_interpreters = nullptr,
-    std::map<std::string, std::shared_mutex> *import_interpreter_locks =
-        nullptr);
+    kernels::kernel_context_if *kernel_context = nullptr);
 
 } // namespace pkg::core

@@ -4,7 +4,7 @@
 
 The SXS instructions system provides the core language primitives that define program behavior. Instructions are C++-implemented callable symbols that handle control flow, variable binding, function definition, type reflection, error handling, loops, and data manipulation. The system operates through a three-phase architecture: generation (reserved for future compilation), interpretation (runtime execution), and type checking (compile-time validation).
 
-**Note:** This document describes the instruction system architecture and implementation. For information on how the core orchestrator manages the overall runtime, see `core.md`. For details on imports and kernels subsystems, see `imports.md` and `kernels.md`.
+**Note:** This document describes the instruction system architecture and implementation. For information on how the core orchestrator manages the overall runtime, see `core.md`. For details on the kernels subsystem, see `kernels.md`.
 
 ### Key Design Principles
 
@@ -14,7 +14,7 @@ The SXS instructions system provides the core language primitives that define pr
 - **Lambda System**: First-class functions via aberrant type with unique IDs and signature tracking
 - **Error Propagation**: Structured error handling through `try`/`recover` with injected symbols
 - **Loop Protocol**: Explicit loop context with iteration tracking and early exit via `done`
-- **Datum Separation**: Structural initialization commands (`import`, `load`) execute before runtime lock
+- **Datum Separation**: Structural initialization commands (`load`) execute before runtime lock
 
 ### Instruction Categories
 
@@ -45,15 +45,11 @@ The SXS instructions system provides the core language primitives that define pr
 - `apply` - Apply lambda to argument list
 
 **Module System (Datum):**
-- `#(import ...)` - Load SXS module into isolated sub-interpreter
 - `#(load ...)` - Load native kernel dylib
 - `#(debug ...)` - Debug output during initialization
 
 **Debugging:**
 - `debug` - Runtime debug output
-
-**Export:**
-- `export` - Publish symbol for import by other modules
 
 ## Architecture
 
@@ -144,7 +140,7 @@ namespace pkg::core::instructions {
 }
 ```
 
-Registers: `def`, `fn`, `debug`, `export`, `if`, `reflect`, `try`, `assert`, `recover`, `eval`, `apply`, `match`, `cast`, `do`, `done`, `at`, `eq`
+Registers: `def`, `fn`, `debug`, `if`, `reflect`, `try`, `assert`, `recover`, `eval`, `apply`, `match`, `cast`, `do`, `done`, `at`, `eq`
 
 **Datum Instructions:**
 ```cpp
@@ -153,7 +149,7 @@ namespace pkg::core::datum {
 }
 ```
 
-Registers: `debug` (datum variant), `import`, `load`
+Registers: `debug` (datum variant), `load`
 
 ### callable_context_if
 
@@ -169,7 +165,6 @@ Runtime interface providing instruction implementations access to interpreter st
 - `get_lambda_signature(id)`: Retrieve lambda type signature
 - `push_loop_context()` / `pop_loop_context()`: Manage loop state
 - `signal_loop_done(value)`: Signal loop exit with return value
-- `get_import_context()`: Access import subsystem
 - `get_kernel_context()`: Access kernel subsystem
 - `is_symbol_enscribing_valid_type(sym, type)`: Validate type symbols
 
@@ -187,8 +182,6 @@ Type checking interface mirroring runtime context for compile-time validation.
 - `get_lambda_signature(id)`: Retrieve lambda signature
 - `types_match(t1, t2)`: Compare type compatibility
 - `is_type_symbol(sym, type)`: Validate and resolve type symbols
-- `get_current_exports()`: Access export type map for validation
-- `resolve_file_path(path)`: Resolve import file paths
 - `load_kernel_types(name, dir)`: Load kernel function type signatures
 
 ## Instruction Pipeline
@@ -206,7 +199,7 @@ typedef std::function<byte_vector_t(callable_context_if &context,
     instruction_generator_fn_t;
 
 enum class hll_instruction_e {
-  NOP, DEFINE, FN, DEBUG, EXPORT, IF, REFLECT, TRY, ASSERT,
+  NOP, DEFINE, FN, DEBUG, IF, REFLECT, TRY, ASSERT,
   RECOVER, EVAL, APPLY, MATCH, CAST, DO, DONE, AT, EQ
 };
 ```
@@ -273,7 +266,7 @@ static void validate_parameters(compiler_context_if &context,
 
 **Type Checking vs Runtime:**
 - Type checking runs before interpreter creation
-- Validates imports and kernels without loading them
+- Validates kernels without loading them
 - Operates on `type_info_s` instead of `slp::slp_object_c` values
 - Enables fast validation without execution overhead
 - Supports ahead-of-time validation workflows
@@ -400,46 +393,6 @@ Types encoded as integer enum values.
 ```
 
 **Note:** Datum variant `#(debug ...)` executes during initialization phase.
-
-### export - Module Export
-
-**Syntax:** `(export symbol value)`
-
-**Purpose:** Define symbol and register it for import by other modules.
-
-**Parameters:**
-- `symbol`: Export name (SYMBOL type)
-- `value`: Expression to evaluate and export (ABERRANT - any type)
-
-**Return Type:** NONE
-
-**Runtime Behavior:**
-1. Evaluate value expression
-2. Define symbol in current scope
-3. Register export with import context
-4. Return empty object
-
-**Type Checking:**
-1. Compute type of value expression
-2. Define symbol type in current scope
-3. Add to current exports map for import validation
-4. Return NONE type
-
-**Example:**
-```scheme
-(export add (fn (a :int b :int) :int [
-  (alu/add a b)
-]))
-
-(export PI 3.14159)
-```
-
-**Errors:**
-- No import context available
-- Export registration failed
-- First argument not a symbol
-
-**Usage:** Only meaningful in files loaded via `#(import ...)`.
 
 ### if - Conditional Branch
 
@@ -1068,48 +1021,7 @@ Types encoded as integer enum values.
 
 ## Datum Instructions
 
-Datum instructions execute during the initialization phase before the runtime lock is triggered. They are prefixed with `#` and handle structural loading of imports and kernels.
-
-### #(import ...) - Module Import
-
-**Syntax:** `#(import symbol1 "path1" symbol2 "path2" ...)`
-
-**Purpose:** Load SXS modules into isolated sub-interpreters.
-
-**Parameters:** Variadic pairs of symbol and file path string
-
-**Return Type:** NONE
-
-**Runtime Behavior:**
-1. Validate imports are allowed (not locked)
-2. For each symbol/path pair:
-   - Validate types (SYMBOL and DQ_LIST)
-   - Call `import_context->attempt_import(symbol, path)`
-   - Throws exception on failure
-
-**Type Checking:**
-1. Validate argument pairs
-2. For each import:
-   - Resolve file path
-   - Check for circular imports
-   - Parse and type check import file
-   - Register exported symbols with prefix
-3. Return NONE type
-
-**Example:**
-```scheme
-#(import math "math.sxs")
-#(import utils "lib/utils.sxs" helpers "lib/helpers.sxs")
-```
-
-**Errors:**
-- Imports locked (called after runtime started)
-- Invalid argument types
-- File not found
-- Circular import detected
-- Type checking failure in imported file
-
-**See:** `imports.md` for detailed import system documentation.
+Datum instructions execute during the initialization phase before the runtime lock is triggered. They are prefixed with `#` and handle structural loading of kernels.
 
 ### #(load ...) - Kernel Loading
 
@@ -1167,9 +1079,9 @@ Datum instructions execute during the initialization phase before the runtime lo
 
 **Example:**
 ```scheme
-#(debug "Loading modules...")
-#(import math "math.sxs")
-#(debug "Modules loaded")
+#(debug "Loading kernels...")
+#(load "alu")
+#(debug "Kernels loaded")
 ```
 
 ## Type Checking Architecture
@@ -1225,25 +1137,6 @@ Shared validation logic used by all type checking functions.
 ```cpp
 validate_parameters(context, args_list, "if");
 ```
-
-### Import Type Checking
-
-Type checking imports without creating sub-interpreters:
-
-1. Resolve import file path
-2. Check for circular imports using `currently_checking` set
-3. Parse import file
-4. Create separate compiler context for import
-5. Type check import file in isolation
-6. Extract exported symbol types
-7. Register exports with prefix in parent context
-8. Remap lambda IDs to avoid conflicts
-
-**Benefits:**
-- Fast validation without execution
-- Detects circular imports early
-- Validates export availability
-- No sub-interpreter overhead
 
 ### Kernel Type Checking
 
@@ -1413,34 +1306,30 @@ Some instructions automatically define symbols in their scope.
 
 ## Locking Protocol
 
-### Import and Kernel Locking
+### Kernel Locking
 
-Imports and kernels can only be loaded during initialization phase.
+Kernels can only be loaded during initialization phase.
 
 **Lock Trigger:**
 - First non-datum expression in a bracket list
-- Interpreter sets `imports_locks_triggered_` flag
-- Calls `import_context->lock()` and `kernel_context->lock()`
-- Both subsystems set their locked flags
+- Calls `kernel_context->lock()`
+- Kernel subsystem sets its locked flag
 
 **Post-Lock Behavior:**
-- `#(import ...)` checks `is_import_allowed()`, throws if locked
 - `#(load ...)` checks `is_load_allowed()`, throws if locked
 - Ensures all structural loading complete before computation
 
 **Example:**
 ```scheme
-#(import math "math.sxs")
 #(load "alu")
 
 (def x 10)
 ```
 
-After `(def x 10)` executes, imports and kernels are locked.
+After `(def x 10)` executes, kernels are locked.
 
 **Rationale:**
 - All dependencies known before execution
-- Enables static analysis of module graph
 - Prevents dynamic loading during runtime
 - Aligns with type checking expectations
 

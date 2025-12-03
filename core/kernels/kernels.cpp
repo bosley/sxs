@@ -345,7 +345,7 @@ bool kernel_manager_c::load_kernel_dylib(const std::string &kernel_name,
   def_ctx.kernel_dir = kernel_dir;
 
   auto def_symbols = get_kernel_definition_symbols(&def_ctx);
-  auto def_interpreter = create_interpreter(def_symbols, nullptr, nullptr);
+  auto def_interpreter = create_interpreter(def_symbols, nullptr);
 
   std::vector<slp::slp_object_c> datums;
 

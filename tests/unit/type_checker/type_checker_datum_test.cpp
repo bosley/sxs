@@ -67,33 +67,6 @@ TEST_CASE("datum debug - nested in lambda",
   CHECK(type.base_type == slp::slp_type_e::INTEGER);
 }
 
-TEST_CASE("datum import - invalid symbol argument fails",
-          "[unit][type_checker][datum][import][error]") {
-  auto logger = create_test_logger();
-  pkg::core::type_checker::type_checker_c checker(logger, {}, ".");
-
-  CHECK_THROWS_AS(checker.check_expression("[ #(import 123 \"file.sxs\") ]"),
-                  std::exception);
-}
-
-TEST_CASE("datum import - invalid path argument fails",
-          "[unit][type_checker][datum][import][error]") {
-  auto logger = create_test_logger();
-  pkg::core::type_checker::type_checker_c checker(logger, {}, ".");
-
-  CHECK_THROWS_AS(checker.check_expression("[ #(import lib 123) ]"),
-                  std::exception);
-}
-
-TEST_CASE("datum import - odd number of args fails",
-          "[unit][type_checker][datum][import][error]") {
-  auto logger = create_test_logger();
-  pkg::core::type_checker::type_checker_c checker(logger, {}, ".");
-
-  CHECK_THROWS_AS(checker.check_expression("[ #(import lib) ]"),
-                  std::exception);
-}
-
 TEST_CASE("datum load - non-string argument fails",
           "[unit][type_checker][datum][load][error]") {
   auto logger = create_test_logger();
