@@ -29,7 +29,7 @@ if(USE_TCC)
     set(CMAKE_SKIP_BUILD_RPATH FALSE)
     set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
     set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-    set(CMAKE_BUILD_RPATH "${CMAKE_BINARY_DIR}/libs/buffer:${CMAKE_BINARY_DIR}/libs/slp")
+    set(CMAKE_BUILD_RPATH "${CMAKE_BINARY_DIR}/libs/buffer:${CMAKE_BINARY_DIR}/libs/slp:${CMAKE_BINARY_DIR}/libs/scanner")
 endif()
 
 set(CMAKE_C_STANDARD 11)
@@ -63,6 +63,8 @@ endif()
 
 message(STATUS "Found libtcc: ${LIBTCC_LIBRARY}")
 message(STATUS "libtcc include dir: ${LIBTCC_INCLUDE_DIR}")
+
+include_directories(${CMAKE_SOURCE_DIR}/libs)
 
 add_subdirectory(libs)
 add_subdirectory(cmds)
