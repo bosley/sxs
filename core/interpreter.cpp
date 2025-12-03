@@ -45,7 +45,8 @@ public:
       const std::map<std::string, callable_symbol_s> &callable_symbols,
       kernels::kernel_context_if *kernel_context)
       : callable_symbols_(callable_symbols), kernel_context_(kernel_context),
-        next_lambda_id_(1), current_scope_level_(0) {
+        next_lambda_id_(1), current_scope_level_(0),
+        kernels_locked_triggered_(false) {
     initialize_type_map();
     push_scope();
   }
@@ -171,6 +172,13 @@ public:
       slp::slp_object_c result;
       for (size_t i = 0; i < list.size(); i++) {
         auto elem = list.at(i);
+
+        if (!kernels_locked_triggered_ &&
+            elem.type() != slp::slp_type_e::DATUM) {
+          trigger_kernel_lock();
+          kernels_locked_triggered_ = true;
+        }
+
         result = eval(elem);
       }
       return result;
@@ -391,6 +399,12 @@ public:
   }
 
 private:
+  void trigger_kernel_lock() {
+    if (kernel_context_) {
+      kernel_context_->lock();
+    }
+  }
+
   void initialize_type_map() {
     std::vector<std::pair<std::string, slp::slp_type_e>> base_types = {
         {"int", slp::slp_type_e::INTEGER},
@@ -506,6 +520,7 @@ private:
   std::uint64_t next_lambda_id_;
   size_t current_scope_level_;
   kernels::kernel_context_if *kernel_context_;
+  bool kernels_locked_triggered_;
   std::vector<loop_context_s> loop_contexts_;
 };
 

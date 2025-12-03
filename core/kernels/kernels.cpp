@@ -271,7 +271,7 @@ kernel_context_if &kernel_manager_c::get_kernel_context() { return *context_; }
 
 void kernel_manager_c::lock_kernels() {
   kernels_locked_ = true;
-  logger_->debug("Kernels locked - no more kernel loads allowed");
+  logger_->info("Kernels locked - no more kernel loads allowed");
 }
 
 std::map<std::string, callable_symbol_s>

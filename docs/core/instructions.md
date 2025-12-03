@@ -1074,7 +1074,6 @@ The type checking system operates independently from runtime execution, enabling
 | Values | `slp::slp_object_c` | `type_info_s` |
 | Symbols | Bound to values | Bound to types |
 | Lambdas | Body + closure | Signature only |
-| Imports | Sub-interpreters | Type exports |
 | Kernels | Dylib functions | Function signatures |
 | Execution | Full evaluation | Type inference |
 

@@ -81,8 +81,6 @@ int core_c::run() {
       options_.logger->debug("Kernel function available: {}", name);
     }
 
-    kernel_manager_->lock_kernels();
-
     options_.logger->info("Execution complete");
 
     return 0;
