@@ -145,6 +145,12 @@ static bool process_kernel(const fs::path &kernel_src_dir,
     bool copy_success =
         find_and_copy_dylib(kernel_src_dir, cache_kernel_dir, kernel_name);
     if (copy_success) {
+      fs::path src_kernel_sxs = kernel_src_dir / "kernel.sxs";
+      fs::path dest_kernel_sxs = cache_kernel_dir / "kernel.sxs";
+      if (fs::exists(src_kernel_sxs)) {
+        fs::copy_file(src_kernel_sxs, dest_kernel_sxs,
+                      fs::copy_options::overwrite_existing);
+      }
       write_hash(cache_kernel_dir, current_hash);
       return true;
     }
@@ -162,9 +168,15 @@ static bool process_kernel(const fs::path &kernel_src_dir,
 static bool check_project_types(const fs::path &project_path) {
   fs::path init_file = project_path / "init.sxs";
 
-  fs::path cache_dir = project_path / ".sxs-cache" / "kernels";
   std::vector<std::string> include_paths;
 
+  fs::path project_kernels_src = project_path / "kernels";
+  if (fs::exists(project_kernels_src) &&
+      fs::is_directory(project_kernels_src)) {
+    include_paths.push_back(project_kernels_src.string());
+  }
+
+  fs::path cache_dir = project_path / ".sxs-cache" / "kernels";
   if (fs::exists(cache_dir) && fs::is_directory(cache_dir)) {
     include_paths.push_back(cache_dir.string());
   }

@@ -1,0 +1,10 @@
+[
+    #(define-form tuple {:int :str :real})
+
+    #(define-kernel example "libkernel_example.dylib" [
+        (define-function hello_world () :str)
+        (define-function make_tuple (id :int name :str value :real) :tuple)
+        (define-function get_tuple_id (t :tuple) :int)
+        (define-function tuple_summary (t :tuple) :str)
+    ])
+]
