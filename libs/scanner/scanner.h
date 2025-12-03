@@ -46,4 +46,36 @@ slp_scanner_static_type_result_t
 slp_scanner_read_static_base_type(slp_scanner_t *scanner,
                                   slp_scanner_stop_symbols_t *stop_symbols);
 
+/*
+A start/end range to view into a buffer some grouping of data (a subset)
+*/
+typedef struct slp_scanner_find_group_result_s {
+  bool success;
+  size_t index_of_start_symbol;
+  size_t index_of_closing_symbol;
+} slp_scanner_find_group_result_t;
+
+/*
+scans the buffer from the current position
+if the current position does not match must_start_with, return failure
+(a user could check themselves, but we're completionists)
+must_end_with is the byte that says "stop here"
+if can_escape_with is not NULL then any byte matching must_end_with may be
+skipped over and included into the group iff immediatly preceeded by the
+*can_escape_with
+
+this provides the ability for us to get a view into something of a list "form"
+without limiting us to JUST processing () [] {} etc. We can say parse this
+group:   !a b +1 2$ where ! is start and $ is end then it also means we can do
+"hello \"world!\"!" my providing '\' as the escape byte and having start AND end
+both be: " Naturally this means we can also find () [] {} || <> etc provided
+that the buffer position starts with the must_start_with so this enforces/
+implies that the caller is doing something specific, and we just don't need to
+know
+
+*/
+slp_scanner_find_group_result_t
+slp_scanner_find_group(slp_scanner_t *scanner, uint8_t must_start_with,
+                       uint8_t must_end_with, uint8_t *can_escape_with);
+
 #endif

@@ -214,3 +214,89 @@ slp_scanner_read_static_base_type(slp_scanner_t *scanner,
                .data = &buf->data[token_start],
                .byte_length = token_length}};
 }
+
+/*
+============================================================================================================
+This scans the buffer from the current start position until some given end
+symbol We offer the option of "escaping" briefly from detecting the end byte
+============================================================================================================
+*/
+
+slp_scanner_find_group_result_t
+slp_scanner_find_group(slp_scanner_t *scanner, uint8_t must_start_with,
+                       uint8_t must_end_with, uint8_t *can_escape_with) {
+  if (!scanner) {
+    return (slp_scanner_find_group_result_t){.success = false,
+                                             .index_of_start_symbol = 0,
+                                             .index_of_closing_symbol = 0};
+  }
+
+  slp_buffer_t *buf = scanner->buffer;
+  if (!buf) {
+    return (slp_scanner_find_group_result_t){.success = false,
+                                             .index_of_start_symbol = 0,
+                                             .index_of_closing_symbol = 0};
+  }
+
+  size_t pos = scanner->position;
+
+  if (pos >= buf->count) {
+    return (slp_scanner_find_group_result_t){.success = false,
+                                             .index_of_start_symbol = 0,
+                                             .index_of_closing_symbol = 0};
+  }
+
+  if (buf->data[pos] != must_start_with) {
+    return (slp_scanner_find_group_result_t){.success = false,
+                                             .index_of_start_symbol = 0,
+                                             .index_of_closing_symbol = 0};
+  }
+
+  size_t start_index = pos;
+  pos++;
+
+  bool same_delimiters = (must_start_with == must_end_with);
+  int depth = 1;
+
+  while (pos < buf->count) {
+    uint8_t current = buf->data[pos];
+
+    bool is_escaped = false;
+    if (can_escape_with != NULL && pos > start_index + 1) {
+      if (buf->data[pos - 1] == *can_escape_with) {
+        is_escaped = true;
+      }
+    }
+
+    if (!is_escaped) {
+      if (same_delimiters) {
+        if (current == must_end_with) {
+          scanner->position = pos;
+          return (slp_scanner_find_group_result_t){
+              .success = true,
+              .index_of_start_symbol = start_index,
+              .index_of_closing_symbol = pos};
+        }
+      } else {
+        if (current == must_start_with) {
+          depth++;
+        } else if (current == must_end_with) {
+          depth--;
+          if (depth == 0) {
+            scanner->position = pos;
+            return (slp_scanner_find_group_result_t){
+                .success = true,
+                .index_of_start_symbol = start_index,
+                .index_of_closing_symbol = pos};
+          }
+        }
+      }
+    }
+
+    pos++;
+  }
+
+  return (slp_scanner_find_group_result_t){.success = false,
+                                           .index_of_start_symbol = 0,
+                                           .index_of_closing_symbol = 0};
+}

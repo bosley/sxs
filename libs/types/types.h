@@ -4,6 +4,8 @@
 // NOTE: This file is only for "types" that "sit on" or "exist in" a slp buffer
 //       This file is NOT for random C types that the libraries need
 
+#include "buffer/buffer.h"
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -32,8 +34,7 @@ typedef enum slp_static_base_e {
   SLP_STATIC_BASE_SYMBOL,
 } slp_static_base_e;
 
-
-typedef uint8_t* slp_buffer_unowned_reference_t;
+typedef uint8_t *slp_buffer_unowned_reference_t;
 
 /*
     The static types and base types - really everything uses buffers. We don't
@@ -42,7 +43,8 @@ typedef uint8_t* slp_buffer_unowned_reference_t;
 */
 typedef struct slp_static_type_s {
   slp_static_base_e base;
-  slp_buffer_unowned_reference_t data; // note: we typedef'd this for ownership clarity. be sure to respect it!
+  slp_buffer_unowned_reference_t data; // note: we typedef'd this for ownership
+                                       // clarity. be sure to respect it!
   size_t byte_length;
 } slp_static_type_t;
 
