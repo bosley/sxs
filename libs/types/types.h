@@ -43,5 +43,4 @@ typedef struct slp_static_type_s {
   size_t byte_length;
 } slp_static_type_t;
 
-
 #endif

@@ -35,7 +35,8 @@ static bool is_whitespace(uint8_t c) {
 
 static bool is_digit(uint8_t c) { return c >= '0' && c <= '9'; }
 
-static bool is_stop_symbol(uint8_t c, slp_scanner_stop_symbols_t *stop_symbols) {
+static bool is_stop_symbol(uint8_t c,
+                           slp_scanner_stop_symbols_t *stop_symbols) {
   if (!stop_symbols || !stop_symbols->symbols) {
     return false;
   }
@@ -50,18 +51,20 @@ static bool is_stop_symbol(uint8_t c, slp_scanner_stop_symbols_t *stop_symbols) 
 /*
 ============================================================================================================
 This is the static type parser that yeets off of the buffer
-it follows a simple state machine and only parses the most primitive types "static base types" that
-represent some "thing" that does not have an "inner" (conceptually) 
-For instance: an integer absolutly has "bits" but if we consider it from the mindset of "physics" these
-types would be like atoms. The bits are there sure, but thats a different "scale" 
-In classic lisps these are called atoms, but we aren't necessarily parsing a lisp here so i wanted to
-stay away from the terminology. Esepcially since AI have been doing docs and tests for me - its just easier
+it follows a simple state machine and only parses the most primitive types
+"static base types" that represent some "thing" that does not have an "inner"
+(conceptually) For instance: an integer absolutly has "bits" but if we consider
+it from the mindset of "physics" these types would be like atoms. The bits are
+there sure, but thats a different "scale" In classic lisps these are called
+atoms, but we aren't necessarily parsing a lisp here so i wanted to stay away
+from the terminology. Esepcially since AI have been doing docs and tests for me
+- its just easier
 ============================================================================================================
 */
 
 slp_scanner_static_type_result_t
 slp_scanner_read_static_base_type(slp_scanner_t *scanner,
-                                   slp_scanner_stop_symbols_t *stop_symbols) {
+                                  slp_scanner_stop_symbols_t *stop_symbols) {
   if (!scanner) {
     return (slp_scanner_static_type_result_t){
         .success = false,

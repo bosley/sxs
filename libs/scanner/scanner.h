@@ -34,16 +34,16 @@ reads from buffer:
   real
   symbols
 
-Terminates by default on all whitespace. 
+Terminates by default on all whitespace.
 Optionally accepts additional stop symbols that will terminate parsing
 without consuming the stop character. stop_symbols may be NULL.
 Stop symbols must NOT include '.', '+', or '-'.
 
-Failure to read an int, real, r symbol will result in an error - indicated in the result
-Success will automatically move the position of the scanner
+Failure to read an int, real, r symbol will result in an error - indicated in
+the result Success will automatically move the position of the scanner
 */
 slp_scanner_static_type_result_t
 slp_scanner_read_static_base_type(slp_scanner_t *scanner,
-                                   slp_scanner_stop_symbols_t *stop_symbols);
+                                  slp_scanner_stop_symbols_t *stop_symbols);
 
 #endif
