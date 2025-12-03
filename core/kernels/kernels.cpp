@@ -189,6 +189,13 @@ get_kernel_definition_symbols(kernel_definition_context_s *ctx) {
 
         ctx->declared_forms[form_name] = element_types;
 
+        context.define_form(form_name, element_types);
+
+        if (ctx->manager->get_parent_context()) {
+          ctx->manager->get_parent_context()->define_form(form_name,
+                                                          element_types);
+        }
+
         slp::slp_object_c result;
         return result;
       }};
@@ -274,6 +281,10 @@ kernel_manager_c::get_registered_functions() const {
 
 void kernel_manager_c::set_parent_context(callable_context_if *context) {
   parent_context_ = context;
+}
+
+callable_context_if *kernel_manager_c::get_parent_context() const {
+  return parent_context_;
 }
 
 std::string

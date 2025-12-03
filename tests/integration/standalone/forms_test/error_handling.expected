@@ -1,0 +1,19 @@
+=== Error Handling Test ===
+
+--- Testing valid form casts ---
+Created valid pair
+Successfully cast to :pair
+
+--- Testing form type validation ---
+Created brace list with 3 elements (pair expects 2)
+Created brace list with wrong types (pair expects int int)
+
+--- Testing valid point cast ---
+Created valid point
+Successfully cast to :point
+
+--- Testing valid result cast ---
+Created valid result
+Successfully cast to :result
+
+=== All error handling tests passed ===
