@@ -1,4 +1,4 @@
-add_executable(sxs main.c)
+add_executable(sxs main.c print.c)
 
 target_link_libraries(sxs PRIVATE
     buffer
