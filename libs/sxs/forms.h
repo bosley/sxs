@@ -83,5 +83,6 @@ bool sxs_forms_is_symbol_known_form(symbol_forms_t *forms,
                                     slp_object_t *symbol);
 form_definition_t *sxs_forms_lookup(symbol_forms_t *forms,
                                     slp_object_t *symbol);
+const char *sxs_forms_get_form_type_name(form_type_e type);
 
 #endif

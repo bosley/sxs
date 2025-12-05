@@ -35,6 +35,7 @@ typedef struct slp_error_data_s {
   size_t position;
   slp_error_type_e error_type;
   char *message;
+  slp_buffer_unowned_ptr_t source_buffer;
 } slp_error_data_t;
 
 /*
@@ -42,6 +43,7 @@ typedef struct slp_error_data_s {
 */
 typedef struct slp_object_s {
   slp_type_e type;
+  size_t source_position;
   union {
     int64_t integer;
     double real;

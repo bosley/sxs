@@ -5,7 +5,8 @@
 
 extern slp_object_t *sxs_create_error_object(slp_error_type_e error_type,
                                              const char *message,
-                                             size_t position);
+                                             size_t position,
+                                             slp_buffer_unowned_ptr_t source_buffer);
 
 static sxs_callable_t *g_builtin_load_store_callable = NULL;
 
@@ -106,12 +107,12 @@ static slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
                                             size_t arg_count) {
   if (!runtime) {
     return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                   "@ builtin: nil runtime", 0);
+                                   "@ builtin: nil runtime", 0, NULL);
   }
 
   if (!callable) {
     return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                   "@ builtin: nil callable", 0);
+                                   "@ builtin: nil callable", 0, runtime->source_buffer);
   }
 
   slp_object_t *eval_args[3] = {NULL, NULL, NULL};
@@ -123,7 +124,7 @@ static slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
         }
       }
       return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                     "@ builtin: nil argument", 0);
+                                     "@ builtin: nil argument", 0, runtime->source_buffer);
     }
     eval_args[i] = sxs_eval_object(runtime, args[i]);
     if (!eval_args[i]) {
@@ -133,7 +134,7 @@ static slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
         }
       }
       return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                     "@ builtin: eval failed", 0);
+                                     "@ builtin: eval failed", 0, runtime->source_buffer);
     }
     if (eval_args[i]->type == SLP_TYPE_ERROR) {
       slp_object_t *error = eval_args[i];
@@ -149,14 +150,49 @@ static slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
   sxs_callable_variant_t *variant =
       find_matching_variant(callable, eval_args, arg_count);
   if (!variant) {
+    char error_msg[1024];
+    int offset = snprintf(error_msg, sizeof(error_msg),
+                         "@ builtin|received (");
+    for (size_t i = 0; i < arg_count && offset < (int)sizeof(error_msg) - 1; i++) {
+      form_type_e arg_form = sxs_forms_get_form_type(eval_args[i]);
+      const char *form_name = sxs_forms_get_form_type_name(arg_form);
+      if (i > 0) {
+        offset += snprintf(error_msg + offset, sizeof(error_msg) - offset, " ");
+      }
+      offset += snprintf(error_msg + offset, sizeof(error_msg) - offset, "%s", form_name);
+    }
+    offset += snprintf(error_msg + offset, sizeof(error_msg) - offset, ")|expected ");
+    
+    for (size_t v = 0; v < callable->variant_count && offset < (int)sizeof(error_msg) - 1; v++) {
+      if (v > 0) {
+        offset += snprintf(error_msg + offset, sizeof(error_msg) - offset, " or ");
+      }
+      offset += snprintf(error_msg + offset, sizeof(error_msg) - offset, "(");
+      for (size_t p = 0; p < callable->variants[v].param_count && offset < (int)sizeof(error_msg) - 1; p++) {
+        if (p > 0) {
+          offset += snprintf(error_msg + offset, sizeof(error_msg) - offset, " ");
+        }
+        if (callable->variants[v].params && callable->variants[v].params[p].form) {
+          for (size_t t = 0; t < callable->variants[v].params[p].form->type_count; t++) {
+            if (t > 0) {
+              offset += snprintf(error_msg + offset, sizeof(error_msg) - offset, "|");
+            }
+            const char *type_name = sxs_forms_get_form_type_name(callable->variants[v].params[p].form->types[t]);
+            offset += snprintf(error_msg + offset, sizeof(error_msg) - offset, "%s", type_name);
+          }
+        }
+      }
+      offset += snprintf(error_msg + offset, sizeof(error_msg) - offset, ")");
+    }
+    
+    size_t error_position = arg_count > 0 ? args[0]->source_position : 0;
+    
     for (size_t i = 0; i < arg_count; i++) {
       if (eval_args[i]) {
         slp_free_object(eval_args[i]);
       }
     }
-    return sxs_create_error_object(
-        SLP_ERROR_PARSE_TOKEN,
-        "@ builtin: no matching variant for argument types", 0);
+    return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN, error_msg, error_position, runtime->source_buffer);
   }
 
   if (arg_count == 1) {
@@ -165,7 +201,7 @@ static slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
 
     if (index < 0 || (size_t)index >= SXS_OBJECT_STORAGE_SIZE) {
       return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                     "@ getter: index out of bounds", 0);
+                                     "@ getter: index out of bounds", 0, runtime->source_buffer);
     }
 
     slp_object_t *stored = runtime->object_storage[index];
@@ -187,7 +223,7 @@ static slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
     if (dest_index < 0 || (size_t)dest_index >= SXS_OBJECT_STORAGE_SIZE) {
       slp_free_object(eval_args[1]);
       return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                     "@ setter: dest index out of bounds", 0);
+                                     "@ setter: dest index out of bounds", 0, runtime->source_buffer);
     }
 
     if (runtime->object_storage[dest_index]) {
@@ -208,7 +244,7 @@ static slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
       slp_free_object(eval_args[1]);
       slp_free_object(eval_args[2]);
       return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                     "@ CAS: dest index out of bounds", 0);
+                                     "@ CAS: dest index out of bounds", 0, runtime->source_buffer);
     }
 
     slp_object_t *current = runtime->object_storage[dest_index];
@@ -256,7 +292,7 @@ static slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
   }
   return sxs_create_error_object(
       SLP_ERROR_PARSE_TOKEN,
-      "@ builtin: invalid arg count (expected 1, 2, or 3)", 0);
+      "@ builtin: invalid arg count (expected 1, 2, or 3)", 0, runtime->source_buffer);
 }
 
 /*

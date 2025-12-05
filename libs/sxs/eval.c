@@ -6,23 +6,24 @@
 extern slp_callbacks_t *sxs_runtime_get_callbacks(sxs_runtime_t *runtime);
 extern slp_object_t *sxs_create_error_object(slp_error_type_e error_type,
                                              const char *message,
-                                             size_t position);
+                                             size_t position,
+                                             slp_buffer_unowned_ptr_t source_buffer);
 
 static slp_object_t *sxs_eval_list(sxs_runtime_t *runtime, slp_object_t *list) {
   if (!list || list->type != SLP_TYPE_LIST_P) {
     return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                   "invalid list type for evaluation", 0);
+                                   "invalid list type for evaluation", 0, NULL);
   }
 
   if (list->value.list.count == 0) {
     return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                   "empty list evaluation", 0);
+                                   "empty list evaluation", 0, NULL);
   }
 
   slp_object_t *first = list->value.list.items[0];
   if (!first) {
     return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                   "nil first item in list", 0);
+                                   "nil first item in list", 0, NULL);
   }
 
   slp_object_t **args = NULL;
@@ -36,11 +37,11 @@ static slp_object_t *sxs_eval_list(sxs_runtime_t *runtime, slp_object_t *list) {
     sxs_callable_t *callable = (sxs_callable_t *)first->value.fn_data;
     if (!callable) {
       return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                     "nil builtin callable", 0);
+                                     "nil builtin callable", 0, NULL);
     }
     if (!callable->impl.builtin_fn) {
       return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                     "nil builtin function pointer", 0);
+                                     "nil builtin function pointer", 0, NULL);
     }
     return callable->impl.builtin_fn(runtime, callable, args, arg_count);
   }
@@ -49,10 +50,10 @@ static slp_object_t *sxs_eval_list(sxs_runtime_t *runtime, slp_object_t *list) {
     sxs_callable_t *callable = (sxs_callable_t *)first->value.fn_data;
     if (!callable) {
       return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                     "nil lambda callable", 0);
+                                     "nil lambda callable", 0, NULL);
     }
     return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                   "lambda evaluation not yet implemented", 0);
+                                   "lambda evaluation not yet implemented", 0, NULL);
   }
 
   if (first->type == SLP_TYPE_SYMBOL) {
@@ -67,11 +68,11 @@ static slp_object_t *sxs_eval_list(sxs_runtime_t *runtime, slp_object_t *list) {
       memcpy(error_msg + prefix_len, first->value.buffer->data, copy_len);
       error_msg[prefix_len + copy_len] = '\0';
     }
-    return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN, error_msg, 0);
+    return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN, error_msg, 0, NULL);
   }
 
   return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN, "invalid function type",
-                                 0);
+                                 0, NULL);
 }
 
 slp_object_t *sxs_eval_object(sxs_runtime_t *runtime, slp_object_t *object) {
@@ -110,13 +111,13 @@ slp_object_t *sxs_eval_object(sxs_runtime_t *runtime, slp_object_t *object) {
 
     if (!object->value.buffer) {
       return sxs_create_error_object(SLP_ERROR_PARSE_QUOTED_TOKEN,
-                                     "quoted expression has nil buffer", 0);
+                                     "quoted expression has nil buffer", 0, NULL);
     }
 
     slp_callbacks_t *callbacks = sxs_runtime_get_callbacks(runtime);
     if (!callbacks) {
       return sxs_create_error_object(
-          SLP_ERROR_ALLOCATION, "failed to get callbacks for quoted eval", 0);
+          SLP_ERROR_ALLOCATION, "failed to get callbacks for quoted eval", 0, NULL);
     }
 
     bool prev_error_state = runtime->runtime_has_error;
@@ -127,7 +128,7 @@ slp_object_t *sxs_eval_object(sxs_runtime_t *runtime, slp_object_t *object) {
     if (result != 0 || runtime->runtime_has_error) {
       runtime->runtime_has_error = prev_error_state;
       return sxs_create_error_object(SLP_ERROR_PARSE_QUOTED_TOKEN,
-                                     "quoted expression evaluation failed", 0);
+                                     "quoted expression evaluation failed", 0, NULL);
     }
 
     runtime->runtime_has_error = prev_error_state;
@@ -177,6 +178,6 @@ slp_object_t *sxs_eval_object(sxs_runtime_t *runtime, slp_object_t *object) {
   default:
     printf("[EVAL UNKNOWN TYPE]\n");
     return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                   "unknown object type in eval", 0);
+                                   "unknown object type in eval", 0, NULL);
   }
 }

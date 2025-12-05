@@ -10,6 +10,8 @@ typedef struct slp_buffer_s {
   size_t count;
 } slp_buffer_t;
 
+typedef slp_buffer_t *slp_buffer_unowned_ptr_t;
+
 typedef struct {
   slp_buffer_t *left;
   slp_buffer_t *right;

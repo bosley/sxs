@@ -50,6 +50,9 @@ void slp_free_object(slp_object_t *object) {
       if (error_data->message) {
         free(error_data->message);
       }
+      if (error_data->source_buffer) {
+        slp_buffer_destroy(error_data->source_buffer);
+      }
       free(error_data);
     }
   }
@@ -68,6 +71,7 @@ slp_object_t *slp_object_copy(slp_object_t *object) {
   }
 
   clone->type = object->type;
+  clone->source_position = object->source_position;
 
   switch (object->type) {
   case SLP_TYPE_INTEGER:
@@ -132,6 +136,19 @@ slp_object_t *slp_object_copy(slp_object_t *object) {
         strcpy(cloned_error->message, original_error->message);
       } else {
         cloned_error->message = NULL;
+      }
+      if (original_error->source_buffer) {
+        cloned_error->source_buffer = slp_buffer_copy(original_error->source_buffer);
+        if (!cloned_error->source_buffer) {
+          if (cloned_error->message) {
+            free(cloned_error->message);
+          }
+          free(cloned_error);
+          free(clone);
+          return NULL;
+        }
+      } else {
+        cloned_error->source_buffer = NULL;
       }
       clone->value.fn_data = cloned_error;
     } else {
@@ -354,6 +371,7 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
           slp_object_t *object = malloc(sizeof(slp_object_t));
           if (object) {
             object->type = SLP_TYPE_QUOTED;
+            object->source_position = group.index_of_start_symbol;
             object->value.buffer = quoted_buffer;
             if (callbacks->on_object) {
               callbacks->on_object(object, callbacks->context);
@@ -378,6 +396,7 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
             slp_object_t *object = malloc(sizeof(slp_object_t));
             if (object) {
               object->type = SLP_TYPE_QUOTED;
+              object->source_position = scanner->position - result.data.byte_length;
               object->value.buffer = quoted_buffer;
               if (callbacks->on_object) {
                 callbacks->on_object(object, callbacks->context);
@@ -444,6 +463,8 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
       state->errors++;
       break;
     }
+
+    object->source_position = scanner->position - result.data.byte_length;
 
     if (result.data.base == SLP_STATIC_BASE_INTEGER) {
       object->type = SLP_TYPE_INTEGER;

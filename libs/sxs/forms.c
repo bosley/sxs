@@ -215,3 +215,52 @@ form_definition_t *sxs_forms_lookup(symbol_forms_t *forms,
 
   return NULL;
 }
+
+const char *sxs_forms_get_form_type_name(form_type_e type) {
+  switch (type) {
+  case FORM_TYPE_NONE:
+    return "none";
+  case FORM_TYPE_INTEGER:
+    return "int";
+  case FORM_TYPE_REAL:
+    return "real";
+  case FORM_TYPE_SYMBOL:
+    return "symbol";
+  case FORM_TYPE_LIST_S:
+    return "list-s";
+  case FORM_TYPE_LIST_P:
+    return "list-p";
+  case FORM_TYPE_LIST_B:
+    return "list-b";
+  case FORM_TYPE_LIST_C:
+    return "list-c";
+  case FORM_TYPE_SOME:
+    return "some";
+  case FORM_TYPE_FN:
+    return "fn";
+  case FORM_TYPE_ANY:
+    return "any";
+  case FORM_TYPE_INTEGER_VARIADIC:
+    return "int..";
+  case FORM_TYPE_REAL_VARIADIC:
+    return "real..";
+  case FORM_TYPE_SYMBOL_VARIADIC:
+    return "symbol..";
+  case FORM_TYPE_LIST_S_VARIADIC:
+    return "list-s..";
+  case FORM_TYPE_LIST_P_VARIADIC:
+    return "list-p..";
+  case FORM_TYPE_LIST_B_VARIADIC:
+    return "list-b..";
+  case FORM_TYPE_LIST_C_VARIADIC:
+    return "list-c..";
+  case FORM_TYPE_SOME_VARIADIC:
+    return "some..";
+  case FORM_TYPE_FN_VARIADIC:
+    return "fn..";
+  case FORM_TYPE_ANY_VARIADIC:
+    return "any..";
+  default:
+    return "unknown";
+  }
+}

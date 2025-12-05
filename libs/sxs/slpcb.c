@@ -10,7 +10,8 @@ extern slp_object_t *sxs_eval_object(sxs_runtime_t *runtime,
                                      slp_object_t *object);
 extern slp_object_t *sxs_create_error_object(slp_error_type_e error_type,
                                              const char *message,
-                                             size_t position);
+                                             size_t position,
+                                             slp_buffer_unowned_ptr_t source_buffer);
 
 extern slp_object_t *sxs_get_builtin_load_store_object(void);
 
@@ -173,8 +174,11 @@ slp_object_t *sxs_convert_proc_list_to_objects_and_free(sxs_context_t *context,
 
   list->type = list_type;
   list->value.list.count = context->proc_list_count;
+  list->source_position = 0;
 
   if (context->proc_list_count > 0) {
+    list->source_position = context->object_proc_list[0]->source_position;
+    
     list->value.list.items =
         malloc(sizeof(slp_object_t *) * context->proc_list_count);
     if (!list->value.list.items) {
@@ -402,7 +406,7 @@ static void sxs_handle_error_from_slp_callback(slp_error_type_e error_type,
   sxs_clear_context_proc_list(sxs_context);
 
   slp_object_t *error_obj =
-      sxs_create_error_object(error_type, message, position);
+      sxs_create_error_object(error_type, message, position, buffer);
   if (!error_obj) {
     fprintf(stderr, "[ERROR] Failed to create error object, exiting\n");
     exit(1);

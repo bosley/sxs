@@ -105,7 +105,8 @@ static void sxs_callable_free_impl(void *fn_data) {
 }
 
 slp_object_t *sxs_create_error_object(slp_error_type_e error_type,
-                                      const char *message, size_t position) {
+                                      const char *message, size_t position,
+                                      slp_buffer_unowned_ptr_t source_buffer) {
   slp_object_t *error_obj = malloc(sizeof(slp_object_t));
   if (!error_obj) {
     fprintf(stderr, "Failed to allocate error object\n");
@@ -133,6 +134,12 @@ slp_object_t *sxs_create_error_object(slp_error_type_e error_type,
     strcpy(error_data->message, message);
   } else {
     error_data->message = NULL;
+  }
+
+  if (source_buffer) {
+    error_data->source_buffer = slp_buffer_copy(source_buffer);
+  } else {
+    error_data->source_buffer = NULL;
   }
 
   error_obj->type = SLP_TYPE_ERROR;
@@ -192,6 +199,7 @@ sxs_runtime_t *sxs_runtime_new(void) {
 
   runtime->next_context_id = 1;
   runtime->runtime_has_error = false;
+  runtime->source_buffer = NULL;
 
   for (size_t i = 0; i < SXS_OBJECT_STORAGE_SIZE; i++) {
     runtime->object_storage[i] = NULL;
@@ -209,6 +217,10 @@ void sxs_runtime_free(sxs_runtime_t *runtime) {
     sxs_context_free(runtime->current_context);
   }
 
+  if (runtime->source_buffer) {
+    slp_buffer_destroy(runtime->source_buffer);
+  }
+
   for (size_t i = 0; i < SXS_OBJECT_STORAGE_SIZE; i++) {
     if (runtime->object_storage[i]) {
       slp_free_object(runtime->object_storage[i]);
@@ -224,13 +236,23 @@ int sxs_runtime_process_file(sxs_runtime_t *runtime, char *file_name) {
     return 1;
   }
 
+  printf("[DEBUG] Processing file: %s\n", file_name);
+
+  slp_buffer_t *buffer = slp_buffer_from_file(file_name);
+  if (!buffer) {
+    fprintf(stderr, "Failed to load file: %s\n", file_name);
+    return 1;
+  }
+
+  runtime->source_buffer = buffer;
+
   slp_callbacks_t *callbacks = sxs_runtime_get_callbacks(runtime);
   if (!callbacks) {
     fprintf(stderr, "Failed to get callbacks\n");
     return 1;
   }
 
-  return slp_process_file(file_name, callbacks);
+  return slp_process_buffer(buffer, callbacks);
 }
 
 slp_object_t *sxs_runtime_get_last_eval_obj(sxs_runtime_t *runtime) {

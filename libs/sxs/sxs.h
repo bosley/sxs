@@ -52,6 +52,7 @@ typedef struct sxs_runtime_s {
   size_t next_context_id;
   slp_object_t *object_storage[SXS_OBJECT_STORAGE_SIZE];
   bool runtime_has_error;
+  slp_buffer_unowned_ptr_t source_buffer;
 } sxs_runtime_t;
 
 sxs_runtime_t *sxs_runtime_new(void);
@@ -62,7 +63,8 @@ slp_object_t *sxs_runtime_get_last_eval_obj(sxs_runtime_t *runtime);
 
 slp_object_t *sxs_eval_object(sxs_runtime_t *runtime, slp_object_t *object);
 slp_object_t *sxs_create_error_object(slp_error_type_e error_type,
-                                      const char *message, size_t position);
+                                      const char *message, size_t position,
+                                      slp_buffer_unowned_ptr_t source_buffer);
 
 void sxs_builtins_init(void);
 void sxs_builtins_deinit(void);
