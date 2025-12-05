@@ -5,6 +5,10 @@
 #define SLP_REGISTER_COUNT 32  // for consistence . dont change
 
 #include "buffer/buffer.h"
+#include "scanner/scanner.h"
+#include "types/types.h"
+#include <stdio.h>
+#include <string.h>
 
 typedef enum slp_type_e {
   SLP_TYPE_NONE = 0,
@@ -25,50 +29,18 @@ typedef struct slp_cell_s {
 
 } slp_type_t;
 
-/*
+typedef struct slp_processor_state_s {
+  size_t tokens_processed;
+  size_t errors;
+} slp_processor_state_t;
 
-command based language. not list centric. not homoiconicm ?
-
-
-think of it as lisp with an optional "outer set?"
-
-
-our runtime offers us "registers" to store things
-top level object results are discarded and freed, unless in repl then
-it would show
-
-we dont have "Variable storage" the same way that you would in a higher language
-we cant just "Set x" we have pre-allocated bins of objects that we can assign to
-by index into that bin
-
-Our builtins are "mapped" to 1-byte instruction ops so we use raw aski to
-invoke! Neat!
-
-All builtin symbols are 1 char
-
-+ 1 2 3
-
-(+
-    1
-    2
-    3)
-
-
-(@ 0 (+ 1 2 3)) ; Sum 3 ints and store into object storage slot 0 - thats what
-"@" does store-at ; @ works for store and load. one param means load, 2 params
-means store, 3 params ; means CAS (compare and swap) for atomic updating
-
-(@ 0 5 420)     ; if 0 == 5, swap-in 420
-
-(o (@ 0))       ; output - load spot 0
-
-
-(@ 0 (F (LHS :int RHS :int) :int
-    (+ LHS RHS)
-))
-
-((@ 0) 60 9) ; Call the function
-
-*/
+void slp_print_static_type(slp_static_type_t *type, int depth);
+void slp_process_group(slp_scanner_t *scanner, uint8_t start, uint8_t end,
+                       const char *group_name, slp_processor_state_t *state,
+                       slp_scanner_stop_symbols_t *stops, int depth);
+void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
+                        slp_scanner_stop_symbols_t *stops, int depth);
+int slp_process_buffer(slp_buffer_t *buffer);
+int slp_process_file(char *file_name);
 
 #endif

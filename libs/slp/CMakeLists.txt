@@ -5,6 +5,8 @@ target_include_directories(slp PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 
+target_link_libraries(slp PUBLIC buffer scanner)
+
 install(TARGETS slp
     LIBRARY DESTINATION libs/slp/lib
     ARCHIVE DESTINATION libs/slp/lib
