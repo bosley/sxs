@@ -135,17 +135,21 @@ static void sxs_handle_list_start_from_slp_callback(slp_type_e list_type,
 
   sxs_runtime_t *runtime = (sxs_runtime_t *)context;
 
+  sxs_context_t *new_context =
+      sxs_context_new(runtime->next_context_id++, runtime->current_context);
+  if (!new_context) {
+    fprintf(stderr, "Failed to create new context for list\n");
+    return;
+  }
+
+  runtime->current_context = new_context;
+
   if (list_type == SLP_TYPE_LIST_P) {
-    sxs_context_t *new_context =
-        sxs_context_new(runtime->next_context_id++, runtime->current_context);
-    if (new_context) {
-      runtime->current_context = new_context;
-      printf("[LIST_START (] context_id=%zu\n", new_context->context_id);
-    }
+    printf("[LIST_START (] context_id=%zu\n", new_context->context_id);
   } else if (list_type == SLP_TYPE_LIST_B) {
-    printf("[LIST_START []\n");
+    printf("[LIST_START []] context_id=%zu\n", new_context->context_id);
   } else if (list_type == SLP_TYPE_LIST_C) {
-    printf("[LIST_START {}]\n");
+    printf("[LIST_START {}] context_id=%zu\n", new_context->context_id);
   }
 }
 
@@ -222,82 +226,39 @@ static void sxs_handle_list_end_from_slp_callback(slp_type_e list_type,
     printf("[LIST_END )]\n");
   }
 
-  /*
-    Here we take the contents of the proc list off the current context and
-    turn it into an actual object list.
-
-    This will free the objects in the proc list
-  */
-  slp_object_t *current_stack_as_object_list =
+  slp_object_t *list_object =
       sxs_convert_proc_list_to_objects_and_free(sxs_context, list_type);
 
-  if (!current_stack_as_object_list) {
+  if (!list_object) {
     fprintf(stderr, "Failed to convert proc list to objects \n");
     return;
   }
 
-  /*
-  Now we can "evaluate" the list that we have on hand by evaluating the object,
-  and collecting its result
-  */
-  slp_object_t *result =
-      sxs_eval_object(sxs_context, current_stack_as_object_list);
-  if (!result) {
-    fprintf(stderr, "Failed to evaluate object\n");
-    return;
+  slp_object_t *result_to_hand_to_parent = NULL;
+
+  if (list_type == SLP_TYPE_LIST_P) {
+    result_to_hand_to_parent = sxs_eval_object(sxs_context, list_object);
+    if (!result_to_hand_to_parent) {
+      fprintf(stderr, "Failed to evaluate object\n");
+      slp_free_object(list_object);
+      return;
+    }
+    slp_free_object(list_object);
+  } else {
+    result_to_hand_to_parent = list_object;
   }
 
-  /*
-  Free the object list that we created from the proc list as it is no longer
-  required - everything resulting from each command copies objects, not
-  references. This way we ensure proper ownership and memory model
-  */
-  slp_free_object(current_stack_as_object_list);
-
-  /*
-    If we are finishing up a regular list, we just need to add to the current
-    context
-  */
-  switch (list_type) {
-  case SLP_TYPE_LIST_B:
-  // fallthrough
-  case SLP_TYPE_LIST_C:
-    sxs_context_push_object(sxs_context, result);
-
-    // complete, so obv return
-    return;
-  default:
-    break;
-  }
-
-  /*
-  if we have a () list we just finished ingesting a ) from some source somehow
-  and we have to match the allocation for context by cleaning up.
-  */
   if (NULL == sxs_context->parent) {
     sxs_context_free(sxs_context);
-    slp_free_object(result);
+    slp_free_object(result_to_hand_to_parent);
     return;
   }
 
-  /*
-    By setting current_context to parent, we are effectively "returning" from
-    the () construction and subsequent evaluation so we are completed by handing
-    the result to our parent
-   */
   sxs_context_t *parent = sxs_context->parent;
   runtime->current_context = parent;
 
-  // handing the result to the parent cntext means its responsible for its
-  // lifetime now
-  sxs_context_push_object(parent, result);
+  sxs_context_push_object(parent, result_to_hand_to_parent);
 
-  /*
-  Free the context that we created for this list as it is no longer required as
-  we maintain one context per p-list. (@ 1 2) -> context_new obj obj obj
-  context_end -> make list object -> evaluate said object -> return result to
-  caller context (in case nested)
-  */
   sxs_context_free(sxs_context);
 }
 
