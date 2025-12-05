@@ -10,16 +10,26 @@
 #define SXS_OBJECT_STORAGE_SIZE 8192
 #define SXS_CALLABLE_MAX_VARIANTS 5
 
-#define SXS_BUILTIN_LOAD_STORE_SYMBOL '@'
-#define SXS_BUILTIN_DEBUG_SIMPLE_SYMBOL 'd'
-#define SXS_BUILTIN_DEBUG_FULL_SYMBOL 'D'
-
 typedef struct sxs_runtime_s sxs_runtime_t;
 typedef struct sxs_callable_s sxs_callable_t;
+typedef struct sxs_builtin_registry_s sxs_builtin_registry_t;
 
 typedef slp_object_t *(*sxs_builtin_fn)(sxs_runtime_t *runtime,
                                         sxs_callable_t *callable,
                                         slp_object_t **args, size_t arg_count);
+
+typedef sxs_builtin_fn sxs_handler_fn_t;
+
+typedef struct sxs_command_impl_s {
+  const char *command;
+  sxs_handler_fn_t handler;
+} sxs_command_impl_t;
+
+struct sxs_builtin_registry_s {
+  sxs_command_impl_t *commands;
+  size_t count;
+  size_t capacity;
+};
 
 typedef struct sxs_callable_param_s {
   char *name;
@@ -29,6 +39,7 @@ typedef struct sxs_callable_param_s {
 typedef struct sxs_callable_variant_s {
   sxs_callable_param_t *params;
   size_t param_count;
+  form_definition_t *return_type;
 } sxs_callable_variant_t;
 
 struct sxs_callable_s {
@@ -56,9 +67,18 @@ typedef struct sxs_runtime_s {
   bool runtime_has_error;
   bool parsing_quoted_expression;
   slp_buffer_unowned_ptr_t source_buffer;
+  sxs_builtin_registry_t *builtin_registry;
 } sxs_runtime_t;
 
-sxs_runtime_t *sxs_runtime_new(void);
+sxs_builtin_registry_t *sxs_builtin_registry_create(size_t initial_capacity);
+void sxs_builtin_registry_free(sxs_builtin_registry_t *registry);
+int sxs_builtin_registry_add(sxs_builtin_registry_t *registry,
+                             sxs_command_impl_t impl);
+sxs_command_impl_t *
+sxs_builtin_registry_lookup(sxs_builtin_registry_t *registry,
+                            slp_buffer_t *symbol);
+
+sxs_runtime_t *sxs_runtime_new(sxs_builtin_registry_t *registry);
 void sxs_runtime_free(sxs_runtime_t *runtime);
 
 int sxs_runtime_process_file(sxs_runtime_t *runtime, char *file_name);

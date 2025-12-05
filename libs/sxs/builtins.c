@@ -1,8 +1,19 @@
 #include "sxs/errors.h"
+#include "sxs/impls/impls.h"
 #include "sxs/sxs.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+/*
+==========================================================================
+This file serves to map together the implementations of the commands for
+the system and symbols that are used to invoke them
+This sort of "static dispatch" is setup so we can decide on startup
+what commands we want to support and offer the ability to "bring your own
+commands"
+==========================================================================
+*/
 
 static sxs_callable_t *g_builtin_load_store_callable = NULL;
 static sxs_callable_t *g_builtin_debug_simple_callable = NULL;
@@ -95,13 +106,21 @@ sxs_callable_variant_t *find_matching_variant(sxs_callable_t *callable,
 
 /*
 ==========================================================================
-builtin implementations
-==========================================================================
-*/
+Builtin function definitions are not something we copy around. Because of this
+we opt to create a single object for the builtins that serves as the one slp
+object in memory to handle calls.
 
-/*
-==========================================================================
-get builtins as objects
+Below is our init functions to ensure that the runtime type system knows
+what types to expect from the callables
+
+These builtins are to be moddeld such-that all return types are "any"
+as each of them MAY produce an error given that they are runtime objects
+
+If in the "C" implementation an "error" CAN be returned, then it disqualifies
+the command from containing a strongly typed result
+
+tags:
+  return types, builtins, builtin functions, return type of builtin functions
 ==========================================================================
 */
 
@@ -127,6 +146,8 @@ static void sxs_init_load_store_callable(void) {
     g_builtin_load_store_callable->variants[0].params[0].form =
         create_form_def(FORM_TYPE_INTEGER);
   }
+  g_builtin_load_store_callable->variants[0].return_type =
+      create_form_def(FORM_TYPE_ANY); // <-------------------------- Return ANY
 
   g_builtin_load_store_callable->variants[1].param_count = 2;
   g_builtin_load_store_callable->variants[1].params =
@@ -139,6 +160,8 @@ static void sxs_init_load_store_callable(void) {
     g_builtin_load_store_callable->variants[1].params[1].form =
         create_form_def(FORM_TYPE_ANY);
   }
+  g_builtin_load_store_callable->variants[1].return_type =
+      create_form_def(FORM_TYPE_ANY); // <-------------------------- Return ANY
 
   g_builtin_load_store_callable->variants[2].param_count = 3;
   g_builtin_load_store_callable->variants[2].params =
@@ -154,6 +177,8 @@ static void sxs_init_load_store_callable(void) {
     g_builtin_load_store_callable->variants[2].params[2].form =
         create_form_def(FORM_TYPE_ANY);
   }
+  g_builtin_load_store_callable->variants[2].return_type =
+      create_form_def(FORM_TYPE_ANY); // <-------------------------- Return ANY
 
   g_builtin_load_store_callable->impl.builtin_fn = sxs_builtin_load_store;
 }
@@ -187,6 +212,8 @@ static void sxs_init_debug_simple_callable(void) {
     g_builtin_debug_simple_callable->variants[0].params[0].form =
         create_form_def(FORM_TYPE_ANY_VARIADIC);
   }
+  g_builtin_debug_simple_callable->variants[0].return_type = create_form_def(
+      FORM_TYPE_ANY); // <-------------------------- Return ANY (can err)
 
   g_builtin_debug_simple_callable->impl.builtin_fn = sxs_builtin_debug_simple;
 }
@@ -220,6 +247,8 @@ static void sxs_init_debug_full_callable(void) {
     g_builtin_debug_full_callable->variants[0].params[0].form =
         create_form_def(FORM_TYPE_ANY_VARIADIC);
   }
+  g_builtin_debug_full_callable->variants[0].return_type = create_form_def(
+      FORM_TYPE_ANY); // <-------------------------- Return ANY (can err)
 
   g_builtin_debug_full_callable->impl.builtin_fn = sxs_builtin_debug_full;
 }
@@ -281,4 +310,36 @@ slp_object_t *sxs_get_builtin_debug_full_object(void) {
   builtin->value.fn_data = (void *)g_builtin_debug_full_callable;
 
   return builtin;
+}
+
+sxs_command_impl_t sxs_impl_get_load_store(void) {
+  sxs_command_impl_t impl;
+  impl.command = "@";
+  impl.handler = sxs_builtin_load_store;
+  return impl;
+}
+
+sxs_command_impl_t sxs_impl_get_debug_simple(void) {
+  sxs_command_impl_t impl;
+  impl.command = "d";
+  impl.handler = sxs_builtin_debug_simple;
+  return impl;
+}
+
+sxs_command_impl_t sxs_impl_get_debug_full(void) {
+  sxs_command_impl_t impl;
+  impl.command = "D";
+  impl.handler = sxs_builtin_debug_full;
+  return impl;
+}
+
+sxs_callable_t *sxs_get_callable_for_handler(sxs_handler_fn_t handler) {
+  if (handler == sxs_builtin_load_store) {
+    return g_builtin_load_store_callable;
+  } else if (handler == sxs_builtin_debug_simple) {
+    return g_builtin_debug_simple_callable;
+  } else if (handler == sxs_builtin_debug_full) {
+    return g_builtin_debug_full_callable;
+  }
+  return NULL;
 }

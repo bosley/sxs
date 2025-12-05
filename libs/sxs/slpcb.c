@@ -8,9 +8,7 @@ extern sxs_context_t *sxs_context_new(size_t context_id, sxs_context_t *parent);
 extern void sxs_context_free(sxs_context_t *context);
 extern slp_object_t *sxs_eval_object(sxs_runtime_t *runtime,
                                      slp_object_t *object);
-extern slp_object_t *sxs_get_builtin_load_store_object(void);
-extern slp_object_t *sxs_get_builtin_debug_simple_object(void);
-extern slp_object_t *sxs_get_builtin_debug_full_object(void);
+extern sxs_callable_t *sxs_get_callable_for_handler(sxs_handler_fn_t handler);
 
 int sxs_context_push_object(sxs_context_t *context, slp_object_t *object) {
   if (!context) {
@@ -26,6 +24,36 @@ int sxs_context_push_object(sxs_context_t *context, slp_object_t *object) {
   context->object_proc_list[context->proc_list_count] = object;
   context->proc_list_count++;
   return 0;
+}
+
+static slp_object_t *is_symbol_builtin(sxs_runtime_t *runtime,
+                                       slp_buffer_t *symbol) {
+  if (!runtime || !runtime->builtin_registry || !symbol) {
+    return NULL;
+  }
+
+  sxs_command_impl_t *impl =
+      sxs_builtin_registry_lookup(runtime->builtin_registry, symbol);
+  if (!impl) {
+    return NULL;
+  }
+
+  sxs_callable_t *callable = sxs_get_callable_for_handler(impl->handler);
+  if (!callable) {
+    fprintf(stderr, "Failed to get callable for builtin handler\n");
+    return NULL;
+  }
+
+  slp_object_t *builtin = malloc(sizeof(slp_object_t));
+  if (!builtin) {
+    fprintf(stderr, "Failed to allocate builtin object\n");
+    return NULL;
+  }
+
+  builtin->type = SLP_TYPE_BUILTIN;
+  builtin->value.fn_data = (void *)callable;
+
+  return builtin;
 }
 
 static void sxs_clear_context_proc_list(sxs_context_t *context) {
@@ -80,45 +108,14 @@ static void sxs_handle_object_from_slp_callback(slp_object_t *object,
       }
     }
     printf("\n");
-    /*
-       If this is the first item in the proc list and it matches a builtin
-       we need to free the current object and replace it with a builtin
-       so if we haveanything in the list we are already complete with this
-       case
-    */
+
     if (sxs_context->proc_list_count > 0) {
       break;
     }
 
-    if (SXS_BUILTIN_LOAD_STORE_SYMBOL == object->value.buffer->data[0]) {
-      printf("[BUILTIN LOAD STORE SYMBOL FOUND - UPDATING OBJECT]\n");
-      slp_object_t *builtin = sxs_get_builtin_load_store_object();
-      if (!builtin) {
-        fprintf(stderr,
-                "Failed to get builtin load store object (nil builtin)\n");
-        return;
-      }
-      slp_object_free(object);
-      object = builtin;
-    } else if (SXS_BUILTIN_DEBUG_SIMPLE_SYMBOL ==
-               object->value.buffer->data[0]) {
-      printf("[BUILTIN DEBUG SIMPLE SYMBOL FOUND - UPDATING OBJECT]\n");
-      slp_object_t *builtin = sxs_get_builtin_debug_simple_object();
-      if (!builtin) {
-        fprintf(stderr,
-                "Failed to get builtin debug simple object (nil builtin)\n");
-        return;
-      }
-      slp_object_free(object);
-      object = builtin;
-    } else if (SXS_BUILTIN_DEBUG_FULL_SYMBOL == object->value.buffer->data[0]) {
-      printf("[BUILTIN DEBUG FULL SYMBOL FOUND - UPDATING OBJECT]\n");
-      slp_object_t *builtin = sxs_get_builtin_debug_full_object();
-      if (!builtin) {
-        fprintf(stderr,
-                "Failed to get builtin debug full object (nil builtin)\n");
-        return;
-      }
+    slp_object_t *builtin = is_symbol_builtin(runtime, object->value.buffer);
+    if (builtin) {
+      printf("[BUILTIN SYMBOL FOUND - UPDATING OBJECT]\n");
       slp_object_free(object);
       object = builtin;
     }

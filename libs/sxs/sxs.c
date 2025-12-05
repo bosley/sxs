@@ -3,7 +3,93 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define BUILTIN_REGISTRY_INITIAL_CAPACITY 16
+
 extern slp_callbacks_t *sxs_runtime_get_callbacks(sxs_runtime_t *runtime);
+
+sxs_builtin_registry_t *sxs_builtin_registry_create(size_t initial_capacity) {
+  if (initial_capacity == 0) {
+    initial_capacity = BUILTIN_REGISTRY_INITIAL_CAPACITY;
+  }
+
+  sxs_builtin_registry_t *registry = malloc(sizeof(sxs_builtin_registry_t));
+  if (!registry) {
+    fprintf(stderr, "Failed to allocate builtin registry\n");
+    return NULL;
+  }
+
+  registry->commands = malloc(sizeof(sxs_command_impl_t) * initial_capacity);
+  if (!registry->commands) {
+    fprintf(stderr, "Failed to allocate builtin registry commands\n");
+    free(registry);
+    return NULL;
+  }
+
+  registry->count = 0;
+  registry->capacity = initial_capacity;
+
+  return registry;
+}
+
+void sxs_builtin_registry_free(sxs_builtin_registry_t *registry) {
+  if (!registry) {
+    return;
+  }
+
+  if (registry->commands) {
+    free(registry->commands);
+  }
+
+  free(registry);
+}
+
+int sxs_builtin_registry_add(sxs_builtin_registry_t *registry,
+                             sxs_command_impl_t impl) {
+  if (!registry) {
+    fprintf(stderr, "Failed to add to builtin registry (nil registry)\n");
+    return 1;
+  }
+
+  if (registry->count >= registry->capacity) {
+    size_t new_capacity = registry->capacity * 2;
+    sxs_command_impl_t *new_commands =
+        realloc(registry->commands, sizeof(sxs_command_impl_t) * new_capacity);
+    if (!new_commands) {
+      fprintf(stderr, "Failed to resize builtin registry\n");
+      return 1;
+    }
+    registry->commands = new_commands;
+    registry->capacity = new_capacity;
+  }
+
+  registry->commands[registry->count] = impl;
+  registry->count++;
+
+  return 0;
+}
+
+sxs_command_impl_t *
+sxs_builtin_registry_lookup(sxs_builtin_registry_t *registry,
+                            slp_buffer_t *symbol) {
+  if (!registry || !symbol || !symbol->data) {
+    return NULL;
+  }
+
+  for (size_t i = 0; i < registry->count; i++) {
+    const char *cmd = registry->commands[i].command;
+    if (!cmd) {
+      continue;
+    }
+    size_t cmd_len = strlen(cmd);
+
+    if (cmd_len == symbol->count && memcmp(cmd, symbol->data, cmd_len) == 0) {
+      return &registry->commands[i];
+    }
+  }
+
+  return NULL;
+}
+
 static void *sxs_callable_copy_impl(void *fn_data) {
   if (!fn_data) {
     return NULL;
@@ -20,6 +106,7 @@ static void *sxs_callable_copy_impl(void *fn_data) {
 
   for (size_t v = 0; v < original->variant_count; v++) {
     cloned->variants[v].param_count = original->variants[v].param_count;
+    cloned->variants[v].return_type = original->variants[v].return_type;
 
     if (original->variants[v].params && original->variants[v].param_count > 0) {
       cloned->variants[v].params = malloc(sizeof(sxs_callable_param_t) *
@@ -206,7 +293,7 @@ void sxs_context_free(sxs_context_t *context) {
   free(context);
 }
 
-sxs_runtime_t *sxs_runtime_new(void) {
+sxs_runtime_t *sxs_runtime_new(sxs_builtin_registry_t *registry) {
   slp_register_builtin_handlers(NULL, NULL);
   slp_register_lambda_handlers(sxs_callable_free_impl, sxs_callable_copy_impl,
                                sxs_callable_equal_impl);
@@ -227,6 +314,7 @@ sxs_runtime_t *sxs_runtime_new(void) {
   runtime->runtime_has_error = false;
   runtime->parsing_quoted_expression = false;
   runtime->source_buffer = NULL;
+  runtime->builtin_registry = registry;
 
   for (size_t i = 0; i < SXS_OBJECT_STORAGE_SIZE; i++) {
     runtime->object_storage[i] = NULL;
@@ -246,6 +334,10 @@ void sxs_runtime_free(sxs_runtime_t *runtime) {
 
   if (runtime->source_buffer) {
     slp_buffer_free(runtime->source_buffer);
+  }
+
+  if (runtime->builtin_registry) {
+    sxs_builtin_registry_free(runtime->builtin_registry);
   }
 
   for (size_t i = 0; i < SXS_OBJECT_STORAGE_SIZE; i++) {
@@ -356,6 +448,15 @@ void sxs_callable_free(sxs_callable_t *callable) {
         }
       }
       free(callable->variants[v].params);
+    }
+    if (callable->variants[v].return_type) {
+      if (callable->variants[v].return_type->name) {
+        free(callable->variants[v].return_type->name);
+      }
+      if (callable->variants[v].return_type->types) {
+        free(callable->variants[v].return_type->types);
+      }
+      free(callable->variants[v].return_type);
     }
   }
 

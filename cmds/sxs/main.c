@@ -1,3 +1,4 @@
+#include "sxs/impls/impls.h"
 #include "sxs/sxs.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -145,9 +146,21 @@ int main(int argc, char **argv) {
 
   sxs_builtins_init();
 
-  sxs_runtime_t *runtime = sxs_runtime_new();
+  sxs_builtin_registry_t *registry = sxs_builtin_registry_create(0);
+  if (!registry) {
+    fprintf(stderr, "Failed to create builtin registry\n");
+    sxs_builtins_deinit();
+    return 1;
+  }
+
+  sxs_builtin_registry_add(registry, sxs_impl_get_load_store());
+  sxs_builtin_registry_add(registry, sxs_impl_get_debug_simple());
+  sxs_builtin_registry_add(registry, sxs_impl_get_debug_full());
+
+  sxs_runtime_t *runtime = sxs_runtime_new(registry);
   if (!runtime) {
     fprintf(stderr, "Failed to create runtime\n");
+    sxs_builtin_registry_free(registry);
     sxs_builtins_deinit();
     return 1;
   }
