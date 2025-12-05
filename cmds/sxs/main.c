@@ -70,9 +70,12 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  sxs_builtins_init();
+
   sxs_runtime_t *runtime = sxs_runtime_new();
   if (!runtime) {
     fprintf(stderr, "Failed to create runtime\n");
+    sxs_builtins_deinit();
     return 1;
   }
 
@@ -80,6 +83,7 @@ int main(int argc, char **argv) {
 
   if (result != 0) {
     sxs_runtime_free(runtime);
+    sxs_builtins_deinit();
     return result;
   }
 
@@ -93,6 +97,8 @@ int main(int argc, char **argv) {
   }
 
   sxs_runtime_free(runtime);
+  
+  sxs_builtins_deinit();
 
   return 0;
 }

@@ -1,6 +1,22 @@
 #include "slp.h"
-#include "sxs/sxs.h"
 #include <stdlib.h>
+
+static slp_fn_data_free_fn g_builtin_free_fn = NULL;
+static slp_fn_data_copy_fn g_builtin_copy_fn = NULL;
+static slp_fn_data_free_fn g_lambda_free_fn = NULL;
+static slp_fn_data_copy_fn g_lambda_copy_fn = NULL;
+
+void slp_register_builtin_handlers(slp_fn_data_free_fn free_fn,
+                                   slp_fn_data_copy_fn copy_fn) {
+  g_builtin_free_fn = free_fn;
+  g_builtin_copy_fn = copy_fn;
+}
+
+void slp_register_lambda_handlers(slp_fn_data_free_fn free_fn,
+                                  slp_fn_data_copy_fn copy_fn) {
+  g_lambda_free_fn = free_fn;
+  g_lambda_copy_fn = copy_fn;
+}
 
 void slp_free_object(slp_object_t *object) {
   if (!object) {
@@ -20,10 +36,13 @@ void slp_free_object(slp_object_t *object) {
       }
       free(object->value.list.items);
     }
-  } else if (object->type == SLP_TYPE_BUILTIN ||
-             object->type == SLP_TYPE_LAMBDA) {
-    if (object->value.fn_data) {
-      sxs_callable_free((sxs_callable_t *)object->value.fn_data);
+  } else if (object->type == SLP_TYPE_BUILTIN) {
+    if (object->value.fn_data && g_builtin_free_fn) {
+      g_builtin_free_fn(object->value.fn_data);
+    }
+  } else if (object->type == SLP_TYPE_LAMBDA) {
+    if (object->value.fn_data && g_lambda_free_fn) {
+      g_lambda_free_fn(object->value.fn_data);
     }
   } else if (object->type == SLP_TYPE_ERROR) {
     if (object->value.fn_data) {
@@ -70,72 +89,24 @@ slp_object_t *slp_object_copy(slp_object_t *object) {
     }
     break;
 
-  // We don't clone C function data for builtins
   case SLP_TYPE_BUILTIN:
-    clone->value.fn_data = object->value.fn_data;
-    break;
-  case SLP_TYPE_LAMBDA:
-    if (object->value.fn_data) {
-      sxs_callable_t *original = (sxs_callable_t *)object->value.fn_data;
-      sxs_callable_t *cloned = malloc(sizeof(sxs_callable_t));
-      if (!cloned) {
+    if (object->value.fn_data && g_builtin_copy_fn) {
+      clone->value.fn_data = g_builtin_copy_fn(object->value.fn_data);
+      if (!clone->value.fn_data) {
         free(clone);
         return NULL;
       }
-
-      cloned->param_count = original->param_count;
-
-      if (original->params && original->param_count > 0) {
-        cloned->params =
-            malloc(sizeof(sxs_callable_param_t) * original->param_count);
-        if (!cloned->params) {
-          free(cloned);
-          free(clone);
-          return NULL;
-        }
-
-        for (size_t i = 0; i < original->param_count; i++) {
-          if (original->params[i].name) {
-            cloned->params[i].name = malloc(strlen(original->params[i].name) + 1);
-            if (!cloned->params[i].name) {
-              for (size_t j = 0; j < i; j++) {
-                free(cloned->params[j].name);
-              }
-              free(cloned->params);
-              free(cloned);
-              free(clone);
-              return NULL;
-            }
-            strcpy(cloned->params[i].name, original->params[i].name);
-          } else {
-            cloned->params[i].name = NULL;
-          }
-          cloned->params[i].form = original->params[i].form;
-        }
-      } else {
-        cloned->params = NULL;
+    } else {
+      clone->value.fn_data = object->value.fn_data;
+    }
+    break;
+  case SLP_TYPE_LAMBDA:
+    if (object->value.fn_data && g_lambda_copy_fn) {
+      clone->value.fn_data = g_lambda_copy_fn(object->value.fn_data);
+      if (!clone->value.fn_data) {
+        free(clone);
+        return NULL;
       }
-
-      if (original->impl.lambda_body) {
-        cloned->impl.lambda_body = slp_buffer_copy(original->impl.lambda_body);
-        if (!cloned->impl.lambda_body) {
-          if (cloned->params) {
-            for (size_t i = 0; i < cloned->param_count; i++) {
-              if (cloned->params[i].name) {
-                free(cloned->params[i].name);
-              }
-            }
-            free(cloned->params);
-          }
-          free(cloned);
-          free(clone);
-          return NULL;
-        }
-      } else {
-        cloned->impl.lambda_body = NULL;
-      }
-
-      clone->value.fn_data = cloned;
     } else {
       clone->value.fn_data = NULL;
     }

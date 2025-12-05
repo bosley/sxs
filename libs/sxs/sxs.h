@@ -1,19 +1,22 @@
 #ifndef SXS_SXS_H
 #define SXS_SXS_H
 
-#include "slp/slp.h"
 #include "forms.h"
+#include "slp/slp.h"
 #include <stdbool.h>
 #include <stddef.h>
 
 #define SXS_OBJECT_PROC_LIST_SIZE 16
 #define SXS_OBJECT_STORAGE_SIZE 8192
+#define SXS_CALLABLE_MAX_VARIANTS 5
 
 #define SXS_BUILTIN_LOAD_STORE_SYMBOL '@'
 
 typedef struct sxs_runtime_s sxs_runtime_t;
+typedef struct sxs_callable_s sxs_callable_t;
 
 typedef slp_object_t *(*sxs_builtin_fn)(sxs_runtime_t *runtime,
+                                        sxs_callable_t *callable,
                                         slp_object_t **args, size_t arg_count);
 
 typedef struct sxs_callable_param_s {
@@ -21,14 +24,20 @@ typedef struct sxs_callable_param_s {
   form_definition_t *form;
 } sxs_callable_param_t;
 
-typedef struct sxs_callable_s {
+typedef struct sxs_callable_variant_s {
   sxs_callable_param_t *params;
   size_t param_count;
+} sxs_callable_variant_t;
+
+struct sxs_callable_s {
+  sxs_callable_variant_t variants[SXS_CALLABLE_MAX_VARIANTS];
+  size_t variant_count;
+  bool is_builtin;
   union {
     sxs_builtin_fn builtin_fn;
     slp_buffer_t *lambda_body;
   } impl;
-} sxs_callable_t;
+};
 
 typedef struct sxs_context_s {
   size_t context_id;
@@ -50,6 +59,13 @@ void sxs_runtime_free(sxs_runtime_t *runtime);
 
 int sxs_runtime_process_file(sxs_runtime_t *runtime, char *file_name);
 slp_object_t *sxs_runtime_get_last_eval_obj(sxs_runtime_t *runtime);
+
+slp_object_t *sxs_eval_object(sxs_runtime_t *runtime, slp_object_t *object);
+slp_object_t *sxs_create_error_object(slp_error_type_e error_type,
+                                      const char *message, size_t position);
+
+void sxs_builtins_init(void);
+void sxs_builtins_deinit(void);
 
 void sxs_callable_free(sxs_callable_t *callable);
 

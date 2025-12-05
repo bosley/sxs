@@ -8,12 +8,11 @@ extern sxs_context_t *sxs_context_new(size_t context_id, sxs_context_t *parent);
 extern void sxs_context_free(sxs_context_t *context);
 extern slp_object_t *sxs_eval_object(sxs_runtime_t *runtime,
                                      slp_object_t *object);
+extern slp_object_t *sxs_create_error_object(slp_error_type_e error_type,
+                                             const char *message,
+                                             size_t position);
 
-/*
-builtins defined in builtins.c
-*/
-extern slp_object_t *
-sxs_get_builtin_load_store_object_for_context(sxs_context_t *context);
+extern slp_object_t *sxs_get_builtin_load_store_object(void);
 
 int sxs_context_push_object(sxs_context_t *context, slp_object_t *object) {
   if (!context) {
@@ -29,44 +28,6 @@ int sxs_context_push_object(sxs_context_t *context, slp_object_t *object) {
   context->object_proc_list[context->proc_list_count] = object;
   context->proc_list_count++;
   return 0;
-}
-
-static slp_object_t *sxs_create_error_object(slp_error_type_e error_type,
-                                             const char *message,
-                                             size_t position) {
-  slp_object_t *error_obj = malloc(sizeof(slp_object_t));
-  if (!error_obj) {
-    fprintf(stderr, "Failed to allocate error object\n");
-    return NULL;
-  }
-
-  slp_error_data_t *error_data = malloc(sizeof(slp_error_data_t));
-  if (!error_data) {
-    fprintf(stderr, "Failed to allocate error data\n");
-    free(error_obj);
-    return NULL;
-  }
-
-  error_data->position = position;
-  error_data->error_type = error_type;
-
-  if (message) {
-    error_data->message = malloc(strlen(message) + 1);
-    if (!error_data->message) {
-      fprintf(stderr, "Failed to allocate error message\n");
-      free(error_data);
-      free(error_obj);
-      return NULL;
-    }
-    strcpy(error_data->message, message);
-  } else {
-    error_data->message = NULL;
-  }
-
-  error_obj->type = SLP_TYPE_ERROR;
-  error_obj->value.fn_data = error_data;
-
-  return error_obj;
 }
 
 static void sxs_clear_context_proc_list(sxs_context_t *context) {
@@ -133,11 +94,9 @@ static void sxs_handle_object_from_slp_callback(slp_object_t *object,
 
     if (SXS_BUILTIN_LOAD_STORE_SYMBOL == object->value.buffer->data[0]) {
       printf("[BUILTIN LOAD STORE SYMBOL FOUND - UPDATING OBJECT]\n");
-      slp_object_t *builtin =
-          sxs_get_builtin_load_store_object_for_context(sxs_context);
+      slp_object_t *builtin = sxs_get_builtin_load_store_object();
       if (!builtin) {
-        fprintf(stderr, "Failed to get builtin load store object for context "
-                        "(nil builtin)\n");
+        fprintf(stderr, "Failed to get builtin load store object (nil builtin)\n");
         return;
       }
       slp_free_object(object);

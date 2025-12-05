@@ -67,6 +67,14 @@ typedef struct slp_callbacks_s {
   void *context;
 } slp_callbacks_t;
 
+typedef void (*slp_fn_data_free_fn)(void *fn_data);
+typedef void *(*slp_fn_data_copy_fn)(void *fn_data);
+
+void slp_register_builtin_handlers(slp_fn_data_free_fn free_fn,
+                                   slp_fn_data_copy_fn copy_fn);
+void slp_register_lambda_handlers(slp_fn_data_free_fn free_fn,
+                                  slp_fn_data_copy_fn copy_fn);
+
 void slp_free_object(slp_object_t *object);
 slp_object_t *slp_object_copy(slp_object_t *object);
 

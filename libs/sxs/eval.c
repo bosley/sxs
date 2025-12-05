@@ -4,44 +4,9 @@
 #include <string.h>
 
 extern slp_callbacks_t *sxs_runtime_get_callbacks(sxs_runtime_t *runtime);
-
-static slp_object_t *sxs_create_error_object(slp_error_type_e error_type,
+extern slp_object_t *sxs_create_error_object(slp_error_type_e error_type,
                                              const char *message,
-                                             size_t position) {
-  slp_object_t *error_obj = malloc(sizeof(slp_object_t));
-  if (!error_obj) {
-    fprintf(stderr, "Failed to allocate error object\n");
-    return NULL;
-  }
-
-  slp_error_data_t *error_data = malloc(sizeof(slp_error_data_t));
-  if (!error_data) {
-    fprintf(stderr, "Failed to allocate error data\n");
-    free(error_obj);
-    return NULL;
-  }
-
-  error_data->position = position;
-  error_data->error_type = error_type;
-
-  if (message) {
-    error_data->message = malloc(strlen(message) + 1);
-    if (!error_data->message) {
-      fprintf(stderr, "Failed to allocate error message\n");
-      free(error_data);
-      free(error_obj);
-      return NULL;
-    }
-    strcpy(error_data->message, message);
-  } else {
-    error_data->message = NULL;
-  }
-
-  error_obj->type = SLP_TYPE_ERROR;
-  error_obj->value.fn_data = error_data;
-
-  return error_obj;
-}
+                                             size_t position);
 
 static slp_object_t *sxs_eval_list(sxs_runtime_t *runtime, slp_object_t *list) {
   if (!list || list->type != SLP_TYPE_LIST_P) {
@@ -77,7 +42,7 @@ static slp_object_t *sxs_eval_list(sxs_runtime_t *runtime, slp_object_t *list) {
       return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
                                      "nil builtin function pointer", 0);
     }
-    return callable->impl.builtin_fn(runtime, args, arg_count);
+    return callable->impl.builtin_fn(runtime, callable, args, arg_count);
   }
 
   if (first->type == SLP_TYPE_LAMBDA) {
