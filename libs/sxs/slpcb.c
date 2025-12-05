@@ -262,6 +262,67 @@ static void sxs_handle_list_end_from_slp_callback(slp_type_e list_type,
   sxs_context_free(sxs_context);
 }
 
+static void sxs_handle_virtual_list_start_from_slp_callback(void *context) {
+  if (!context) {
+    fprintf(stderr, "Failed to handle virtual list start (nil context)\n");
+    return;
+  }
+
+  sxs_runtime_t *runtime = (sxs_runtime_t *)context;
+
+  sxs_context_t *new_context =
+      sxs_context_new(runtime->next_context_id++, runtime->current_context);
+  if (!new_context) {
+    fprintf(stderr, "Failed to create new context for virtual list\n");
+    return;
+  }
+
+  runtime->current_context = new_context;
+
+  printf("[VIRTUAL_LIST_START] context_id=%zu\n", new_context->context_id);
+}
+
+static void sxs_handle_virtual_list_end_from_slp_callback(void *context) {
+  if (!context) {
+    fprintf(stderr, "Failed to handle virtual list end (nil context)\n");
+    return;
+  }
+
+  sxs_runtime_t *runtime = (sxs_runtime_t *)context;
+  sxs_context_t *sxs_context = runtime->current_context;
+
+  printf("[VIRTUAL_LIST_END]\n");
+
+  slp_object_t *list_object =
+      sxs_convert_proc_list_to_objects_and_free(sxs_context, SLP_TYPE_LIST_P);
+
+  if (!list_object) {
+    fprintf(stderr, "Failed to convert proc list to objects \n");
+    return;
+  }
+
+  slp_object_t *result_to_hand_to_parent = sxs_eval_object(runtime, list_object);
+  if (!result_to_hand_to_parent) {
+    fprintf(stderr, "Failed to evaluate object\n");
+    slp_free_object(list_object);
+    return;
+  }
+  slp_free_object(list_object);
+
+  if (NULL == sxs_context->parent) {
+    sxs_context_free(sxs_context);
+    slp_free_object(result_to_hand_to_parent);
+    return;
+  }
+
+  sxs_context_t *parent = sxs_context->parent;
+  runtime->current_context = parent;
+
+  sxs_context_push_object(parent, result_to_hand_to_parent);
+
+  sxs_context_free(sxs_context);
+}
+
 slp_callbacks_t *sxs_runtime_get_callbacks(sxs_runtime_t *runtime) {
   if (!runtime) {
     return NULL;
@@ -271,6 +332,8 @@ slp_callbacks_t *sxs_runtime_get_callbacks(sxs_runtime_t *runtime) {
   callbacks.on_object = sxs_handle_object_from_slp_callback;
   callbacks.on_list_start = sxs_handle_list_start_from_slp_callback;
   callbacks.on_list_end = sxs_handle_list_end_from_slp_callback;
+  callbacks.on_virtual_list_start = sxs_handle_virtual_list_start_from_slp_callback;
+  callbacks.on_virtual_list_end = sxs_handle_virtual_list_end_from_slp_callback;
   callbacks.context = runtime;
   return &callbacks;
 }

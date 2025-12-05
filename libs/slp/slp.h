@@ -45,6 +45,8 @@ typedef struct slp_callbacks_s {
   void (*on_object)(slp_object_t *object, void *context);
   void (*on_list_start)(slp_type_e list_type, void *context);
   void (*on_list_end)(slp_type_e list_type, void *context);
+  void (*on_virtual_list_start)(void *context);
+  void (*on_virtual_list_end)(void *context);
   void *context;
 } slp_callbacks_t;
 
@@ -57,6 +59,8 @@ slp_object_t *slp_object_copy(slp_object_t *object);
 typedef struct slp_processor_state_s {
   size_t tokens_processed;
   size_t errors;
+  int virtual_paren_active;
+  int current_depth;
 } slp_processor_state_t;
 
 void slp_process_group(slp_scanner_t *scanner, uint8_t start, uint8_t end,

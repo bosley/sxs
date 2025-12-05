@@ -164,23 +164,49 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
                         slp_scanner_stop_symbols_t *stops, int depth,
                         slp_callbacks_t *callbacks) {
   while (scanner->position < scanner->buffer->count) {
+    uint8_t current = scanner->buffer->data[scanner->position];
+
+    if (depth == 0 && current == '\n') {
+      scanner->position++;
+      if (state->virtual_paren_active) {
+        if (callbacks->on_virtual_list_end) {
+          callbacks->on_virtual_list_end(callbacks->context);
+        }
+        state->virtual_paren_active = 0;
+      }
+      continue;
+    }
+
     if (!slp_scanner_goto_next_non_white(scanner)) {
       break;
     }
 
-    uint8_t current = scanner->buffer->data[scanner->position];
+    current = scanner->buffer->data[scanner->position];
+
+    if (depth == 0 && !state->virtual_paren_active) {
+      if (callbacks->on_virtual_list_start) {
+        callbacks->on_virtual_list_start(callbacks->context);
+      }
+      state->virtual_paren_active = 1;
+    }
 
     if (current == '(') {
+      state->current_depth++;
       slp_process_group(scanner, '(', ')', "LIST_P", SLP_TYPE_LIST_P, state,
                         stops, depth, callbacks);
+      state->current_depth--;
       continue;
     } else if (current == '[') {
+      state->current_depth++;
       slp_process_group(scanner, '[', ']', "LIST_B", SLP_TYPE_LIST_B, state,
                         stops, depth, callbacks);
+      state->current_depth--;
       continue;
     } else if (current == '{') {
+      state->current_depth++;
       slp_process_group(scanner, '{', '}', "LIST_C", SLP_TYPE_LIST_C, state,
                         stops, depth, callbacks);
+      state->current_depth--;
       continue;
     } else if (current == '"') {
       slp_process_group(scanner, '"', '"', "LIST_S", SLP_TYPE_LIST_S, state,
@@ -357,6 +383,13 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
     }
     state->tokens_processed++;
   }
+
+  if (depth == 0 && state->virtual_paren_active) {
+    if (callbacks->on_virtual_list_end) {
+      callbacks->on_virtual_list_end(callbacks->context);
+    }
+    state->virtual_paren_active = 0;
+  }
 }
 
 int slp_process_buffer(slp_buffer_t *buffer, slp_callbacks_t *callbacks) {
@@ -376,6 +409,8 @@ int slp_process_buffer(slp_buffer_t *buffer, slp_callbacks_t *callbacks) {
   slp_processor_state_t state = {
       .tokens_processed = 0,
       .errors = 0,
+      .virtual_paren_active = 0,
+      .current_depth = 0,
   };
 
   uint8_t stop_symbols[] = {'(', ')', '[', ']', '{', '}', '"', '\''};
