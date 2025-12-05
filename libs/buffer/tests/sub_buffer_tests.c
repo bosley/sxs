@@ -3,7 +3,7 @@
 #include <string.h>
 
 void test_sub_buffer_basic_extraction(void) {
-  slp_buffer_t *buffer = slp_buffer_create(50);
+  slp_buffer_t *buffer = slp_buffer_new(50);
   uint8_t data[50];
   for (int i = 0; i < 50; i++) {
     data[i] = i;
@@ -22,12 +22,12 @@ void test_sub_buffer_basic_extraction(void) {
     ASSERT_EQ(sub_data[i], 10 + i);
   }
 
-  slp_buffer_destroy(sub);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(sub);
+  slp_buffer_free(buffer);
 }
 
 void test_sub_buffer_multiple_ranges(void) {
-  slp_buffer_t *buffer = slp_buffer_create(100);
+  slp_buffer_t *buffer = slp_buffer_new(100);
   uint8_t data[100];
   for (int i = 0; i < 100; i++) {
     data[i] = i % 256;
@@ -70,15 +70,15 @@ void test_sub_buffer_multiple_ranges(void) {
     ASSERT_EQ(data4[i], 90 + i);
   }
 
-  slp_buffer_destroy(sub1);
-  slp_buffer_destroy(sub2);
-  slp_buffer_destroy(sub3);
-  slp_buffer_destroy(sub4);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(sub1);
+  slp_buffer_free(sub2);
+  slp_buffer_free(sub3);
+  slp_buffer_free(sub4);
+  slp_buffer_free(buffer);
 }
 
 void test_sub_buffer_offset_at_start(void) {
-  slp_buffer_t *buffer = slp_buffer_create(30);
+  slp_buffer_t *buffer = slp_buffer_new(30);
   uint8_t data[30];
   for (int i = 0; i < 30; i++) {
     data[i] = i + 100;
@@ -97,12 +97,12 @@ void test_sub_buffer_offset_at_start(void) {
     ASSERT_EQ(sub_data[i], i + 100);
   }
 
-  slp_buffer_destroy(sub);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(sub);
+  slp_buffer_free(buffer);
 }
 
 void test_sub_buffer_offset_at_end(void) {
-  slp_buffer_t *buffer = slp_buffer_create(50);
+  slp_buffer_t *buffer = slp_buffer_new(50);
   uint8_t data[50];
   for (int i = 0; i < 50; i++) {
     data[i] = i * 2;
@@ -121,12 +121,12 @@ void test_sub_buffer_offset_at_end(void) {
     ASSERT_EQ(sub_data[i], (45 + i) * 2);
   }
 
-  slp_buffer_destroy(sub);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(sub);
+  slp_buffer_free(buffer);
 }
 
 void test_sub_buffer_length_exceeds_available(void) {
-  slp_buffer_t *buffer = slp_buffer_create(40);
+  slp_buffer_t *buffer = slp_buffer_new(40);
   uint8_t data[40];
   for (int i = 0; i < 40; i++) {
     data[i] = 255 - i;
@@ -145,12 +145,12 @@ void test_sub_buffer_length_exceeds_available(void) {
     ASSERT_EQ(sub_data[i], 255 - (30 + i));
   }
 
-  slp_buffer_destroy(sub);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(sub);
+  slp_buffer_free(buffer);
 }
 
 void test_sub_buffer_exact_boundary(void) {
-  slp_buffer_t *buffer = slp_buffer_create(60);
+  slp_buffer_t *buffer = slp_buffer_new(60);
   uint8_t data[60];
   for (int i = 0; i < 60; i++) {
     data[i] = i + 50;
@@ -169,12 +169,12 @@ void test_sub_buffer_exact_boundary(void) {
     ASSERT_EQ(sub_data[i], 20 + i + 50);
   }
 
-  slp_buffer_destroy(sub);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(sub);
+  slp_buffer_free(buffer);
 }
 
 void test_sub_buffer_zero_length(void) {
-  slp_buffer_t *buffer = slp_buffer_create(30);
+  slp_buffer_t *buffer = slp_buffer_new(30);
   uint8_t data[30];
   for (int i = 0; i < 30; i++) {
     data[i] = i;
@@ -188,12 +188,12 @@ void test_sub_buffer_zero_length(void) {
   ASSERT_EQ(bytes_copied, 0);
   ASSERT_EQ(slp_buffer_count(sub), 0);
 
-  slp_buffer_destroy(sub);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(sub);
+  slp_buffer_free(buffer);
 }
 
 void test_sub_buffer_invalid_offset(void) {
-  slp_buffer_t *buffer = slp_buffer_create(30);
+  slp_buffer_t *buffer = slp_buffer_new(30);
   uint8_t data[30];
   for (int i = 0; i < 30; i++) {
     data[i] = i;
@@ -206,11 +206,11 @@ void test_sub_buffer_invalid_offset(void) {
   ASSERT_NULL(sub);
   ASSERT_EQ(bytes_copied, 0);
 
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 void test_sub_buffer_bytes_copied_null(void) {
-  slp_buffer_t *buffer = slp_buffer_create(30);
+  slp_buffer_t *buffer = slp_buffer_new(30);
   uint8_t data[30];
   for (int i = 0; i < 30; i++) {
     data[i] = i + 10;
@@ -227,8 +227,8 @@ void test_sub_buffer_bytes_copied_null(void) {
     ASSERT_EQ(sub_data[i], 5 + i + 10);
   }
 
-  slp_buffer_destroy(sub);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(sub);
+  slp_buffer_free(buffer);
 }
 
 void test_sub_buffer_null_buffer(void) {
@@ -240,7 +240,7 @@ void test_sub_buffer_null_buffer(void) {
 }
 
 void test_sub_buffer_sequential_extractions(void) {
-  slp_buffer_t *buffer = slp_buffer_create(80);
+  slp_buffer_t *buffer = slp_buffer_new(80);
   uint8_t data[80];
   for (int i = 0; i < 80; i++) {
     data[i] = i % 256;
@@ -275,14 +275,14 @@ void test_sub_buffer_sequential_extractions(void) {
     ASSERT_EQ(data3[i], (30 + i) % 256);
   }
 
-  slp_buffer_destroy(sub1);
-  slp_buffer_destroy(sub2);
-  slp_buffer_destroy(sub3);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(sub1);
+  slp_buffer_free(sub2);
+  slp_buffer_free(sub3);
+  slp_buffer_free(buffer);
 }
 
 void test_sub_buffer_large_buffer_chunks(void) {
-  slp_buffer_t *buffer = slp_buffer_create(1000);
+  slp_buffer_t *buffer = slp_buffer_new(1000);
   uint8_t data[1000];
   for (int i = 0; i < 1000; i++) {
     data[i] = i % 256;
@@ -309,13 +309,13 @@ void test_sub_buffer_large_buffer_chunks(void) {
   }
 
   for (int chunk = 0; chunk < 10; chunk++) {
-    slp_buffer_destroy(subs[chunk]);
+    slp_buffer_free(subs[chunk]);
   }
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 void test_sub_buffer_full_copy(void) {
-  slp_buffer_t *buffer = slp_buffer_create(25);
+  slp_buffer_t *buffer = slp_buffer_new(25);
   uint8_t data[25];
   for (int i = 0; i < 25; i++) {
     data[i] = i * 3;
@@ -334,12 +334,12 @@ void test_sub_buffer_full_copy(void) {
     ASSERT_EQ(sub_data[i], i * 3);
   }
 
-  slp_buffer_destroy(sub);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(sub);
+  slp_buffer_free(buffer);
 }
 
 void test_sub_buffer_single_byte(void) {
-  slp_buffer_t *buffer = slp_buffer_create(20);
+  slp_buffer_t *buffer = slp_buffer_new(20);
   uint8_t data[20];
   for (int i = 0; i < 20; i++) {
     data[i] = i + 200;
@@ -356,8 +356,8 @@ void test_sub_buffer_single_byte(void) {
   uint8_t *sub_data = slp_buffer_data(sub);
   ASSERT_EQ(sub_data[0], 210);
 
-  slp_buffer_destroy(sub);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(sub);
+  slp_buffer_free(buffer);
 }
 
 int main(void) {

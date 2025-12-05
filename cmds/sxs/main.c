@@ -166,7 +166,7 @@ int main(int argc, char **argv) {
   print_object(final_object);
 
   if (final_object) {
-    slp_free_object(final_object);
+    slp_object_free(final_object);
   }
 
   sxs_runtime_free(runtime);

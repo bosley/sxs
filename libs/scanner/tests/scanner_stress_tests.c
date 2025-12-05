@@ -5,7 +5,7 @@
 #include <string.h>
 
 static void test_large_valid_buffer_mixed_types() {
-  slp_buffer_t *buffer = slp_buffer_create(2048);
+  slp_buffer_t *buffer = slp_buffer_new(2048);
   ASSERT(buffer != NULL);
 
   uint8_t data[] = "alpha 42 beta -17 3.14 gamma +99 delta -2.5 epsilon 0 zeta "
@@ -71,11 +71,11 @@ static void test_large_valid_buffer_mixed_types() {
   }
 
   slp_scanner_free(scanner);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 static void test_large_buffer_with_whitespace_variations() {
-  slp_buffer_t *buffer = slp_buffer_create(2048);
+  slp_buffer_t *buffer = slp_buffer_new(2048);
   ASSERT(buffer != NULL);
 
   uint8_t data[] = "  \t\n  a1   \t  42  \n\n  b2\t\t-17\n   3.14   \t\n"
@@ -126,11 +126,11 @@ static void test_large_buffer_with_whitespace_variations() {
   }
 
   slp_scanner_free(scanner);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 static void test_large_buffer_error_at_start() {
-  slp_buffer_t *buffer = slp_buffer_create(2048);
+  slp_buffer_t *buffer = slp_buffer_new(2048);
   ASSERT(buffer != NULL);
 
   uint8_t data[] = "123abc alpha 42 beta gamma";
@@ -148,11 +148,11 @@ static void test_large_buffer_error_at_start() {
   ASSERT(scanner->position == 0);
 
   slp_scanner_free(scanner);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 static void test_double_period_in_real() {
-  slp_buffer_t *buffer = slp_buffer_create(64);
+  slp_buffer_t *buffer = slp_buffer_new(64);
   ASSERT(buffer != NULL);
 
   uint8_t data[] = "1.2.3";
@@ -170,11 +170,11 @@ static void test_double_period_in_real() {
   ASSERT(scanner->position == 0);
 
   slp_scanner_free(scanner);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 static void test_large_buffer_error_in_middle() {
-  slp_buffer_t *buffer = slp_buffer_create(2048);
+  slp_buffer_t *buffer = slp_buffer_new(2048);
   ASSERT(buffer != NULL);
 
   uint8_t data[] = "alpha 42 beta -17 3.14 gamma +99 delta -2.5 epsilon 0 zeta "
@@ -201,11 +201,11 @@ static void test_large_buffer_error_in_middle() {
   ASSERT(scanner->position == pos_before_error);
 
   slp_scanner_free(scanner);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 static void test_large_buffer_error_at_end() {
-  slp_buffer_t *buffer = slp_buffer_create(2048);
+  slp_buffer_t *buffer = slp_buffer_new(2048);
   ASSERT(buffer != NULL);
 
   uint8_t data[] = "alpha 42 beta -17 3.14 gamma +99 delta -2.5 epsilon 0 zeta "
@@ -232,11 +232,11 @@ static void test_large_buffer_error_at_end() {
   ASSERT(scanner->position == pos_before_error);
 
   slp_scanner_free(scanner);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 static void test_large_buffer_invalid_integer_in_sequence() {
-  slp_buffer_t *buffer = slp_buffer_create(2048);
+  slp_buffer_t *buffer = slp_buffer_new(2048);
   ASSERT(buffer != NULL);
 
   uint8_t data[] = "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15x 16 17 18 19 20";
@@ -267,11 +267,11 @@ static void test_large_buffer_invalid_integer_in_sequence() {
   ASSERT(scanner->position == pos_before_error);
 
   slp_scanner_free(scanner);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 static void test_large_buffer_invalid_real_in_sequence() {
-  slp_buffer_t *buffer = slp_buffer_create(2048);
+  slp_buffer_t *buffer = slp_buffer_new(2048);
   ASSERT(buffer != NULL);
 
   uint8_t data[] = "1.1 2.2 3.3 4.4 5.5 6.6 7.7 8.8 9.9 10.10 11.1.1 12.12";
@@ -298,11 +298,11 @@ static void test_large_buffer_invalid_real_in_sequence() {
   ASSERT(scanner->position == pos_before_error);
 
   slp_scanner_free(scanner);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 static void test_large_buffer_complex_symbols() {
-  slp_buffer_t *buffer = slp_buffer_create(2048);
+  slp_buffer_t *buffer = slp_buffer_new(2048);
   ASSERT(buffer != NULL);
 
   uint8_t data[] = "foo-bar baz_qux test123 abc-def-ghi jkl_mno_pqr "
@@ -333,11 +333,11 @@ static void test_large_buffer_complex_symbols() {
   ASSERT(token_count == 35);
 
   slp_scanner_free(scanner);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 static void test_large_buffer_all_integers() {
-  slp_buffer_t *buffer = slp_buffer_create(2048);
+  slp_buffer_t *buffer = slp_buffer_new(2048);
   ASSERT(buffer != NULL);
 
   uint8_t data[] =
@@ -358,11 +358,11 @@ static void test_large_buffer_all_integers() {
   }
 
   slp_scanner_free(scanner);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 static void test_large_buffer_all_reals() {
-  slp_buffer_t *buffer = slp_buffer_create(2048);
+  slp_buffer_t *buffer = slp_buffer_new(2048);
   ASSERT(buffer != NULL);
 
   uint8_t data[] = "0.0 1.1 2.2 3.3 4.4 5.5 6.6 7.7 8.8 9.9 "
@@ -383,7 +383,7 @@ static void test_large_buffer_all_reals() {
   }
 
   slp_scanner_free(scanner);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 int main(void) {

@@ -5,7 +5,7 @@
 
 #define MIN_BUFFER_SIZE 16
 
-slp_buffer_t *slp_buffer_create(size_t initial_size) {
+slp_buffer_t *slp_buffer_new(size_t initial_size) {
   slp_buffer_t *buffer = malloc(sizeof(slp_buffer_t));
   if (!buffer) {
     return NULL;
@@ -53,7 +53,7 @@ slp_buffer_t *slp_buffer_from_file(const char *filepath) {
     return NULL;
   }
 
-  slp_buffer_t *buffer = slp_buffer_create((size_t)file_size);
+  slp_buffer_t *buffer = slp_buffer_new((size_t)file_size);
   if (!buffer) {
     fclose(file);
     return NULL;
@@ -62,12 +62,12 @@ slp_buffer_t *slp_buffer_from_file(const char *filepath) {
   if (file_size > 0) {
     size_t bytes_read = fread(buffer->data, 1, (size_t)file_size, file);
     if (ferror(file)) {
-      slp_buffer_destroy(buffer);
+      slp_buffer_free(buffer);
       fclose(file);
       return NULL;
     }
     if (bytes_read != (size_t)file_size) {
-      slp_buffer_destroy(buffer);
+      slp_buffer_free(buffer);
       fclose(file);
       return NULL;
     }
@@ -75,14 +75,14 @@ slp_buffer_t *slp_buffer_from_file(const char *filepath) {
   }
 
   if (fclose(file) != 0) {
-    slp_buffer_destroy(buffer);
+    slp_buffer_free(buffer);
     return NULL;
   }
 
   return buffer;
 }
 
-void slp_buffer_destroy(slp_buffer_t *buffer) {
+void slp_buffer_free(slp_buffer_t *buffer) {
   if (!buffer) {
     return;
   }
@@ -214,11 +214,11 @@ slp_buffer_t *slp_buffer_sub_buffer(slp_buffer_t *buffer, size_t offset,
     if (bytes_copied) {
       *bytes_copied = 0;
     }
-    slp_buffer_t *sub_buffer = slp_buffer_create(MIN_BUFFER_SIZE);
+    slp_buffer_t *sub_buffer = slp_buffer_new(MIN_BUFFER_SIZE);
     return sub_buffer;
   }
 
-  slp_buffer_t *sub_buffer = slp_buffer_create(actual_length);
+  slp_buffer_t *sub_buffer = slp_buffer_new(actual_length);
   if (!sub_buffer) {
     if (bytes_copied) {
       *bytes_copied = 0;
@@ -338,7 +338,7 @@ slp_buffer_t *slp_buffer_copy(slp_buffer_t *buffer) {
     return NULL;
   }
 
-  slp_buffer_t *copy = slp_buffer_create(buffer->capacity);
+  slp_buffer_t *copy = slp_buffer_new(buffer->capacity);
   if (!copy) {
     return NULL;
   }
@@ -376,14 +376,14 @@ split_buffer_t slp_buffer_split(slp_buffer_t *buffer, size_t index, size_t l,
     right_capacity = MIN_BUFFER_SIZE;
   }
 
-  result.left = slp_buffer_create(left_capacity);
+  result.left = slp_buffer_new(left_capacity);
   if (!result.left) {
     return result;
   }
 
-  result.right = slp_buffer_create(right_capacity);
+  result.right = slp_buffer_new(right_capacity);
   if (!result.right) {
-    slp_buffer_destroy(result.left);
+    slp_buffer_free(result.left);
     result.left = NULL;
     return result;
   }
@@ -401,18 +401,18 @@ split_buffer_t slp_buffer_split(slp_buffer_t *buffer, size_t index, size_t l,
   return result;
 }
 
-void slp_split_buffer_destroy(split_buffer_t *split) {
+void slp_split_buffer_free(split_buffer_t *split) {
   if (!split) {
     return;
   }
 
   if (split->left) {
-    slp_buffer_destroy(split->left);
+    slp_buffer_free(split->left);
     split->left = NULL;
   }
 
   if (split->right) {
-    slp_buffer_destroy(split->right);
+    slp_buffer_free(split->right);
     split->right = NULL;
   }
 }

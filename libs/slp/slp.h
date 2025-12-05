@@ -79,7 +79,7 @@ void slp_register_lambda_handlers(slp_fn_data_free_fn free_fn,
                                   slp_fn_data_copy_fn copy_fn,
                                   slp_fn_data_equal_fn equal_fn);
 
-void slp_free_object(slp_object_t *object);
+void slp_object_free(slp_object_t *object);
 slp_object_t *slp_object_copy(slp_object_t *object);
 bool slp_objects_equal(slp_object_t *a, slp_object_t *b);
 

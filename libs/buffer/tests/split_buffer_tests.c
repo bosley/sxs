@@ -3,7 +3,7 @@
 #include <string.h>
 
 void test_split_out_of_bounds_index(void) {
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
   uint8_t data[] = {1, 2, 3, 4, 5};
   slp_buffer_copy_to(buffer, data, 5);
 
@@ -12,7 +12,7 @@ void test_split_out_of_bounds_index(void) {
   ASSERT_NULL(split.left);
   ASSERT_NULL(split.right);
 
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 void test_split_null_buffer(void) {
@@ -23,7 +23,7 @@ void test_split_null_buffer(void) {
 }
 
 void test_split_empty_buffer(void) {
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
 
   split_buffer_t split = slp_buffer_split(buffer, 0, 32, 32);
 
@@ -32,12 +32,12 @@ void test_split_empty_buffer(void) {
   ASSERT_EQ(slp_buffer_count(split.left), 0);
   ASSERT_EQ(slp_buffer_count(split.right), 0);
 
-  slp_split_buffer_destroy(&split);
-  slp_buffer_destroy(buffer);
+  slp_split_buffer_free(&split);
+  slp_buffer_free(buffer);
 }
 
 void test_split_l_and_r_size_validation(void) {
-  slp_buffer_t *buffer = slp_buffer_create(100);
+  slp_buffer_t *buffer = slp_buffer_new(100);
   uint8_t data[50];
   for (int i = 0; i < 50; i++) {
     data[i] = i;
@@ -55,12 +55,12 @@ void test_split_l_and_r_size_validation(void) {
   ASSERT_EQ(split.left->capacity, 25);
   ASSERT_EQ(split.right->capacity, 25);
 
-  slp_split_buffer_destroy(&split);
-  slp_buffer_destroy(buffer);
+  slp_split_buffer_free(&split);
+  slp_buffer_free(buffer);
 }
 
 void test_split_value_validation_basic(void) {
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
   uint8_t data[] = {10, 20, 30, 40, 50, 60, 70, 80};
   slp_buffer_copy_to(buffer, data, 8);
 
@@ -84,12 +84,12 @@ void test_split_value_validation_basic(void) {
   ASSERT_EQ(right_data[1], 70);
   ASSERT_EQ(right_data[2], 80);
 
-  slp_split_buffer_destroy(&split);
-  slp_buffer_destroy(buffer);
+  slp_split_buffer_free(&split);
+  slp_buffer_free(buffer);
 }
 
 void test_split_index_exclusive(void) {
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
   uint8_t data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
   slp_buffer_copy_to(buffer, data, 10);
 
@@ -111,12 +111,12 @@ void test_split_index_exclusive(void) {
   ASSERT_EQ(right_data[1], 4);
   ASSERT_EQ(right_data[2], 5);
 
-  slp_split_buffer_destroy(&split);
-  slp_buffer_destroy(buffer);
+  slp_split_buffer_free(&split);
+  slp_buffer_free(buffer);
 }
 
 void test_split_left_under_min_buffer_size(void) {
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
   uint8_t data[] = {1,  2,  3,  4,  5,  6,  7,  8,  9,  10,
                     11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
   slp_buffer_copy_to(buffer, data, 20);
@@ -134,12 +134,12 @@ void test_split_left_under_min_buffer_size(void) {
     ASSERT_EQ(left_data[i], i + 1);
   }
 
-  slp_split_buffer_destroy(&split);
-  slp_buffer_destroy(buffer);
+  slp_split_buffer_free(&split);
+  slp_buffer_free(buffer);
 }
 
 void test_split_right_under_min_buffer_size(void) {
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
   uint8_t data[] = {1,  2,  3,  4,  5,  6,  7,  8,  9,  10,
                     11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
   slp_buffer_copy_to(buffer, data, 20);
@@ -157,12 +157,12 @@ void test_split_right_under_min_buffer_size(void) {
     ASSERT_EQ(right_data[i], 16 + i);
   }
 
-  slp_split_buffer_destroy(&split);
-  slp_buffer_destroy(buffer);
+  slp_split_buffer_free(&split);
+  slp_buffer_free(buffer);
 }
 
 void test_split_both_under_min_buffer_size(void) {
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
   uint8_t data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
   slp_buffer_copy_to(buffer, data, 10);
 
@@ -187,12 +187,12 @@ void test_split_both_under_min_buffer_size(void) {
     ASSERT_EQ(right_data[i], 6 + i);
   }
 
-  slp_split_buffer_destroy(&split);
-  slp_buffer_destroy(buffer);
+  slp_split_buffer_free(&split);
+  slp_buffer_free(buffer);
 }
 
 void test_split_at_start(void) {
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
   uint8_t data[] = {1, 2, 3, 4, 5};
   slp_buffer_copy_to(buffer, data, 5);
 
@@ -209,12 +209,12 @@ void test_split_at_start(void) {
     ASSERT_EQ(right_data[i], i + 1);
   }
 
-  slp_split_buffer_destroy(&split);
-  slp_buffer_destroy(buffer);
+  slp_split_buffer_free(&split);
+  slp_buffer_free(buffer);
 }
 
 void test_split_at_end(void) {
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
   uint8_t data[] = {1, 2, 3, 4, 5};
   slp_buffer_copy_to(buffer, data, 5);
 
@@ -231,12 +231,12 @@ void test_split_at_end(void) {
     ASSERT_EQ(left_data[i], i + 1);
   }
 
-  slp_split_buffer_destroy(&split);
-  slp_buffer_destroy(buffer);
+  slp_split_buffer_free(&split);
+  slp_buffer_free(buffer);
 }
 
 void test_split_middle_large_buffer(void) {
-  slp_buffer_t *buffer = slp_buffer_create(100);
+  slp_buffer_t *buffer = slp_buffer_new(100);
   uint8_t data[100];
   for (int i = 0; i < 100; i++) {
     data[i] = i % 256;
@@ -261,12 +261,12 @@ void test_split_middle_large_buffer(void) {
     ASSERT_EQ(right_data[i], (50 + i) % 256);
   }
 
-  slp_split_buffer_destroy(&split);
-  slp_buffer_destroy(buffer);
+  slp_split_buffer_free(&split);
+  slp_buffer_free(buffer);
 }
 
 void test_split_with_small_l_capacity(void) {
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
   uint8_t data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
   slp_buffer_copy_to(buffer, data, 10);
 
@@ -278,12 +278,12 @@ void test_split_with_small_l_capacity(void) {
   ASSERT_EQ(slp_buffer_count(split.left), 5);
   ASSERT_EQ(split.left->capacity, 16);
 
-  slp_split_buffer_destroy(&split);
-  slp_buffer_destroy(buffer);
+  slp_split_buffer_free(&split);
+  slp_buffer_free(buffer);
 }
 
 void test_split_with_small_r_capacity(void) {
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
   uint8_t data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
   slp_buffer_copy_to(buffer, data, 10);
 
@@ -295,12 +295,12 @@ void test_split_with_small_r_capacity(void) {
   ASSERT_EQ(slp_buffer_count(split.right), 5);
   ASSERT_EQ(split.right->capacity, 16);
 
-  slp_split_buffer_destroy(&split);
-  slp_buffer_destroy(buffer);
+  slp_split_buffer_free(&split);
+  slp_buffer_free(buffer);
 }
 
 void test_split_single_element_buffer(void) {
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
   uint8_t data[] = {42};
   slp_buffer_copy_to(buffer, data, 1);
 
@@ -315,25 +315,25 @@ void test_split_single_element_buffer(void) {
   uint8_t *left_data = slp_buffer_data(split.left);
   ASSERT_EQ(left_data[0], 42);
 
-  slp_split_buffer_destroy(&split);
-  slp_buffer_destroy(buffer);
+  slp_split_buffer_free(&split);
+  slp_buffer_free(buffer);
 }
 
-void test_split_destroy_null(void) { slp_split_buffer_destroy(NULL); }
+void test_split_destroy_null(void) { slp_split_buffer_free(NULL); }
 
 void test_split_destroy_partial(void) {
   split_buffer_t split;
-  split.left = slp_buffer_create(32);
+  split.left = slp_buffer_new(32);
   split.right = NULL;
 
-  slp_split_buffer_destroy(&split);
+  slp_split_buffer_free(&split);
 
   ASSERT_NULL(split.left);
   ASSERT_NULL(split.right);
 }
 
 void test_split_sequential_operations(void) {
-  slp_buffer_t *buffer = slp_buffer_create(50);
+  slp_buffer_t *buffer = slp_buffer_new(50);
   uint8_t data[30];
   for (int i = 0; i < 30; i++) {
     data[i] = i + 100;
@@ -367,9 +367,9 @@ void test_split_sequential_operations(void) {
     ASSERT_EQ(data3[i], 120 + i);
   }
 
-  slp_split_buffer_destroy(&split2);
-  slp_split_buffer_destroy(&split1);
-  slp_buffer_destroy(buffer);
+  slp_split_buffer_free(&split2);
+  slp_split_buffer_free(&split1);
+  slp_buffer_free(buffer);
 }
 
 int main(void) {

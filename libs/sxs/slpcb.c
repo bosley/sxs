@@ -33,7 +33,7 @@ static void sxs_clear_context_proc_list(sxs_context_t *context) {
 
   for (size_t i = 0; i < context->proc_list_count; i++) {
     if (context->object_proc_list[i]) {
-      slp_free_object(context->object_proc_list[i]);
+      slp_object_free(context->object_proc_list[i]);
       context->object_proc_list[i] = NULL;
     }
   }
@@ -59,7 +59,7 @@ static void sxs_handle_object_from_slp_callback(slp_object_t *object,
   sxs_context_t *sxs_context = runtime->current_context;
 
   if (runtime->runtime_has_error) {
-    slp_free_object(object);
+    slp_object_free(object);
     return;
   }
 
@@ -96,7 +96,7 @@ static void sxs_handle_object_from_slp_callback(slp_object_t *object,
                 "Failed to get builtin load store object (nil builtin)\n");
         return;
       }
-      slp_free_object(object);
+      slp_object_free(object);
       object = builtin;
     }
     break;
@@ -193,13 +193,13 @@ slp_object_t *sxs_convert_proc_list_to_objects_and_free(sxs_context_t *context,
                 "at index %zu)\n",
                 i);
         for (size_t j = 0; j < i; j++) {
-          slp_free_object(list->value.list.items[j]);
+          slp_object_free(list->value.list.items[j]);
         }
         free(list->value.list.items);
         free(list);
         return NULL;
       }
-      slp_free_object(context->object_proc_list[i]);
+      slp_object_free(context->object_proc_list[i]);
       context->object_proc_list[i] = NULL;
     }
   } else {
@@ -248,10 +248,10 @@ static void sxs_handle_list_end_from_slp_callback(slp_type_e list_type,
     result_to_hand_to_parent = sxs_eval_object(runtime, list_object);
     if (!result_to_hand_to_parent) {
       fprintf(stderr, "Failed to evaluate object\n");
-      slp_free_object(list_object);
+      slp_object_free(list_object);
       return;
     }
-    slp_free_object(list_object);
+    slp_object_free(list_object);
   } else {
     result_to_hand_to_parent = list_object;
   }
@@ -321,10 +321,10 @@ static void sxs_handle_virtual_list_end_from_slp_callback(void *context) {
       sxs_eval_object(runtime, list_object);
   if (!result_to_hand_to_parent) {
     fprintf(stderr, "Failed to evaluate object\n");
-    slp_free_object(list_object);
+    slp_object_free(list_object);
     return;
   }
-  slp_free_object(list_object);
+  slp_object_free(list_object);
 
   if (NULL == sxs_context->parent) {
     sxs_context_push_object(sxs_context, result_to_hand_to_parent);

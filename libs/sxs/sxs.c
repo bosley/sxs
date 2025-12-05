@@ -199,7 +199,7 @@ void sxs_context_free(sxs_context_t *context) {
 
   for (size_t i = 0; i < context->proc_list_count; i++) {
     if (context->object_proc_list[i]) {
-      slp_free_object(context->object_proc_list[i]);
+      slp_object_free(context->object_proc_list[i]);
     }
   }
 
@@ -244,12 +244,12 @@ void sxs_runtime_free(sxs_runtime_t *runtime) {
   }
 
   if (runtime->source_buffer) {
-    slp_buffer_destroy(runtime->source_buffer);
+    slp_buffer_free(runtime->source_buffer);
   }
 
   for (size_t i = 0; i < SXS_OBJECT_STORAGE_SIZE; i++) {
     if (runtime->object_storage[i]) {
-      slp_free_object(runtime->object_storage[i]);
+      slp_object_free(runtime->object_storage[i]);
     }
   }
 
@@ -359,7 +359,7 @@ void sxs_callable_free(sxs_callable_t *callable) {
   }
 
   if (!callable->is_builtin && callable->impl.lambda_body) {
-    slp_buffer_destroy(callable->impl.lambda_body);
+    slp_buffer_free(callable->impl.lambda_body);
   }
 
   free(callable);

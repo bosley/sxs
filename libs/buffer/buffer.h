@@ -20,11 +20,11 @@ typedef struct {
 typedef int (*slp_buffer_iterator_fn)(uint8_t *byte, size_t idx,
                                       void *callback_data);
 
-slp_buffer_t *slp_buffer_create(size_t initial_size);
+slp_buffer_t *slp_buffer_new(size_t initial_size);
 
 slp_buffer_t *slp_buffer_from_file(const char *filepath);
 
-void slp_buffer_destroy(slp_buffer_t *buffer);
+void slp_buffer_free(slp_buffer_t *buffer);
 
 int slp_buffer_copy_to(slp_buffer_t *buffer, uint8_t *src, size_t len);
 
@@ -55,6 +55,6 @@ slp_buffer_t *slp_buffer_copy(slp_buffer_t *buffer);
 split_buffer_t slp_buffer_split(slp_buffer_t *buffer, size_t index, size_t l,
                                 size_t r);
 
-void slp_split_buffer_destroy(split_buffer_t *split);
+void slp_split_buffer_free(split_buffer_t *split);
 
 #endif

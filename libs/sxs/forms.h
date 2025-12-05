@@ -76,8 +76,8 @@ typedef struct symbol_forms_s {
   size_t capacity;
 } symbol_forms_t;
 
-symbol_forms_t *sxs_forms_create(void);
-void sxs_forms_destroy(symbol_forms_t *forms);
+symbol_forms_t *sxs_forms_new(void);
+void sxs_forms_free(symbol_forms_t *forms);
 form_type_e sxs_forms_get_form_type(slp_object_t *obj);
 bool sxs_forms_is_symbol_known_form(symbol_forms_t *forms,
                                     slp_object_t *symbol);

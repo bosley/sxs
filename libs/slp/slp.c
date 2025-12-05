@@ -21,21 +21,21 @@ void slp_register_lambda_handlers(slp_fn_data_free_fn free_fn,
   g_lambda_equal_fn = equal_fn;
 }
 
-void slp_free_object(slp_object_t *object) {
+void slp_object_free(slp_object_t *object) {
   if (!object) {
     return;
   }
 
   if (object->type == SLP_TYPE_SYMBOL || object->type == SLP_TYPE_QUOTED) {
     if (object->value.buffer) {
-      slp_buffer_destroy(object->value.buffer);
+      slp_buffer_free(object->value.buffer);
     }
   } else if (object->type == SLP_TYPE_LIST_P ||
              object->type == SLP_TYPE_LIST_B ||
              object->type == SLP_TYPE_LIST_C) {
     if (object->value.list.items) {
       for (size_t i = 0; i < object->value.list.count; i++) {
-        slp_free_object(object->value.list.items[i]);
+        slp_object_free(object->value.list.items[i]);
       }
       free(object->value.list.items);
     }
@@ -54,7 +54,7 @@ void slp_free_object(slp_object_t *object) {
         free(error_data->message);
       }
       if (error_data->source_buffer) {
-        slp_buffer_destroy(error_data->source_buffer);
+        slp_buffer_free(error_data->source_buffer);
       }
       free(error_data);
     }
@@ -175,7 +175,7 @@ slp_object_t *slp_object_copy(slp_object_t *object) {
             slp_object_copy(object->value.list.items[i]);
         if (!clone->value.list.items[i]) {
           for (size_t j = 0; j < i; j++) {
-            slp_free_object(clone->value.list.items[j]);
+            slp_object_free(clone->value.list.items[j]);
           }
           free(clone->value.list.items);
           free(clone);
@@ -312,7 +312,7 @@ void slp_process_group(slp_scanner_t *scanner, uint8_t start, uint8_t end,
         slp_process_tokens(sub_scanner, state, stops, depth + 1, callbacks);
         slp_scanner_free(sub_scanner);
       }
-      slp_buffer_destroy(sub_buffer);
+      slp_buffer_free(sub_buffer);
     }
   }
 
@@ -454,7 +454,7 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
               callbacks->on_object(object, callbacks->context);
             }
           } else {
-            slp_buffer_destroy(quoted_buffer);
+            slp_buffer_free(quoted_buffer);
           }
         }
 
@@ -480,7 +480,7 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
                 callbacks->on_object(object, callbacks->context);
               }
             } else {
-              slp_buffer_destroy(quoted_buffer);
+              slp_buffer_free(quoted_buffer);
             }
           }
 
@@ -605,7 +605,7 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
         }
         free(object);
         if (symbol_buffer) {
-          slp_buffer_destroy(symbol_buffer);
+          slp_buffer_free(symbol_buffer);
         }
         state->errors++;
         break;
@@ -671,6 +671,6 @@ int slp_process_file(char *file_name, slp_callbacks_t *callbacks) {
   }
 
   int return_value = slp_process_buffer(buffer, callbacks);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
   return return_value;
 }

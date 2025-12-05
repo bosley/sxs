@@ -117,7 +117,7 @@ static slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
     if (!args[i]) {
       for (size_t j = 0; j < i; j++) {
         if (eval_args[j]) {
-          slp_free_object(eval_args[j]);
+          slp_object_free(eval_args[j]);
         }
       }
       return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
@@ -128,7 +128,7 @@ static slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
     if (!eval_args[i]) {
       for (size_t j = 0; j < i; j++) {
         if (eval_args[j]) {
-          slp_free_object(eval_args[j]);
+          slp_object_free(eval_args[j]);
         }
       }
       return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
@@ -139,7 +139,7 @@ static slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
       slp_object_t *error = eval_args[i];
       for (size_t j = 0; j < i; j++) {
         if (eval_args[j]) {
-          slp_free_object(eval_args[j]);
+          slp_object_free(eval_args[j]);
         }
       }
       return error;
@@ -156,7 +156,7 @@ static slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
 
     for (size_t i = 0; i < arg_count; i++) {
       if (eval_args[i]) {
-        slp_free_object(eval_args[i]);
+        slp_object_free(eval_args[i]);
       }
     }
     return error;
@@ -167,7 +167,7 @@ static slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
   */
   if (arg_count == 1) {
     int64_t index = eval_args[0]->value.integer;
-    slp_free_object(eval_args[0]);
+    slp_object_free(eval_args[0]);
 
     if (index < 0 || (size_t)index >= SXS_OBJECT_STORAGE_SIZE) {
       return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
@@ -192,22 +192,22 @@ static slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
   */
   if (arg_count == 2) {
     int64_t dest_index = eval_args[0]->value.integer;
-    slp_free_object(eval_args[0]);
+    slp_object_free(eval_args[0]);
 
     if (dest_index < 0 || (size_t)dest_index >= SXS_OBJECT_STORAGE_SIZE) {
-      slp_free_object(eval_args[1]);
+      slp_object_free(eval_args[1]);
       return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
                                      "@ setter: dest index out of bounds", 0,
                                      runtime->source_buffer);
     }
 
     if (runtime->object_storage[dest_index]) {
-      slp_free_object(runtime->object_storage[dest_index]);
+      slp_object_free(runtime->object_storage[dest_index]);
     }
 
     runtime->object_storage[dest_index] = slp_object_copy(eval_args[1]);
     slp_object_t *result = slp_object_copy(eval_args[1]);
-    slp_free_object(eval_args[1]);
+    slp_object_free(eval_args[1]);
     return result;
   }
 
@@ -216,11 +216,11 @@ static slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
   */
   if (arg_count == 3) {
     int64_t dest_index = eval_args[0]->value.integer;
-    slp_free_object(eval_args[0]);
+    slp_object_free(eval_args[0]);
 
     if (dest_index < 0 || (size_t)dest_index >= SXS_OBJECT_STORAGE_SIZE) {
-      slp_free_object(eval_args[1]);
-      slp_free_object(eval_args[2]);
+      slp_object_free(eval_args[1]);
+      slp_object_free(eval_args[2]);
       return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
                                      "@ CAS: dest index out of bounds", 0,
                                      runtime->source_buffer);
@@ -234,13 +234,13 @@ static slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
 
     if (should_swap) {
       if (runtime->object_storage[dest_index]) {
-        slp_free_object(runtime->object_storage[dest_index]);
+        slp_object_free(runtime->object_storage[dest_index]);
       }
       runtime->object_storage[dest_index] = slp_object_copy(new_val);
     }
 
-    slp_free_object(compare_val);
-    slp_free_object(new_val);
+    slp_object_free(compare_val);
+    slp_object_free(new_val);
 
     slp_object_t *result = malloc(sizeof(slp_object_t));
     if (!result) {
@@ -257,7 +257,7 @@ static slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
 
   for (size_t i = 0; i < arg_count; i++) {
     if (eval_args[i]) {
-      slp_free_object(eval_args[i]);
+      slp_object_free(eval_args[i]);
     }
   }
   return sxs_create_error_object(

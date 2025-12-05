@@ -11,7 +11,7 @@ static slp_object_t *create_test_symbol(const char *text) {
 
   obj->type = SLP_TYPE_SYMBOL;
   size_t len = strlen(text);
-  obj->value.buffer = slp_buffer_create(len);
+  obj->value.buffer = slp_buffer_new(len);
   ASSERT_NOT_NULL(obj->value.buffer);
 
   slp_buffer_copy_to(obj->value.buffer, (uint8_t *)text, len);
@@ -20,13 +20,13 @@ static slp_object_t *create_test_symbol(const char *text) {
 }
 
 static void test_forms_create_destroy(void) {
-  symbol_forms_t *forms = sxs_forms_create();
+  symbol_forms_t *forms = sxs_forms_new();
   ASSERT_NOT_NULL(forms);
   ASSERT_NOT_NULL(forms->forms);
   ASSERT_TRUE(forms->count > 0);
   ASSERT_TRUE(forms->capacity >= forms->count);
 
-  sxs_forms_destroy(forms);
+  sxs_forms_free(forms);
 }
 
 static void test_forms_get_form_type(void) {
@@ -69,7 +69,7 @@ static void test_forms_get_form_type(void) {
 }
 
 static void test_forms_lookup_base_forms(void) {
-  symbol_forms_t *forms = sxs_forms_create();
+  symbol_forms_t *forms = sxs_forms_new();
   ASSERT_NOT_NULL(forms);
 
   slp_object_t *int_sym = create_test_symbol(":int");
@@ -79,34 +79,34 @@ static void test_forms_lookup_base_forms(void) {
   ASSERT_EQ(def->type_count, 1);
   ASSERT_EQ(def->types[0], FORM_TYPE_INTEGER);
   ASSERT_FALSE(def->is_variadic);
-  slp_free_object(int_sym);
+  slp_object_free(int_sym);
 
   slp_object_t *real_sym = create_test_symbol(":real");
   def = sxs_forms_lookup(forms, real_sym);
   ASSERT_NOT_NULL(def);
   ASSERT_STR_EQ(def->name, "real");
   ASSERT_EQ(def->types[0], FORM_TYPE_REAL);
-  slp_free_object(real_sym);
+  slp_object_free(real_sym);
 
   slp_object_t *symbol_sym = create_test_symbol(":symbol");
   def = sxs_forms_lookup(forms, symbol_sym);
   ASSERT_NOT_NULL(def);
   ASSERT_STR_EQ(def->name, "symbol");
   ASSERT_EQ(def->types[0], FORM_TYPE_SYMBOL);
-  slp_free_object(symbol_sym);
+  slp_object_free(symbol_sym);
 
   slp_object_t *any_sym = create_test_symbol(":any");
   def = sxs_forms_lookup(forms, any_sym);
   ASSERT_NOT_NULL(def);
   ASSERT_STR_EQ(def->name, "any");
   ASSERT_EQ(def->types[0], FORM_TYPE_ANY);
-  slp_free_object(any_sym);
+  slp_object_free(any_sym);
 
-  sxs_forms_destroy(forms);
+  sxs_forms_free(forms);
 }
 
 static void test_forms_lookup_variadic_forms(void) {
-  symbol_forms_t *forms = sxs_forms_create();
+  symbol_forms_t *forms = sxs_forms_new();
   ASSERT_NOT_NULL(forms);
 
   slp_object_t *int_var_sym = create_test_symbol(":int..");
@@ -116,7 +116,7 @@ static void test_forms_lookup_variadic_forms(void) {
   ASSERT_EQ(def->type_count, 1);
   ASSERT_EQ(def->types[0], FORM_TYPE_INTEGER_VARIADIC);
   ASSERT_TRUE(def->is_variadic);
-  slp_free_object(int_var_sym);
+  slp_object_free(int_var_sym);
 
   slp_object_t *real_var_sym = create_test_symbol(":real..");
   def = sxs_forms_lookup(forms, real_var_sym);
@@ -124,7 +124,7 @@ static void test_forms_lookup_variadic_forms(void) {
   ASSERT_STR_EQ(def->name, "real..");
   ASSERT_EQ(def->types[0], FORM_TYPE_REAL_VARIADIC);
   ASSERT_TRUE(def->is_variadic);
-  slp_free_object(real_var_sym);
+  slp_object_free(real_var_sym);
 
   slp_object_t *any_var_sym = create_test_symbol(":any..");
   def = sxs_forms_lookup(forms, any_var_sym);
@@ -132,39 +132,39 @@ static void test_forms_lookup_variadic_forms(void) {
   ASSERT_STR_EQ(def->name, "any..");
   ASSERT_EQ(def->types[0], FORM_TYPE_ANY_VARIADIC);
   ASSERT_TRUE(def->is_variadic);
-  slp_free_object(any_var_sym);
+  slp_object_free(any_var_sym);
 
-  sxs_forms_destroy(forms);
+  sxs_forms_free(forms);
 }
 
 static void test_forms_is_symbol_known_form(void) {
-  symbol_forms_t *forms = sxs_forms_create();
+  symbol_forms_t *forms = sxs_forms_new();
   ASSERT_NOT_NULL(forms);
 
   slp_object_t *int_sym = create_test_symbol(":int");
   ASSERT_TRUE(sxs_forms_is_symbol_known_form(forms, int_sym));
-  slp_free_object(int_sym);
+  slp_object_free(int_sym);
 
   slp_object_t *unknown_sym = create_test_symbol(":unknown");
   ASSERT_FALSE(sxs_forms_is_symbol_known_form(forms, unknown_sym));
-  slp_free_object(unknown_sym);
+  slp_object_free(unknown_sym);
 
   slp_object_t *no_colon_sym = create_test_symbol("int");
   ASSERT_FALSE(sxs_forms_is_symbol_known_form(forms, no_colon_sym));
-  slp_free_object(no_colon_sym);
+  slp_object_free(no_colon_sym);
 
   slp_object_t *int_var_sym = create_test_symbol(":int..");
   ASSERT_TRUE(sxs_forms_is_symbol_known_form(forms, int_var_sym));
-  slp_free_object(int_var_sym);
+  slp_object_free(int_var_sym);
 
   ASSERT_FALSE(sxs_forms_is_symbol_known_form(forms, NULL));
   ASSERT_FALSE(sxs_forms_is_symbol_known_form(NULL, int_sym));
 
-  sxs_forms_destroy(forms);
+  sxs_forms_free(forms);
 }
 
 static void test_forms_lookup_invalid_inputs(void) {
-  symbol_forms_t *forms = sxs_forms_create();
+  symbol_forms_t *forms = sxs_forms_new();
   ASSERT_NOT_NULL(forms);
 
   ASSERT_NULL(sxs_forms_lookup(NULL, NULL));
@@ -172,18 +172,18 @@ static void test_forms_lookup_invalid_inputs(void) {
 
   slp_object_t *int_sym = create_test_symbol(":int");
   ASSERT_NULL(sxs_forms_lookup(NULL, int_sym));
-  slp_free_object(int_sym);
+  slp_object_free(int_sym);
 
   slp_object_t non_symbol;
   non_symbol.type = SLP_TYPE_INTEGER;
   non_symbol.value.integer = 42;
   ASSERT_NULL(sxs_forms_lookup(forms, &non_symbol));
 
-  sxs_forms_destroy(forms);
+  sxs_forms_free(forms);
 }
 
 static void test_forms_all_base_forms_registered(void) {
-  symbol_forms_t *forms = sxs_forms_create();
+  symbol_forms_t *forms = sxs_forms_new();
   ASSERT_NOT_NULL(forms);
 
   const char *base_form_names[] = {":none",   ":int",    ":real",   ":symbol",
@@ -196,7 +196,7 @@ static void test_forms_all_base_forms_registered(void) {
     ASSERT_TRUE(sxs_forms_is_symbol_known_form(forms, sym));
     form_definition_t *def = sxs_forms_lookup(forms, sym);
     ASSERT_NOT_NULL(def);
-    slp_free_object(sym);
+    slp_object_free(sym);
   }
 
   const char *variadic_form_names[] = {":none..",   ":int..",    ":real..",
@@ -211,12 +211,12 @@ static void test_forms_all_base_forms_registered(void) {
     form_definition_t *def = sxs_forms_lookup(forms, sym);
     ASSERT_NOT_NULL(def);
     ASSERT_TRUE(def->is_variadic);
-    slp_free_object(sym);
+    slp_object_free(sym);
   }
 
   ASSERT_EQ(forms->count, 22);
 
-  sxs_forms_destroy(forms);
+  sxs_forms_free(forms);
 }
 
 int main(void) {

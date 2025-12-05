@@ -55,7 +55,7 @@ static bool add_form(symbol_forms_t *forms, form_definition_t *def) {
   return true;
 }
 
-symbol_forms_t *sxs_forms_create(void) {
+symbol_forms_t *sxs_forms_new(void) {
   symbol_forms_t *forms = malloc(sizeof(symbol_forms_t));
   if (!forms) {
     return NULL;
@@ -103,7 +103,7 @@ symbol_forms_t *sxs_forms_create(void) {
         create_form_definition(base_forms[i].name, base_forms[i].type,
                                SLP_TYPE_NONE, base_forms[i].is_variadic);
     if (!def || !add_form(forms, def)) {
-      sxs_forms_destroy(forms);
+      sxs_forms_free(forms);
       return NULL;
     }
   }
@@ -111,7 +111,7 @@ symbol_forms_t *sxs_forms_create(void) {
   return forms;
 }
 
-void sxs_forms_destroy(symbol_forms_t *forms) {
+void sxs_forms_free(symbol_forms_t *forms) {
   if (!forms) {
     return;
   }

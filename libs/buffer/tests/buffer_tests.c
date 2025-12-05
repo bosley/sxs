@@ -27,23 +27,23 @@ static int counting_callback(uint8_t *byte, size_t idx, void *callback_data) {
 }
 
 void test_buffer_create_destroy(void) {
-  slp_buffer_t *buffer = slp_buffer_create(100);
+  slp_buffer_t *buffer = slp_buffer_new(100);
   ASSERT_NOT_NULL(buffer);
   ASSERT_NOT_NULL(buffer->data);
   ASSERT_EQ(buffer->capacity, 100);
   ASSERT_EQ(buffer->count, 0);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 void test_buffer_create_min_size(void) {
-  slp_buffer_t *buffer = slp_buffer_create(1);
+  slp_buffer_t *buffer = slp_buffer_new(1);
   ASSERT_NOT_NULL(buffer);
   ASSERT_EQ(buffer->capacity, 16);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 void test_buffer_copy_to_basic(void) {
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
   uint8_t data[] = {1, 2, 3, 4, 5};
 
   int result = slp_buffer_copy_to(buffer, data, 5);
@@ -58,11 +58,11 @@ void test_buffer_copy_to_basic(void) {
   ASSERT_EQ(buf_data[3], 4);
   ASSERT_EQ(buf_data[4], 5);
 
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 void test_buffer_copy_to_multiple(void) {
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
   uint8_t data1[] = {1, 2, 3};
   uint8_t data2[] = {4, 5, 6};
   uint8_t data3[] = {7, 8, 9};
@@ -78,11 +78,11 @@ void test_buffer_copy_to_multiple(void) {
     ASSERT_EQ(buf_data[i], i + 1);
   }
 
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 void test_buffer_reallocation(void) {
-  slp_buffer_t *buffer = slp_buffer_create(8);
+  slp_buffer_t *buffer = slp_buffer_new(8);
   ASSERT_EQ(buffer->capacity, 16);
 
   uint8_t data[40];
@@ -100,11 +100,11 @@ void test_buffer_reallocation(void) {
     ASSERT_EQ(buf_data[i], i);
   }
 
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 void test_buffer_clear(void) {
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
   uint8_t data[] = {1, 2, 3, 4, 5};
 
   slp_buffer_copy_to(buffer, data, 5);
@@ -116,11 +116,11 @@ void test_buffer_clear(void) {
   slp_buffer_copy_to(buffer, data, 3);
   ASSERT_EQ(slp_buffer_count(buffer), 3);
 
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 void test_buffer_for_each_increment(void) {
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
   uint8_t data[] = {0, 1, 2, 3, 4};
 
   slp_buffer_copy_to(buffer, data, 5);
@@ -133,11 +133,11 @@ void test_buffer_for_each_increment(void) {
   ASSERT_EQ(buf_data[3], 4);
   ASSERT_EQ(buf_data[4], 5);
 
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 void test_buffer_for_each_stop(void) {
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
   uint8_t data[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
   slp_buffer_copy_to(buffer, data, 10);
@@ -155,11 +155,11 @@ void test_buffer_for_each_stop(void) {
   ASSERT_EQ(buf_data[8], 1);
   ASSERT_EQ(buf_data[9], 1);
 
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 void test_buffer_for_each_skip(void) {
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
   uint8_t data[] = {0, 0, 0, 0, 0, 0, 0, 0};
 
   slp_buffer_copy_to(buffer, data, 8);
@@ -175,11 +175,11 @@ void test_buffer_for_each_skip(void) {
   ASSERT_EQ(buf_data[6], 10);
   ASSERT_EQ(buf_data[7], 0);
 
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 void test_buffer_empty(void) {
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
 
   ASSERT_EQ(slp_buffer_count(buffer), 0);
 
@@ -187,29 +187,29 @@ void test_buffer_empty(void) {
   slp_buffer_for_each(buffer, counting_callback, NULL);
   ASSERT_EQ(count_callback_calls, 0);
 
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 void test_buffer_null_checks(void) {
-  slp_buffer_destroy(NULL);
+  slp_buffer_free(NULL);
 
   ASSERT_EQ(slp_buffer_count(NULL), 0);
   ASSERT_NULL(slp_buffer_data(NULL));
 
   slp_buffer_clear(NULL);
 
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
   ASSERT_EQ(slp_buffer_copy_to(buffer, NULL, 10), -1);
   ASSERT_EQ(slp_buffer_copy_to(NULL, (uint8_t *)"test", 4), -1);
 
   slp_buffer_for_each(NULL, increment_byte, NULL);
   slp_buffer_for_each(buffer, NULL, NULL);
 
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 void test_buffer_large_data(void) {
-  slp_buffer_t *buffer = slp_buffer_create(16);
+  slp_buffer_t *buffer = slp_buffer_new(16);
 
   uint8_t large_data[1000];
   for (int i = 0; i < 1000; i++) {
@@ -225,22 +225,22 @@ void test_buffer_large_data(void) {
     ASSERT_EQ(buf_data[i], i % 256);
   }
 
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 void test_buffer_zero_length_copy(void) {
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
   uint8_t data[] = {1, 2, 3};
 
   int result = slp_buffer_copy_to(buffer, data, 0);
   ASSERT_EQ(result, 0);
   ASSERT_EQ(slp_buffer_count(buffer), 0);
 
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 void test_buffer_shrink_to_fit(void) {
-  slp_buffer_t *buffer = slp_buffer_create(100);
+  slp_buffer_t *buffer = slp_buffer_new(100);
   ASSERT_EQ(buffer->capacity, 100);
 
   uint8_t data[] = {1, 2, 3, 4, 5};
@@ -258,21 +258,21 @@ void test_buffer_shrink_to_fit(void) {
     ASSERT_EQ(buf_data[i], i + 1);
   }
 
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 void test_buffer_shrink_to_fit_empty(void) {
-  slp_buffer_t *buffer = slp_buffer_create(100);
+  slp_buffer_t *buffer = slp_buffer_new(100);
 
   int result = slp_buffer_shrink_to_fit(buffer);
   ASSERT_EQ(result, 0);
   ASSERT_EQ(buffer->capacity, 100);
 
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 void test_buffer_shrink_to_fit_already_fit(void) {
-  slp_buffer_t *buffer = slp_buffer_create(32);
+  slp_buffer_t *buffer = slp_buffer_new(32);
   uint8_t data[32];
   for (int i = 0; i < 32; i++) {
     data[i] = i;
@@ -286,7 +286,7 @@ void test_buffer_shrink_to_fit_already_fit(void) {
   ASSERT_EQ(result, 0);
   ASSERT_EQ(buffer->capacity, 32);
 
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(buffer);
 }
 
 void test_buffer_shrink_to_fit_null(void) {
@@ -295,7 +295,7 @@ void test_buffer_shrink_to_fit_null(void) {
 }
 
 void test_buffer_sub_buffer_validation(void) {
-  slp_buffer_t *buffer = slp_buffer_create(100);
+  slp_buffer_t *buffer = slp_buffer_new(100);
   uint8_t data[100];
   for (int i = 0; i < 100; i++) {
     data[i] = i;
@@ -314,8 +314,8 @@ void test_buffer_sub_buffer_validation(void) {
     ASSERT_EQ(sub_data[i], 20 + i);
   }
 
-  slp_buffer_destroy(sub);
-  slp_buffer_destroy(buffer);
+  slp_buffer_free(sub);
+  slp_buffer_free(buffer);
 }
 
 int main(void) {
