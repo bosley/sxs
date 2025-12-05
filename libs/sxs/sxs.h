@@ -11,6 +11,8 @@
 #define SXS_CALLABLE_MAX_VARIANTS 5
 
 #define SXS_BUILTIN_LOAD_STORE_SYMBOL '@'
+#define SXS_BUILTIN_DEBUG_SIMPLE_SYMBOL 'd'
+#define SXS_BUILTIN_DEBUG_FULL_SYMBOL 'D'
 
 typedef struct sxs_runtime_s sxs_runtime_t;
 typedef struct sxs_callable_s sxs_callable_t;

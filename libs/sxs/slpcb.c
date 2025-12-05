@@ -9,6 +9,8 @@ extern void sxs_context_free(sxs_context_t *context);
 extern slp_object_t *sxs_eval_object(sxs_runtime_t *runtime,
                                      slp_object_t *object);
 extern slp_object_t *sxs_get_builtin_load_store_object(void);
+extern slp_object_t *sxs_get_builtin_debug_simple_object(void);
+extern slp_object_t *sxs_get_builtin_debug_full_object(void);
 
 int sxs_context_push_object(sxs_context_t *context, slp_object_t *object) {
   if (!context) {
@@ -94,6 +96,27 @@ static void sxs_handle_object_from_slp_callback(slp_object_t *object,
       if (!builtin) {
         fprintf(stderr,
                 "Failed to get builtin load store object (nil builtin)\n");
+        return;
+      }
+      slp_object_free(object);
+      object = builtin;
+    } else if (SXS_BUILTIN_DEBUG_SIMPLE_SYMBOL ==
+               object->value.buffer->data[0]) {
+      printf("[BUILTIN DEBUG SIMPLE SYMBOL FOUND - UPDATING OBJECT]\n");
+      slp_object_t *builtin = sxs_get_builtin_debug_simple_object();
+      if (!builtin) {
+        fprintf(stderr,
+                "Failed to get builtin debug simple object (nil builtin)\n");
+        return;
+      }
+      slp_object_free(object);
+      object = builtin;
+    } else if (SXS_BUILTIN_DEBUG_FULL_SYMBOL == object->value.buffer->data[0]) {
+      printf("[BUILTIN DEBUG FULL SYMBOL FOUND - UPDATING OBJECT]\n");
+      slp_object_t *builtin = sxs_get_builtin_debug_full_object();
+      if (!builtin) {
+        fprintf(stderr,
+                "Failed to get builtin debug full object (nil builtin)\n");
         return;
       }
       slp_object_free(object);
