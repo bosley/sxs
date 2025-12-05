@@ -1,30 +1,236 @@
-# SXS
+# SXS Runtime
 
-This library does a couple of things.
+SXS is an s-expression adjacent language runtime built on top of SLP (S-expression List Processor). It provides a minimal, context-based execution environment for evaluating s-expression-like code with a persistent object storage system.
 
-1) Defines callbacks for managing complex `SLP` types (required for SLP parsing)
-2) Defines callbacks for `SLP` parsing regarding when specific objects are found (virtual list, lists, and primitive object definitions)
-3) Reads in a file with a given runtime, leverages `SLP` buffer parsing to execute a minimal s-expression adjacent language
+## System Architecture
 
-When we parse, if the first char found is not `(` we say we are in a "virtual list" meaning we just tack-on a '(' operationally. Then, if
-a virtual list is whats being parsed, the last newline follwing the virtual list becomes the ')' operationally meaning that we get a callback saying that an instruction has been completed.
+SXS operates as a runtime that processes source code through the SLP parser, which generates callbacks for different syntactic elements. The runtime maintains:
 
-The SXS takes in these SLP callbacks as if they were commands. Each one doing something to the runtime to create objects and perform calls.
+- A context hierarchy for managing execution scope
+- A persistent object storage array with 8192 slots
+- An evaluation engine that processes parsed objects
+- A type system based on forms for function argument validation
 
-`(@ 0 0)` for instance 
+## Data Types
 
-`(` start a new context
-`@` symbol found - is builtin so convert to builtin fn call, store in context list
-`0` integer - push to context list
-`0` integer - push to context list
-`)` EOL - convert proc list into `slp object` list variant. clear the proc list. eval the object. push result to parent context or current if no parent given 
+### Primitives
 
-Each `()` is a context. sub `()` is a sub-context so if `()` has a parent, its result is copied to the parent callers context and added to their list as the result
+- **Integer**: Signed 64-bit integers
+- **Real**: Double-precision floating-point numbers
+- **Symbol**: Identifiers and names represented as byte sequences
+- **None**: Represents absence of value
 
-# Commands
+### Lists
 
-`@` - 3 variants 
+- **Parentheses `()`**: Evaluated as function calls when encountered
+- **Brackets `[]`**: Data structures, not evaluated
+- **Curlies `{}`**: Data structures, not evaluated
+- **Quoted Strings `""`**: String literals
 
-1) get `(@ <int>)`  -> returns a copy of the value
-2) set `(@ <int> <any>)` -> returns a copy of the value that was set
-3) cas `(@ <int> <any> <any>)` -> returns 1 if updated, 0 therwise. CAS is done by `type` and then `deep equals` (byte comparison)
+### Quoted Expressions
+
+The quote operator `'` prevents immediate evaluation:
+- `'symbol` - Returns the symbol itself without evaluation
+- `'(...)` - Returns the list structure without calling it as a function
+- `'[...]` - Returns the bracket list without evaluation
+- `'{...}` - Returns the curly list without evaluation
+
+When a quoted expression is evaluated, the runtime processes its contents and returns the result.
+
+### Functions
+
+- **Builtin**: Native functions implemented in C, identified by special symbols
+- **Lambda**: User-defined functions (implementation in progress)
+
+### Special Types
+
+- **Error**: First-class error objects that can be handled by the runtime
+
+## Evaluation Model
+
+### Expression Evaluation
+
+The evaluation rules are:
+
+1. **Parenthesized lists `()`** are evaluated as function calls
+   - First element must be a callable (builtin or lambda)
+   - Remaining elements are arguments
+   - Arguments are evaluated before being passed to the function
+   - Result is returned to the parent context
+
+2. **Brackets `[]` and curlies `{}`** are data structures
+   - Not evaluated as function calls
+   - Returned as-is when encountered
+
+3. **Primitives** (integers, reals) evaluate to themselves
+
+4. **Symbols** evaluate to themselves (variable lookup not yet implemented)
+
+5. **Quoted expressions** are evaluated by processing their contents
+
+### Virtual Lists
+
+Top-level expressions that don't start with `(` are wrapped in an implicit "virtual list":
+
+- When the first non-whitespace character is not `(`, a virtual list begins
+- The virtual list continues until a newline is encountered
+- The newline acts as the closing `)` for evaluation purposes
+- This allows writing expressions without explicit parentheses at the top level
+
+Example:
+```
+@ 0 42
+```
+Is equivalent to:
+```
+(@ 0 42)
+```
+
+## Context System
+
+### Execution Contexts
+
+Each parenthesized expression creates a new evaluation context:
+
+- Contexts have a unique ID assigned sequentially
+- Each context maintains a processing list of up to 16 objects
+- Contexts have a parent reference (except the root context)
+- When a context completes, its result is passed to the parent
+
+### Context Lifecycle
+
+1. **List Start**: A new context is created and becomes the current context
+2. **Object Processing**: Objects are added to the context's processing list
+3. **List End**: The processing list is converted to a list object, evaluated, and the result is passed to the parent
+4. **Context Cleanup**: The child context is freed after passing its result
+
+### Object Storage
+
+The runtime provides persistent storage separate from contexts:
+
+- 8192 storage slots indexed from 0 to 8191
+- Storage persists across context boundaries
+- Accessed via the `@` builtin command
+- Stores copies of objects (deep copy semantics)
+
+## Built-in Commands
+
+### `@` - Load/Store/Compare-And-Swap
+
+The `@` symbol is the primary builtin for interacting with object storage. It has three variants based on argument count:
+
+#### Get (1 argument)
+
+Retrieves a value from storage.
+
+Syntax: `(@ <index>)`
+
+- `<index>`: Integer storage slot index (0-8191)
+- Returns: A copy of the stored object, or `none` if the slot is empty
+- Errors: If index is out of bounds
+
+#### Set (2 arguments)
+
+Stores a value in storage.
+
+Syntax: `(@ <index> <value>)`
+
+- `<index>`: Integer storage slot index (0-8191)
+- `<value>`: Any object to store
+- Returns: A copy of the value that was stored
+- Errors: If index is out of bounds
+
+The value is evaluated before being stored.
+
+#### Compare-And-Swap (3 arguments)
+
+Atomically compares and swaps a value if it matches.
+
+Syntax: `(@ <index> <compare> <new>)`
+
+- `<index>`: Integer storage slot index (0-8191)
+- `<compare>`: Value to compare against current slot contents
+- `<new>`: New value to store if comparison succeeds
+- Returns: Integer `1` if swap occurred, `0` if comparison failed
+- Errors: If index is out of bounds
+
+Comparison is done by type equality followed by deep byte comparison. Both `<compare>` and `<new>` are evaluated before the operation.
+
+## Forms (Type System)
+
+Forms define the expected types of function arguments. Functions can have multiple variants (overloading) with different form signatures.
+
+### Base Forms
+
+- `int` - Integer type
+- `real` - Real number type
+- `symbol` - Symbol type
+- `list-s` - String list (quoted strings)
+- `list-p` - Parenthesized list
+- `list-b` - Bracket list
+- `list-c` - Curly list
+- `some` - Quoted expression
+- `fn` - Function (builtin or lambda)
+- `any` - Any type (no constraint)
+- `none` - None type
+
+### Variadic Forms
+
+Forms with `..` suffix accept variable numbers of arguments:
+
+- `int..` - Variable integers
+- `real..` - Variable reals
+- `symbol..` - Variable symbols
+- `list-s..` - Variable string lists
+- `list-p..` - Variable parenthesized lists
+- `list-b..` - Variable bracket lists
+- `list-c..` - Variable curly lists
+- `some..` - Variable quoted expressions
+- `fn..` - Variable functions
+- `any..` - Variable any type
+
+### Function Variants
+
+The `@` builtin demonstrates multiple variants:
+
+1. Variant 1: `(@ :int)` - Get operation
+2. Variant 2: `(@ :int :any)` - Set operation
+3. Variant 3: `(@ :int :any :any)` - CAS operation
+
+The runtime selects the matching variant based on argument count and types after evaluation.
+
+## Error Handling
+
+Errors are first-class objects in SXS:
+
+- Errors have a type, message, position, and source buffer reference
+- When an error is created, the runtime sets an error flag
+- Errors propagate through the evaluation chain
+- Error objects can be returned and handled like any other value
+
+### Error Types
+
+- `UNCLOSED_GROUP` - Missing closing delimiter
+- `UNCLOSED_QUOTED_GROUP` - Missing closing delimiter in quoted expression
+- `PARSE_QUOTED_TOKEN` - Failed to parse quoted token
+- `PARSE_TOKEN` - Failed to parse token
+- `ALLOCATION` - Memory allocation failure
+- `BUFFER_OPERATION` - Buffer operation failure
+
+When an error occurs during parsing, the runtime clears the current context's processing list and creates an error object.
+
+## Processing Flow
+
+1. **File Loading**: Source file is loaded into a buffer
+2. **Parsing**: SLP scanner tokenizes and parses the buffer
+3. **Callbacks**: Parser invokes callbacks for objects, list boundaries, and errors
+4. **Context Management**: Runtime creates/destroys contexts as lists are encountered
+5. **Evaluation**: Parenthesized lists are evaluated as function calls
+6. **Result**: The last object in the root context is the final result
+
+## Limitations and Future Work
+
+- Variable binding and lookup not yet implemented
+- Lambda function evaluation not yet implemented
+- User-defined forms not yet implemented
+- Limited builtin function library (only `@` currently available)

@@ -1,5 +1,0 @@
-/*
-The core defines the core of the sxs system. It depends on many other libraries
-in sxs to use raw C and minimal external dependencies to get the language
-working
-*/

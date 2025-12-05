@@ -4,8 +4,6 @@
 // NOTE: This file is only for "types" that "sit on" or "exist in" a slp buffer
 //       This file is NOT for random C types that the libraries need
 
-#include "buffer/buffer.h"
-
 #include <stddef.h>
 #include <stdint.h>
 
