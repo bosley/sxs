@@ -64,6 +64,11 @@ if can_escape_with is not NULL then any byte matching must_end_with may be
 skipped over and included into the group iff immediatly preceeded by the
 *can_escape_with
 
+consume_leading_ws when true will skip any leading whitespace before checking
+for must_start_with. when false the check happens at the current position.
+the returned index_of_start_symbol will point to the delimiter not the
+whitespace
+
 this provides the ability for us to get a view into something of a list "form"
 without limiting us to JUST processing () [] {} etc. We can say parse this
 group:   !a b +1 2$ where ! is start and $ is end then it also means we can do
@@ -74,8 +79,22 @@ implies that the caller is doing something specific, and we just don't need to
 know
 
 */
-slp_scanner_find_group_result_t
-slp_scanner_find_group(slp_scanner_t *scanner, uint8_t must_start_with,
-                       uint8_t must_end_with, uint8_t *can_escape_with);
+slp_scanner_find_group_result_t slp_scanner_find_group(slp_scanner_t *scanner,
+                                                       uint8_t must_start_with,
+                                                       uint8_t must_end_with,
+                                                       uint8_t *can_escape_with,
+                                                       bool consume_leading_ws);
+
+/*
+Skips all leading whitespace and returns true if the next non-whitespace byte is
+found returns false if the end of the buffer is reached
+*/
+bool slp_scanner_goto_next_non_white(slp_scanner_t *scanner);
+
+/*
+Skips to the next byte matching the given target_byte and returns true if found
+returns false if the end of the buffer is reached
+*/
+bool slp_scanner_goto_next_target(slp_scanner_t *scanner, uint8_t target_byte);
 
 #endif

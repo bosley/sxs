@@ -224,7 +224,8 @@ symbol We offer the option of "escaping" briefly from detecting the end byte
 
 slp_scanner_find_group_result_t
 slp_scanner_find_group(slp_scanner_t *scanner, uint8_t must_start_with,
-                       uint8_t must_end_with, uint8_t *can_escape_with) {
+                       uint8_t must_end_with, uint8_t *can_escape_with,
+                       bool consume_leading_ws) {
   if (!scanner) {
     return (slp_scanner_find_group_result_t){.success = false,
                                              .index_of_start_symbol = 0,
@@ -244,6 +245,18 @@ slp_scanner_find_group(slp_scanner_t *scanner, uint8_t must_start_with,
     return (slp_scanner_find_group_result_t){.success = false,
                                              .index_of_start_symbol = 0,
                                              .index_of_closing_symbol = 0};
+  }
+
+  if (consume_leading_ws) {
+    while (pos < buf->count && is_whitespace(buf->data[pos])) {
+      pos++;
+    }
+
+    if (pos >= buf->count) {
+      return (slp_scanner_find_group_result_t){.success = false,
+                                               .index_of_start_symbol = 0,
+                                               .index_of_closing_symbol = 0};
+    }
   }
 
   if (buf->data[pos] != must_start_with) {
@@ -299,4 +312,60 @@ slp_scanner_find_group(slp_scanner_t *scanner, uint8_t must_start_with,
   return (slp_scanner_find_group_result_t){.success = false,
                                            .index_of_start_symbol = 0,
                                            .index_of_closing_symbol = 0};
+}
+
+bool slp_scanner_goto_next_non_white(slp_scanner_t *scanner) {
+  if (!scanner) {
+    return false;
+  }
+
+  slp_buffer_t *buf = scanner->buffer;
+  if (!buf) {
+    return false;
+  }
+
+  size_t pos = scanner->position;
+
+  while (pos < buf->count && is_whitespace(buf->data[pos])) {
+    pos++;
+  }
+
+  if (pos >= buf->count) {
+    return false;
+  }
+
+  scanner->position = pos;
+  return true;
+}
+
+bool slp_scanner_goto_next_target(slp_scanner_t *scanner, uint8_t target_byte) {
+  if (!scanner) {
+    return false;
+  }
+
+  slp_buffer_t *buf = scanner->buffer;
+  if (!buf) {
+    return false;
+  }
+  size_t pos = scanner->position;
+
+  if (pos >= buf->count) {
+    return false;
+  }
+
+  if (buf->data[pos] == target_byte) {
+    scanner->position = pos;
+    return true;
+  }
+
+  while (pos < buf->count && buf->data[pos] != target_byte) {
+    pos++;
+  }
+
+  if (pos >= buf->count) {
+    return false;
+  }
+
+  scanner->position = pos;
+  return true;
 }

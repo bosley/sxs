@@ -2,12 +2,12 @@
 #include "test.h"
 #include <string.h>
 
-static int increment_byte(uint8_t *byte, size_t idx) {
+static int increment_byte(uint8_t *byte, size_t idx, void *callback_data) {
   (*byte)++;
   return 1;
 }
 
-static int stop_at_5(uint8_t *byte, size_t idx) {
+static int stop_at_5(uint8_t *byte, size_t idx, void *callback_data) {
   if (idx >= 5) {
     return 0;
   }
@@ -15,13 +15,13 @@ static int stop_at_5(uint8_t *byte, size_t idx) {
   return 1;
 }
 
-static int skip_every_other(uint8_t *byte, size_t idx) {
+static int skip_every_other(uint8_t *byte, size_t idx, void *callback_data) {
   (*byte) += 10;
   return 2;
 }
 
 static int count_callback_calls = 0;
-static int counting_callback(uint8_t *byte, size_t idx) {
+static int counting_callback(uint8_t *byte, size_t idx, void *callback_data) {
   count_callback_calls++;
   return 1;
 }
@@ -124,7 +124,7 @@ void test_buffer_for_each_increment(void) {
   uint8_t data[] = {0, 1, 2, 3, 4};
 
   slp_buffer_copy_to(buffer, data, 5);
-  slp_buffer_for_each(buffer, increment_byte);
+  slp_buffer_for_each(buffer, increment_byte, NULL);
 
   uint8_t *buf_data = slp_buffer_data(buffer);
   ASSERT_EQ(buf_data[0], 1);
@@ -141,7 +141,7 @@ void test_buffer_for_each_stop(void) {
   uint8_t data[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
   slp_buffer_copy_to(buffer, data, 10);
-  slp_buffer_for_each(buffer, stop_at_5);
+  slp_buffer_for_each(buffer, stop_at_5, NULL);
 
   uint8_t *buf_data = slp_buffer_data(buffer);
   ASSERT_EQ(buf_data[0], 2);
@@ -163,7 +163,7 @@ void test_buffer_for_each_skip(void) {
   uint8_t data[] = {0, 0, 0, 0, 0, 0, 0, 0};
 
   slp_buffer_copy_to(buffer, data, 8);
-  slp_buffer_for_each(buffer, skip_every_other);
+  slp_buffer_for_each(buffer, skip_every_other, NULL);
 
   uint8_t *buf_data = slp_buffer_data(buffer);
   ASSERT_EQ(buf_data[0], 10);
@@ -184,7 +184,7 @@ void test_buffer_empty(void) {
   ASSERT_EQ(slp_buffer_count(buffer), 0);
 
   count_callback_calls = 0;
-  slp_buffer_for_each(buffer, counting_callback);
+  slp_buffer_for_each(buffer, counting_callback, NULL);
   ASSERT_EQ(count_callback_calls, 0);
 
   slp_buffer_destroy(buffer);
@@ -202,8 +202,8 @@ void test_buffer_null_checks(void) {
   ASSERT_EQ(slp_buffer_copy_to(buffer, NULL, 10), -1);
   ASSERT_EQ(slp_buffer_copy_to(NULL, (uint8_t *)"test", 4), -1);
 
-  slp_buffer_for_each(NULL, increment_byte);
-  slp_buffer_for_each(buffer, NULL);
+  slp_buffer_for_each(NULL, increment_byte, NULL);
+  slp_buffer_for_each(buffer, NULL, NULL);
 
   slp_buffer_destroy(buffer);
 }

@@ -171,14 +171,15 @@ int slp_buffer_shrink_to_fit(slp_buffer_t *buffer) {
   return 0;
 }
 
-void slp_buffer_for_each(slp_buffer_t *buffer, slp_buffer_iterator_fn fn) {
+void slp_buffer_for_each(slp_buffer_t *buffer, slp_buffer_iterator_fn fn,
+                         void *callback_data) {
   if (!buffer || !fn) {
     return;
   }
 
   size_t idx = 0;
   while (idx < buffer->count) {
-    int result = fn(&buffer->data[idx], idx);
+    int result = fn(&buffer->data[idx], idx, callback_data);
 
     if (result == 0) {
       break;

@@ -15,7 +15,8 @@ typedef struct {
   slp_buffer_t *right;
 } split_buffer_t;
 
-typedef int (*slp_buffer_iterator_fn)(uint8_t *byte, size_t idx);
+typedef int (*slp_buffer_iterator_fn)(uint8_t *byte, size_t idx,
+                                      void *callback_data);
 
 slp_buffer_t *slp_buffer_create(size_t initial_size);
 
@@ -33,7 +34,8 @@ void slp_buffer_clear(slp_buffer_t *buffer);
 
 int slp_buffer_shrink_to_fit(slp_buffer_t *buffer);
 
-void slp_buffer_for_each(slp_buffer_t *buffer, slp_buffer_iterator_fn fn);
+void slp_buffer_for_each(slp_buffer_t *buffer, slp_buffer_iterator_fn fn,
+                         void *callback_data);
 
 slp_buffer_t *slp_buffer_sub_buffer(slp_buffer_t *buffer, size_t offset,
                                     size_t length, int *bytes_copied);

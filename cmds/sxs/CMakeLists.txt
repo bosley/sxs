@@ -2,6 +2,7 @@ add_executable(sxs main.c)
 
 target_link_libraries(sxs PRIVATE
     buffer
+    scanner
     slp
     ${LIBTCC_LIBRARY}
 )

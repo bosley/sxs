@@ -48,6 +48,25 @@ Used when start and end delimiters are identical, such as `"` and `"`.
 
 **Example:** `"hello world"` finds the closing `"` at position 12.
 
+## Leading Whitespace Handling
+
+The scanner accepts a `consume_leading_ws` parameter:
+
+**When `true`:**
+- Skips all leading whitespace (space, tab, newline, carriage return) before checking for the start delimiter
+- The returned `index_of_start_symbol` points to the delimiter, not the whitespace
+- Useful when parsing structures with flexible whitespace formatting
+
+**When `false`:**
+- Requires the start delimiter at the current scanner position
+- No whitespace is consumed
+- This is the traditional behavior
+
+**Example:**
+- Buffer: `"   (hello)"` at position 0
+- With `consume_leading_ws = true`: finds `(` at position 3, succeeds
+- With `consume_leading_ws = false`: no `(` at position 0, fails
+
 ## Escape Sequences
 
 When an escape byte is provided:
@@ -66,9 +85,10 @@ When an escape byte is provided:
 ## Parsing Rules
 
 ### Start Position Validation
-1. Scanner position must point to the start delimiter
-2. If current byte does not match start delimiter, return failure
-3. This enforces caller intent and prevents accidental misuse
+1. If `consume_leading_ws` is true, skip all leading whitespace first
+2. Scanner position must point to the start delimiter (after whitespace if consumed)
+3. If current byte does not match start delimiter, return failure
+4. This enforces caller intent and prevents accidental misuse
 
 ### Scanning Process
 
