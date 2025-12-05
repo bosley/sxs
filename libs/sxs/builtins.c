@@ -230,26 +230,7 @@ static slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
     slp_object_t *compare_val = eval_args[1];
     slp_object_t *new_val = eval_args[2];
 
-    bool should_swap = false;
-    if (!current && compare_val->type == SLP_TYPE_NONE) {
-      should_swap = true;
-    } else if (current && compare_val->type == current->type) {
-      if (current->type == SLP_TYPE_INTEGER) {
-        should_swap = (current->value.integer == compare_val->value.integer);
-      } else if (current->type == SLP_TYPE_REAL) {
-        should_swap = (current->value.real == compare_val->value.real);
-      }
-    }
-
-    slp_object_t *old_value = NULL;
-    if (current) {
-      old_value = slp_object_copy(current);
-    } else {
-      old_value = malloc(sizeof(slp_object_t));
-      if (old_value) {
-        old_value->type = SLP_TYPE_NONE;
-      }
-    }
+    bool should_swap = slp_objects_equal(current, compare_val);
 
     if (should_swap) {
       if (runtime->object_storage[dest_index]) {
@@ -261,7 +242,17 @@ static slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
     slp_free_object(compare_val);
     slp_free_object(new_val);
 
-    return old_value;
+    slp_object_t *result = malloc(sizeof(slp_object_t));
+    if (!result) {
+      return sxs_create_error_object(SLP_ERROR_ALLOCATION,
+                                     "@ CAS: failed to allocate result", 0,
+                                     runtime->source_buffer);
+    }
+    result->type = SLP_TYPE_INTEGER;
+    result->value.integer = should_swap ? 1 : 0;
+    result->source_position = 0;
+
+    return result;
   }
 
   for (size_t i = 0; i < arg_count; i++) {

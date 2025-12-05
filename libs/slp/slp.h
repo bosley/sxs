@@ -71,14 +71,17 @@ typedef struct slp_callbacks_s {
 
 typedef void (*slp_fn_data_free_fn)(void *fn_data);
 typedef void *(*slp_fn_data_copy_fn)(void *fn_data);
+typedef bool (*slp_fn_data_equal_fn)(void *fn_data_a, void *fn_data_b);
 
 void slp_register_builtin_handlers(slp_fn_data_free_fn free_fn,
                                    slp_fn_data_copy_fn copy_fn);
 void slp_register_lambda_handlers(slp_fn_data_free_fn free_fn,
-                                  slp_fn_data_copy_fn copy_fn);
+                                  slp_fn_data_copy_fn copy_fn,
+                                  slp_fn_data_equal_fn equal_fn);
 
 void slp_free_object(slp_object_t *object);
 slp_object_t *slp_object_copy(slp_object_t *object);
+bool slp_objects_equal(slp_object_t *a, slp_object_t *b);
 
 /*
 

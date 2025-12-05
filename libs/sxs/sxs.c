@@ -104,6 +104,31 @@ static void sxs_callable_free_impl(void *fn_data) {
   sxs_callable_free((sxs_callable_t *)fn_data);
 }
 
+static bool sxs_callable_equal_impl(void *fn_data_a, void *fn_data_b) {
+  if (!fn_data_a && !fn_data_b) {
+    return true;
+  }
+  if (!fn_data_a || !fn_data_b) {
+    return false;
+  }
+  sxs_callable_t *a_callable = (sxs_callable_t *)fn_data_a;
+  sxs_callable_t *b_callable = (sxs_callable_t *)fn_data_b;
+
+  if (!a_callable->impl.lambda_body && !b_callable->impl.lambda_body) {
+    return true;
+  }
+  if (!a_callable->impl.lambda_body || !b_callable->impl.lambda_body) {
+    return false;
+  }
+  if (a_callable->impl.lambda_body->count !=
+      b_callable->impl.lambda_body->count) {
+    return false;
+  }
+  return memcmp(a_callable->impl.lambda_body->data,
+                b_callable->impl.lambda_body->data,
+                a_callable->impl.lambda_body->count) == 0;
+}
+
 slp_object_t *sxs_create_error_object(slp_error_type_e error_type,
                                       const char *message, size_t position,
                                       slp_buffer_unowned_ptr_t source_buffer) {
@@ -183,7 +208,8 @@ void sxs_context_free(sxs_context_t *context) {
 
 sxs_runtime_t *sxs_runtime_new(void) {
   slp_register_builtin_handlers(NULL, NULL);
-  slp_register_lambda_handlers(sxs_callable_free_impl, sxs_callable_copy_impl);
+  slp_register_lambda_handlers(sxs_callable_free_impl, sxs_callable_copy_impl,
+                               sxs_callable_equal_impl);
 
   sxs_runtime_t *runtime = malloc(sizeof(sxs_runtime_t));
   if (!runtime) {

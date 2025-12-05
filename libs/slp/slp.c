@@ -5,6 +5,7 @@ static slp_fn_data_free_fn g_builtin_free_fn = NULL;
 static slp_fn_data_copy_fn g_builtin_copy_fn = NULL;
 static slp_fn_data_free_fn g_lambda_free_fn = NULL;
 static slp_fn_data_copy_fn g_lambda_copy_fn = NULL;
+static slp_fn_data_equal_fn g_lambda_equal_fn = NULL;
 
 void slp_register_builtin_handlers(slp_fn_data_free_fn free_fn,
                                    slp_fn_data_copy_fn copy_fn) {
@@ -13,9 +14,11 @@ void slp_register_builtin_handlers(slp_fn_data_free_fn free_fn,
 }
 
 void slp_register_lambda_handlers(slp_fn_data_free_fn free_fn,
-                                  slp_fn_data_copy_fn copy_fn) {
+                                  slp_fn_data_copy_fn copy_fn,
+                                  slp_fn_data_equal_fn equal_fn) {
   g_lambda_free_fn = free_fn;
   g_lambda_copy_fn = copy_fn;
+  g_lambda_equal_fn = equal_fn;
 }
 
 void slp_free_object(slp_object_t *object) {
@@ -190,6 +193,79 @@ slp_object_t *slp_object_copy(slp_object_t *object) {
   }
 
   return clone;
+}
+
+bool slp_objects_equal(slp_object_t *a, slp_object_t *b) {
+  if (!a && !b) {
+    return true;
+  }
+  if (!a || !b) {
+    return false;
+  }
+
+  if (a->type != b->type) {
+    return false;
+  }
+
+  switch (a->type) {
+  case SLP_TYPE_NONE:
+    return true;
+
+  case SLP_TYPE_INTEGER:
+    return memcmp(&a->value.integer, &b->value.integer, sizeof(int64_t)) == 0;
+
+  case SLP_TYPE_REAL:
+    return memcmp(&a->value.real, &b->value.real, sizeof(double)) == 0;
+
+  case SLP_TYPE_SYMBOL:
+  case SLP_TYPE_LIST_S:
+  case SLP_TYPE_QUOTED:
+    if (!a->value.buffer && !b->value.buffer) {
+      return true;
+    }
+    if (!a->value.buffer || !b->value.buffer) {
+      return false;
+    }
+    if (a->value.buffer->count != b->value.buffer->count) {
+      return false;
+    }
+    return memcmp(a->value.buffer->data, b->value.buffer->data,
+                  a->value.buffer->count) == 0;
+
+  case SLP_TYPE_LIST_P:
+  case SLP_TYPE_LIST_C:
+  case SLP_TYPE_LIST_B:
+    if (a->value.list.count != b->value.list.count) {
+      return false;
+    }
+    for (size_t i = 0; i < a->value.list.count; i++) {
+      if (!slp_objects_equal(a->value.list.items[i], b->value.list.items[i])) {
+        return false;
+      }
+    }
+    return true;
+
+  case SLP_TYPE_BUILTIN:
+    return a->value.fn_data == b->value.fn_data;
+
+  case SLP_TYPE_LAMBDA:
+    if (!a->value.fn_data && !b->value.fn_data) {
+      return true;
+    }
+    if (!a->value.fn_data || !b->value.fn_data) {
+      return false;
+    }
+    if (g_lambda_equal_fn) {
+      return g_lambda_equal_fn(a->value.fn_data, b->value.fn_data);
+    }
+    return a->value.fn_data == b->value.fn_data;
+
+  case SLP_TYPE_ERROR:
+    return a->value.fn_data == b->value.fn_data;
+
+  default:
+    return false;
+  }
 }
 
 void slp_process_group(slp_scanner_t *scanner, uint8_t start, uint8_t end,
