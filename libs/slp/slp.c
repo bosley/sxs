@@ -10,6 +10,23 @@ void slp_free_object(slp_object_t *object) {
     if (object->value.buffer) {
       slp_buffer_destroy(object->value.buffer);
     }
+  } else if (object->type == SLP_TYPE_LIST_P ||
+             object->type == SLP_TYPE_LIST_B ||
+             object->type == SLP_TYPE_LIST_C) {
+    if (object->value.list.items) {
+      for (size_t i = 0; i < object->value.list.count; i++) {
+        slp_free_object(object->value.list.items[i]);
+      }
+      free(object->value.list.items);
+    }
+  } else if (object->type == SLP_TYPE_BUILTIN) {
+    if (object->value.fn_data) {
+      // TODO: Free builtin function data (no structs yet)
+    }
+  } else if (object->type == SLP_TYPE_LAMBDA) {
+    if (object->value.fn_data) {
+      // TODO: Free lambda function data (we dont have a structure for it yet)
+    }
   }
 
   free(object);
@@ -46,6 +63,46 @@ slp_object_t *slp_object_copy(slp_object_t *object) {
       clone->value.buffer = NULL;
     }
     break;
+
+  // We don't clone C function data for builtins
+  case SLP_TYPE_BUILTIN:
+    clone->value.fn_data = object->value.fn_data;
+    break;
+  case SLP_TYPE_LAMBDA:
+
+    /*
+TODO: Once we define the structgure of lambda we need to ompement a copy
+
+    */
+    break;
+  case SLP_TYPE_LIST_P:
+  case SLP_TYPE_LIST_B:
+  case SLP_TYPE_LIST_C:
+    if (object->value.list.items && object->value.list.count > 0) {
+      clone->value.list.count = object->value.list.count;
+      clone->value.list.items =
+          malloc(sizeof(slp_object_t *) * object->value.list.count);
+      if (!clone->value.list.items) {
+        free(clone);
+        return NULL;
+      }
+      for (size_t i = 0; i < object->value.list.count; i++) {
+        clone->value.list.items[i] =
+            slp_object_copy(object->value.list.items[i]);
+        if (!clone->value.list.items[i]) {
+          for (size_t j = 0; j < i; j++) {
+            slp_free_object(clone->value.list.items[j]);
+          }
+          free(clone->value.list.items);
+          free(clone);
+          return NULL;
+        }
+      }
+    } else {
+      clone->value.list.items = NULL;
+      clone->value.list.count = 0;
+    }
+    break;
   default:
     clone->value.buffer = NULL;
     break;
@@ -55,9 +112,10 @@ slp_object_t *slp_object_copy(slp_object_t *object) {
 }
 
 void slp_process_group(slp_scanner_t *scanner, uint8_t start, uint8_t end,
-                       const char *group_name, slp_processor_state_t *state,
+                       const char *group_name, slp_type_e list_type,
+                       slp_processor_state_t *state,
                        slp_scanner_stop_symbols_t *stops, int depth,
-                       slp_object_consumer_fn consumer, void *context) {
+                       slp_callbacks_t *callbacks) {
   slp_scanner_find_group_result_t group =
       slp_scanner_find_group(scanner, start, end, NULL, false);
 
@@ -72,6 +130,10 @@ void slp_process_group(slp_scanner_t *scanner, uint8_t start, uint8_t end,
   }
   printf("[%s]\n", group_name);
 
+  if (callbacks->on_list_start) {
+    callbacks->on_list_start(list_type, callbacks->context);
+  }
+
   size_t content_start = group.index_of_start_symbol + 1;
   size_t content_len = group.index_of_closing_symbol - content_start;
 
@@ -83,12 +145,15 @@ void slp_process_group(slp_scanner_t *scanner, uint8_t start, uint8_t end,
     if (sub_buffer && bytes_copied > 0) {
       slp_scanner_t *sub_scanner = slp_scanner_new(sub_buffer, 0);
       if (sub_scanner) {
-        slp_process_tokens(sub_scanner, state, stops, depth + 1, consumer,
-                           context);
+        slp_process_tokens(sub_scanner, state, stops, depth + 1, callbacks);
         slp_scanner_free(sub_scanner);
       }
       slp_buffer_destroy(sub_buffer);
     }
+  }
+
+  if (callbacks->on_list_end) {
+    callbacks->on_list_end(list_type, callbacks->context);
   }
 
   scanner->position = group.index_of_closing_symbol + 1;
@@ -97,7 +162,7 @@ void slp_process_group(slp_scanner_t *scanner, uint8_t start, uint8_t end,
 
 void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
                         slp_scanner_stop_symbols_t *stops, int depth,
-                        slp_object_consumer_fn consumer, void *context) {
+                        slp_callbacks_t *callbacks) {
   while (scanner->position < scanner->buffer->count) {
     if (!slp_scanner_goto_next_non_white(scanner)) {
       break;
@@ -106,20 +171,20 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
     uint8_t current = scanner->buffer->data[scanner->position];
 
     if (current == '(') {
-      slp_process_group(scanner, '(', ')', "LIST_P", state, stops, depth,
-                        consumer, context);
+      slp_process_group(scanner, '(', ')', "LIST_P", SLP_TYPE_LIST_P, state,
+                        stops, depth, callbacks);
       continue;
     } else if (current == '[') {
-      slp_process_group(scanner, '[', ']', "LIST_B", state, stops, depth,
-                        consumer, context);
+      slp_process_group(scanner, '[', ']', "LIST_B", SLP_TYPE_LIST_B, state,
+                        stops, depth, callbacks);
       continue;
     } else if (current == '{') {
-      slp_process_group(scanner, '{', '}', "LIST_C", state, stops, depth,
-                        consumer, context);
+      slp_process_group(scanner, '{', '}', "LIST_C", SLP_TYPE_LIST_C, state,
+                        stops, depth, callbacks);
       continue;
     } else if (current == '"') {
-      slp_process_group(scanner, '"', '"', "LIST_S", state, stops, depth,
-                        consumer, context);
+      slp_process_group(scanner, '"', '"', "LIST_S", SLP_TYPE_LIST_S, state,
+                        stops, depth, callbacks);
       continue;
     } else if (current == '\'') {
       scanner->position++;
@@ -180,7 +245,9 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
           if (object) {
             object->type = SLP_TYPE_QUOTED;
             object->value.buffer = quoted_buffer;
-            consumer(object, context);
+            if (callbacks->on_object) {
+              callbacks->on_object(object, callbacks->context);
+            }
           } else {
             slp_buffer_destroy(quoted_buffer);
           }
@@ -202,7 +269,9 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
             if (object) {
               object->type = SLP_TYPE_QUOTED;
               object->value.buffer = quoted_buffer;
-              consumer(object, context);
+              if (callbacks->on_object) {
+                callbacks->on_object(object, callbacks->context);
+              }
             } else {
               slp_buffer_destroy(quoted_buffer);
             }
@@ -283,13 +352,14 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
       }
     }
 
-    consumer(object, context);
+    if (callbacks->on_object) {
+      callbacks->on_object(object, callbacks->context);
+    }
     state->tokens_processed++;
   }
 }
 
-int slp_process_buffer(slp_buffer_t *buffer, slp_object_consumer_fn consumer,
-                       void *context) {
+int slp_process_buffer(slp_buffer_t *buffer, slp_callbacks_t *callbacks) {
   if (!buffer) {
     fprintf(stderr, "Failed to process buffer (nil)\n");
     return 1;
@@ -312,7 +382,7 @@ int slp_process_buffer(slp_buffer_t *buffer, slp_object_consumer_fn consumer,
   slp_scanner_stop_symbols_t stops = {.symbols = stop_symbols,
                                       .count = sizeof(stop_symbols)};
 
-  slp_process_tokens(scanner, &state, &stops, 0, consumer, context);
+  slp_process_tokens(scanner, &state, &stops, 0, callbacks);
 
   printf("\n[SUMMARY] Tokens processed: %zu, Errors: %zu\n",
          state.tokens_processed, state.errors);
@@ -322,8 +392,7 @@ int slp_process_buffer(slp_buffer_t *buffer, slp_object_consumer_fn consumer,
   return state.errors > 0 ? 1 : 0;
 }
 
-int slp_process_file(char *file_name, slp_object_consumer_fn consumer,
-                     void *context) {
+int slp_process_file(char *file_name, slp_callbacks_t *callbacks) {
   printf("[DEBUG] Processing file: %s\n", file_name);
 
   slp_buffer_t *buffer = slp_buffer_from_file(file_name);
@@ -332,7 +401,7 @@ int slp_process_file(char *file_name, slp_object_consumer_fn consumer,
     return 1;
   }
 
-  int return_value = slp_process_buffer(buffer, consumer, context);
+  int return_value = slp_process_buffer(buffer, callbacks);
   slp_buffer_destroy(buffer);
   return return_value;
 }
