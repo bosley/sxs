@@ -6,7 +6,7 @@
 
 extern sxs_context_t *sxs_context_new(size_t context_id, sxs_context_t *parent);
 extern void sxs_context_free(sxs_context_t *context);
-extern slp_object_t *sxs_eval_object(sxs_context_t *context,
+extern slp_object_t *sxs_eval_object(sxs_runtime_t *runtime,
                                      slp_object_t *object);
 
 slp_object_t *
@@ -237,7 +237,7 @@ static void sxs_handle_list_end_from_slp_callback(slp_type_e list_type,
   slp_object_t *result_to_hand_to_parent = NULL;
 
   if (list_type == SLP_TYPE_LIST_P) {
-    result_to_hand_to_parent = sxs_eval_object(sxs_context, list_object);
+    result_to_hand_to_parent = sxs_eval_object(runtime, list_object);
     if (!result_to_hand_to_parent) {
       fprintf(stderr, "Failed to evaluate object\n");
       slp_free_object(list_object);

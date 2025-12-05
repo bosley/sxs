@@ -1,7 +1,7 @@
 #include "sxs/sxs.h"
 #include <stdlib.h>
 
-slp_object_t *sxs_eval_object(sxs_context_t *context, slp_object_t *object) {
+slp_object_t *sxs_eval_object(sxs_runtime_t *runtime, slp_object_t *object) {
   if (!object) {
     fprintf(stderr, "Failed to eval object (nil)\n");
     return NULL;
