@@ -347,45 +347,47 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
 
     current = scanner->buffer->data[scanner->position];
 
-    if (current == '(') {
+    size_t errors_before = state->errors;
+    switch (current) {
+    case '(': {
       state->current_depth++;
-      size_t errors_before = state->errors;
       slp_process_group(scanner, '(', ')', "LIST_P", SLP_TYPE_LIST_P, state,
                         stops, depth, callbacks);
       state->current_depth--;
       if (state->errors > errors_before) {
-        break;
+        goto error_exit;
       }
       continue;
-    } else if (current == '[') {
+    }
+    case '[': {
       state->current_depth++;
-      size_t errors_before = state->errors;
       slp_process_group(scanner, '[', ']', "LIST_B", SLP_TYPE_LIST_B, state,
                         stops, depth, callbacks);
       state->current_depth--;
       if (state->errors > errors_before) {
-        break;
+        goto error_exit;
       }
       continue;
-    } else if (current == '{') {
+    }
+    case '{': {
       state->current_depth++;
-      size_t errors_before = state->errors;
       slp_process_group(scanner, '{', '}', "LIST_C", SLP_TYPE_LIST_C, state,
                         stops, depth, callbacks);
       state->current_depth--;
       if (state->errors > errors_before) {
-        break;
+        goto error_exit;
       }
       continue;
-    } else if (current == '"') {
-      size_t errors_before = state->errors;
+    }
+    case '"': {
       slp_process_group(scanner, '"', '"', "LIST_S", SLP_TYPE_LIST_S, state,
                         stops, depth, callbacks);
       if (state->errors > errors_before) {
-        break;
+        goto error_exit;
       }
       continue;
-    } else if (current == '\'') {
+    }
+    case '\'': {
       scanner->position++;
 
       if (!slp_scanner_goto_next_non_white(scanner)) {
@@ -438,7 +440,7 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
                     end_delim);
           }
           state->errors++;
-          break;
+          goto error_exit;
         }
 
         size_t content_len =
@@ -502,11 +504,14 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
                     result.error_position);
           }
           state->errors++;
-          break;
+          goto error_exit;
         }
       }
 
       continue;
+    }
+    default:
+      break;
     }
 
     if (depth == 0 && !state->virtual_paren_active) {
@@ -530,7 +535,7 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
                 result.error_position);
       }
       state->errors++;
-      break;
+      goto error_exit;
     }
 
     slp_object_t *object = malloc(sizeof(slp_object_t));
@@ -543,12 +548,13 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
         fprintf(stderr, "[ERROR] Failed to allocate object\n");
       }
       state->errors++;
-      break;
+      goto error_exit;
     }
 
     object->source_position = scanner->position - result.data.byte_length;
 
-    if (result.data.base == SLP_STATIC_BASE_INTEGER) {
+    switch (result.data.base) {
+    case SLP_STATIC_BASE_INTEGER: {
       object->type = SLP_TYPE_INTEGER;
       char *temp = malloc(result.data.byte_length + 1);
       if (temp) {
@@ -568,9 +574,11 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
         }
         free(object);
         state->errors++;
-        break;
+        goto error_exit;
       }
-    } else if (result.data.base == SLP_STATIC_BASE_REAL) {
+      break;
+    }
+    case SLP_STATIC_BASE_REAL: {
       object->type = SLP_TYPE_REAL;
       char *temp = malloc(result.data.byte_length + 1);
       if (temp) {
@@ -588,9 +596,11 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
         }
         free(object);
         state->errors++;
-        break;
+        goto error_exit;
       }
-    } else if (result.data.base == SLP_STATIC_BASE_SYMBOL) {
+      break;
+    }
+    case SLP_STATIC_BASE_SYMBOL: {
       object->type = SLP_TYPE_SYMBOL;
       int bytes_copied = 0;
       slp_buffer_t *symbol_buffer = slp_buffer_sub_buffer(
@@ -612,8 +622,12 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
           slp_buffer_free(symbol_buffer);
         }
         state->errors++;
-        break;
+        goto error_exit;
       }
+      break;
+    }
+    default:
+      break;
     }
 
     if (callbacks->on_object) {
@@ -622,6 +636,7 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
     state->tokens_processed++;
   }
 
+error_exit:
   if (depth == 0 && state->virtual_paren_active) {
     if (callbacks->on_virtual_list_end) {
       callbacks->on_virtual_list_end(callbacks->context);
