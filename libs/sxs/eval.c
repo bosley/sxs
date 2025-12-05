@@ -68,15 +68,24 @@ static slp_object_t *sxs_eval_list(sxs_runtime_t *runtime, slp_object_t *list) {
   }
 
   if (first->type == SLP_TYPE_BUILTIN) {
-    sxs_builtin_fn builtin_fn = (sxs_builtin_fn)first->value.fn_data;
-    if (!builtin_fn) {
+    sxs_callable_t *callable = (sxs_callable_t *)first->value.fn_data;
+    if (!callable) {
+      return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
+                                     "nil builtin callable", 0);
+    }
+    if (!callable->impl.builtin_fn) {
       return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
                                      "nil builtin function pointer", 0);
     }
-    return builtin_fn(runtime, args, arg_count);
+    return callable->impl.builtin_fn(runtime, args, arg_count);
   }
 
   if (first->type == SLP_TYPE_LAMBDA) {
+    sxs_callable_t *callable = (sxs_callable_t *)first->value.fn_data;
+    if (!callable) {
+      return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
+                                     "nil lambda callable", 0);
+    }
     return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
                                    "lambda evaluation not yet implemented", 0);
   }

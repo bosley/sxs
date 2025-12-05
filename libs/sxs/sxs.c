@@ -145,3 +145,24 @@ slp_object_t *sxs_runtime_get_last_eval_obj(sxs_runtime_t *runtime) {
 
   return result;
 }
+
+void sxs_callable_free(sxs_callable_t *callable) {
+  if (!callable) {
+    return;
+  }
+
+  if (callable->params) {
+    for (size_t i = 0; i < callable->param_count; i++) {
+      if (callable->params[i].name) {
+        free(callable->params[i].name);
+      }
+    }
+    free(callable->params);
+  }
+
+  if (callable->impl.lambda_body) {
+    slp_buffer_destroy(callable->impl.lambda_body);
+  }
+
+  free(callable);
+}

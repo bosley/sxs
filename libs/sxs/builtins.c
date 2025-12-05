@@ -59,8 +59,19 @@ sxs_get_builtin_load_store_object_for_context(sxs_context_t *context) {
     return NULL;
   }
 
+  sxs_callable_t *callable = malloc(sizeof(sxs_callable_t));
+  if (!callable) {
+    fprintf(stderr, "Failed to allocate callable for builtin\n");
+    free(builtin);
+    return NULL;
+  }
+
+  callable->param_count = 0;
+  callable->params = NULL;
+  callable->impl.builtin_fn = sxs_builtin_load_store;
+
   builtin->type = SLP_TYPE_BUILTIN;
-  builtin->value.fn_data = (void *)sxs_builtin_load_store;
+  builtin->value.fn_data = (void *)callable;
 
   return builtin;
 }

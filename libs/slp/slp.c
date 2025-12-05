@@ -1,4 +1,5 @@
 #include "slp.h"
+#include "sxs/sxs.h"
 #include <stdlib.h>
 
 void slp_free_object(slp_object_t *object) {
@@ -19,13 +20,10 @@ void slp_free_object(slp_object_t *object) {
       }
       free(object->value.list.items);
     }
-  } else if (object->type == SLP_TYPE_BUILTIN) {
+  } else if (object->type == SLP_TYPE_BUILTIN ||
+             object->type == SLP_TYPE_LAMBDA) {
     if (object->value.fn_data) {
-      // TODO: Free builtin function data (no structs yet)
-    }
-  } else if (object->type == SLP_TYPE_LAMBDA) {
-    if (object->value.fn_data) {
-      // TODO: Free lambda function data (we dont have a structure for it yet)
+      sxs_callable_free((sxs_callable_t *)object->value.fn_data);
     }
   } else if (object->type == SLP_TYPE_ERROR) {
     if (object->value.fn_data) {
@@ -77,11 +75,70 @@ slp_object_t *slp_object_copy(slp_object_t *object) {
     clone->value.fn_data = object->value.fn_data;
     break;
   case SLP_TYPE_LAMBDA:
+    if (object->value.fn_data) {
+      sxs_callable_t *original = (sxs_callable_t *)object->value.fn_data;
+      sxs_callable_t *cloned = malloc(sizeof(sxs_callable_t));
+      if (!cloned) {
+        free(clone);
+        return NULL;
+      }
 
-    /*
-TODO: Once we define the structgure of lambda we need to ompement a copy
+      cloned->param_count = original->param_count;
 
-    */
+      if (original->params && original->param_count > 0) {
+        cloned->params =
+            malloc(sizeof(sxs_callable_param_t) * original->param_count);
+        if (!cloned->params) {
+          free(cloned);
+          free(clone);
+          return NULL;
+        }
+
+        for (size_t i = 0; i < original->param_count; i++) {
+          if (original->params[i].name) {
+            cloned->params[i].name = malloc(strlen(original->params[i].name) + 1);
+            if (!cloned->params[i].name) {
+              for (size_t j = 0; j < i; j++) {
+                free(cloned->params[j].name);
+              }
+              free(cloned->params);
+              free(cloned);
+              free(clone);
+              return NULL;
+            }
+            strcpy(cloned->params[i].name, original->params[i].name);
+          } else {
+            cloned->params[i].name = NULL;
+          }
+          cloned->params[i].form = original->params[i].form;
+        }
+      } else {
+        cloned->params = NULL;
+      }
+
+      if (original->impl.lambda_body) {
+        cloned->impl.lambda_body = slp_buffer_copy(original->impl.lambda_body);
+        if (!cloned->impl.lambda_body) {
+          if (cloned->params) {
+            for (size_t i = 0; i < cloned->param_count; i++) {
+              if (cloned->params[i].name) {
+                free(cloned->params[i].name);
+              }
+            }
+            free(cloned->params);
+          }
+          free(cloned);
+          free(clone);
+          return NULL;
+        }
+      } else {
+        cloned->impl.lambda_body = NULL;
+      }
+
+      clone->value.fn_data = cloned;
+    } else {
+      clone->value.fn_data = NULL;
+    }
     break;
   case SLP_TYPE_ERROR:
     if (object->value.fn_data) {
