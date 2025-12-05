@@ -378,8 +378,12 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
       }
       continue;
     } else if (current == '"') {
+      size_t errors_before = state->errors;
       slp_process_group(scanner, '"', '"', "LIST_S", SLP_TYPE_LIST_S, state,
                         stops, depth, callbacks);
+      if (state->errors > errors_before) {
+        break;
+      }
       continue;
     } else if (current == '\'') {
       scanner->position++;
