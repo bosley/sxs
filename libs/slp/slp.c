@@ -225,13 +225,6 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
 
     current = scanner->buffer->data[scanner->position];
 
-    if (depth == 0 && !state->virtual_paren_active) {
-      if (callbacks->on_virtual_list_start) {
-        callbacks->on_virtual_list_start(callbacks->context);
-      }
-      state->virtual_paren_active = 1;
-    }
-
     if (current == '(') {
       state->current_depth++;
       size_t errors_before = state->errors;
@@ -385,6 +378,13 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
       }
 
       continue;
+    }
+
+    if (depth == 0 && !state->virtual_paren_active) {
+      if (callbacks->on_virtual_list_start) {
+        callbacks->on_virtual_list_start(callbacks->context);
+      }
+      state->virtual_paren_active = 1;
     }
 
     slp_scanner_static_type_result_t result =

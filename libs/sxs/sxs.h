@@ -10,6 +10,11 @@
 
 #define SXS_BUILTIN_LOAD_STORE_SYMBOL '@'
 
+typedef struct sxs_runtime_s sxs_runtime_t;
+
+typedef slp_object_t *(*sxs_builtin_fn)(sxs_runtime_t *runtime,
+                                        slp_object_t **args, size_t arg_count);
+
 typedef struct sxs_context_s {
   size_t context_id;
   struct sxs_context_s *parent;

@@ -46,9 +46,18 @@ static void print_object(slp_object_t *object) {
   case SLP_TYPE_LAMBDA:
     printf("(lambda)\n");
     break;
-  case SLP_TYPE_ERROR:
-    printf("(error)\n");
+  case SLP_TYPE_ERROR: {
+    printf("(error");
+    if (object->value.fn_data) {
+      slp_error_data_t *error_data = (slp_error_data_t *)object->value.fn_data;
+      if (error_data->message) {
+        printf(": %s", error_data->message);
+      }
+      printf(" at position %zu", error_data->position);
+    }
+    printf(")\n");
     break;
+  }
   default:
     printf("(unknown)\n");
     break;
