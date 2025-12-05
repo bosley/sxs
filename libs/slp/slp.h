@@ -20,7 +20,23 @@ typedef enum slp_type_e {
   SLP_TYPE_QUOTED,  // ' prefixed
   SLP_TYPE_BUILTIN, // A C function
   SLP_TYPE_LAMBDA,  // A lambda function
+  SLP_TYPE_ERROR,   // An error object (can be handled by the runtime)
 } slp_type_e;
+
+typedef enum slp_error_type_e {
+  SLP_ERROR_UNCLOSED_GROUP = 0,
+  SLP_ERROR_UNCLOSED_QUOTED_GROUP,
+  SLP_ERROR_PARSE_QUOTED_TOKEN,
+  SLP_ERROR_PARSE_TOKEN,
+  SLP_ERROR_ALLOCATION,
+  SLP_ERROR_BUFFER_OPERATION,
+} slp_error_type_e;
+
+typedef struct slp_error_data_s {
+  size_t position;
+  slp_error_type_e error_type;
+  char *message;
+} slp_error_data_t;
 
 /*
 
@@ -47,6 +63,8 @@ typedef struct slp_callbacks_s {
   void (*on_list_end)(slp_type_e list_type, void *context);
   void (*on_virtual_list_start)(void *context);
   void (*on_virtual_list_end)(void *context);
+  void (*on_error)(slp_error_type_e error_type, const char *message,
+                   size_t position, slp_buffer_t *buffer, void *context);
   void *context;
 } slp_callbacks_t;
 

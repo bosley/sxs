@@ -48,6 +48,58 @@ int sxs_context_push_object(sxs_context_t *context, slp_object_t *object) {
   return 0;
 }
 
+static slp_object_t *sxs_create_error_object(slp_error_type_e error_type,
+                                             const char *message,
+                                             size_t position) {
+  slp_object_t *error_obj = malloc(sizeof(slp_object_t));
+  if (!error_obj) {
+    fprintf(stderr, "Failed to allocate error object\n");
+    return NULL;
+  }
+
+  slp_error_data_t *error_data = malloc(sizeof(slp_error_data_t));
+  if (!error_data) {
+    fprintf(stderr, "Failed to allocate error data\n");
+    free(error_obj);
+    return NULL;
+  }
+
+  error_data->position = position;
+  error_data->error_type = error_type;
+
+  if (message) {
+    error_data->message = malloc(strlen(message) + 1);
+    if (!error_data->message) {
+      fprintf(stderr, "Failed to allocate error message\n");
+      free(error_data);
+      free(error_obj);
+      return NULL;
+    }
+    strcpy(error_data->message, message);
+  } else {
+    error_data->message = NULL;
+  }
+
+  error_obj->type = SLP_TYPE_ERROR;
+  error_obj->value.fn_data = error_data;
+
+  return error_obj;
+}
+
+static void sxs_clear_context_proc_list(sxs_context_t *context) {
+  if (!context) {
+    return;
+  }
+
+  for (size_t i = 0; i < context->proc_list_count; i++) {
+    if (context->object_proc_list[i]) {
+      slp_free_object(context->object_proc_list[i]);
+      context->object_proc_list[i] = NULL;
+    }
+  }
+  context->proc_list_count = 0;
+}
+
 /*
   This is
 */
@@ -65,6 +117,11 @@ static void sxs_handle_object_from_slp_callback(slp_object_t *object,
 
   sxs_runtime_t *runtime = (sxs_runtime_t *)context;
   sxs_context_t *sxs_context = runtime->current_context;
+
+  if (runtime->runtime_has_error) {
+    slp_free_object(object);
+    return;
+  }
 
   switch (object->type) {
   case SLP_TYPE_INTEGER:
@@ -134,6 +191,10 @@ static void sxs_handle_list_start_from_slp_callback(slp_type_e list_type,
   }
 
   sxs_runtime_t *runtime = (sxs_runtime_t *)context;
+
+  if (runtime->runtime_has_error) {
+    return;
+  }
 
   sxs_context_t *new_context =
       sxs_context_new(runtime->next_context_id++, runtime->current_context);
@@ -216,6 +277,11 @@ static void sxs_handle_list_end_from_slp_callback(slp_type_e list_type,
   }
 
   sxs_runtime_t *runtime = (sxs_runtime_t *)context;
+
+  if (runtime->runtime_has_error) {
+    return;
+  }
+
   sxs_context_t *sxs_context = runtime->current_context;
 
   if (list_type == SLP_TYPE_LIST_B) {
@@ -249,8 +315,7 @@ static void sxs_handle_list_end_from_slp_callback(slp_type_e list_type,
   }
 
   if (NULL == sxs_context->parent) {
-    sxs_context_free(sxs_context);
-    slp_free_object(result_to_hand_to_parent);
+    sxs_context_push_object(sxs_context, result_to_hand_to_parent);
     return;
   }
 
@@ -269,6 +334,10 @@ static void sxs_handle_virtual_list_start_from_slp_callback(void *context) {
   }
 
   sxs_runtime_t *runtime = (sxs_runtime_t *)context;
+
+  if (runtime->runtime_has_error) {
+    return;
+  }
 
   sxs_context_t *new_context =
       sxs_context_new(runtime->next_context_id++, runtime->current_context);
@@ -289,6 +358,11 @@ static void sxs_handle_virtual_list_end_from_slp_callback(void *context) {
   }
 
   sxs_runtime_t *runtime = (sxs_runtime_t *)context;
+
+  if (runtime->runtime_has_error) {
+    return;
+  }
+
   sxs_context_t *sxs_context = runtime->current_context;
 
   printf("[VIRTUAL_LIST_END]\n");
@@ -301,7 +375,8 @@ static void sxs_handle_virtual_list_end_from_slp_callback(void *context) {
     return;
   }
 
-  slp_object_t *result_to_hand_to_parent = sxs_eval_object(runtime, list_object);
+  slp_object_t *result_to_hand_to_parent =
+      sxs_eval_object(runtime, list_object);
   if (!result_to_hand_to_parent) {
     fprintf(stderr, "Failed to evaluate object\n");
     slp_free_object(list_object);
@@ -310,8 +385,7 @@ static void sxs_handle_virtual_list_end_from_slp_callback(void *context) {
   slp_free_object(list_object);
 
   if (NULL == sxs_context->parent) {
-    sxs_context_free(sxs_context);
-    slp_free_object(result_to_hand_to_parent);
+    sxs_context_push_object(sxs_context, result_to_hand_to_parent);
     return;
   }
 
@@ -323,6 +397,78 @@ static void sxs_handle_virtual_list_end_from_slp_callback(void *context) {
   sxs_context_free(sxs_context);
 }
 
+static void sxs_handle_error_from_slp_callback(slp_error_type_e error_type,
+                                               const char *message,
+                                               size_t position,
+                                               slp_buffer_t *buffer,
+                                               void *context) {
+  if (!context) {
+    fprintf(stderr, "Failed to handle error (nil context)\n");
+    return;
+  }
+
+  sxs_runtime_t *runtime = (sxs_runtime_t *)context;
+  sxs_context_t *sxs_context = runtime->current_context;
+
+  const char *error_type_str = "UNKNOWN";
+  switch (error_type) {
+  case SLP_ERROR_UNCLOSED_GROUP:
+    error_type_str = "UNCLOSED_GROUP";
+    break;
+  case SLP_ERROR_UNCLOSED_QUOTED_GROUP:
+    error_type_str = "UNCLOSED_QUOTED_GROUP";
+    break;
+  case SLP_ERROR_PARSE_QUOTED_TOKEN:
+    error_type_str = "PARSE_QUOTED_TOKEN";
+    break;
+  case SLP_ERROR_PARSE_TOKEN:
+    error_type_str = "PARSE_TOKEN";
+    break;
+  case SLP_ERROR_ALLOCATION:
+    error_type_str = "ALLOCATION";
+    break;
+  case SLP_ERROR_BUFFER_OPERATION:
+    error_type_str = "BUFFER_OPERATION";
+    break;
+  }
+
+  fprintf(stderr, "[SLP_ERROR:%s] %s at position %zu\n", error_type_str,
+          message, position);
+
+  if (buffer && buffer->data && position < buffer->count) {
+    size_t context_start = position > 20 ? position - 20 : 0;
+    size_t context_end = position + 20;
+    if (context_end > buffer->count) {
+      context_end = buffer->count;
+    }
+
+    fprintf(stderr, "Context: ");
+    for (size_t i = context_start; i < context_end; i++) {
+      if (i == position) {
+        fprintf(stderr, ">>>");
+      }
+      fprintf(stderr, "%c", buffer->data[i]);
+      if (i == position) {
+        fprintf(stderr, "<<<");
+      }
+    }
+    fprintf(stderr, "\n");
+  }
+
+  runtime->runtime_has_error = true;
+
+  sxs_clear_context_proc_list(sxs_context);
+
+  slp_object_t *error_obj =
+      sxs_create_error_object(error_type, message, position);
+  if (!error_obj) {
+    fprintf(stderr, "[ERROR] Failed to create error object, exiting\n");
+    exit(1);
+  }
+
+  sxs_context_push_object(sxs_context, error_obj);
+}
+
 slp_callbacks_t *sxs_runtime_get_callbacks(sxs_runtime_t *runtime) {
   if (!runtime) {
     return NULL;
@@ -332,8 +478,10 @@ slp_callbacks_t *sxs_runtime_get_callbacks(sxs_runtime_t *runtime) {
   callbacks.on_object = sxs_handle_object_from_slp_callback;
   callbacks.on_list_start = sxs_handle_list_start_from_slp_callback;
   callbacks.on_list_end = sxs_handle_list_end_from_slp_callback;
-  callbacks.on_virtual_list_start = sxs_handle_virtual_list_start_from_slp_callback;
+  callbacks.on_virtual_list_start =
+      sxs_handle_virtual_list_start_from_slp_callback;
   callbacks.on_virtual_list_end = sxs_handle_virtual_list_end_from_slp_callback;
+  callbacks.on_error = sxs_handle_error_from_slp_callback;
   callbacks.context = runtime;
   return &callbacks;
 }

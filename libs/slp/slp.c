@@ -27,6 +27,14 @@ void slp_free_object(slp_object_t *object) {
     if (object->value.fn_data) {
       // TODO: Free lambda function data (we dont have a structure for it yet)
     }
+  } else if (object->type == SLP_TYPE_ERROR) {
+    if (object->value.fn_data) {
+      slp_error_data_t *error_data = (slp_error_data_t *)object->value.fn_data;
+      if (error_data->message) {
+        free(error_data->message);
+      }
+      free(error_data);
+    }
   }
 
   free(object);
@@ -75,6 +83,33 @@ TODO: Once we define the structgure of lambda we need to ompement a copy
 
     */
     break;
+  case SLP_TYPE_ERROR:
+    if (object->value.fn_data) {
+      slp_error_data_t *original_error =
+          (slp_error_data_t *)object->value.fn_data;
+      slp_error_data_t *cloned_error = malloc(sizeof(slp_error_data_t));
+      if (!cloned_error) {
+        free(clone);
+        return NULL;
+      }
+      cloned_error->position = original_error->position;
+      cloned_error->error_type = original_error->error_type;
+      if (original_error->message) {
+        cloned_error->message = malloc(strlen(original_error->message) + 1);
+        if (!cloned_error->message) {
+          free(cloned_error);
+          free(clone);
+          return NULL;
+        }
+        strcpy(cloned_error->message, original_error->message);
+      } else {
+        cloned_error->message = NULL;
+      }
+      clone->value.fn_data = cloned_error;
+    } else {
+      clone->value.fn_data = NULL;
+    }
+    break;
   case SLP_TYPE_LIST_P:
   case SLP_TYPE_LIST_B:
   case SLP_TYPE_LIST_C:
@@ -120,7 +155,14 @@ void slp_process_group(slp_scanner_t *scanner, uint8_t start, uint8_t end,
       slp_scanner_find_group(scanner, start, end, NULL, false);
 
   if (!group.success) {
-    fprintf(stderr, "[ERROR] Failed to find closing '%c' for group\n", end);
+    if (callbacks->on_error) {
+      char msg[128];
+      snprintf(msg, sizeof(msg), "Failed to find closing '%c' for group", end);
+      callbacks->on_error(SLP_ERROR_UNCLOSED_GROUP, msg, scanner->position,
+                          scanner->buffer, callbacks->context);
+    } else {
+      fprintf(stderr, "[ERROR] Failed to find closing '%c' for group\n", end);
+    }
     state->errors++;
     return;
   }
@@ -192,21 +234,33 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
 
     if (current == '(') {
       state->current_depth++;
+      size_t errors_before = state->errors;
       slp_process_group(scanner, '(', ')', "LIST_P", SLP_TYPE_LIST_P, state,
                         stops, depth, callbacks);
       state->current_depth--;
+      if (state->errors > errors_before) {
+        break;
+      }
       continue;
     } else if (current == '[') {
       state->current_depth++;
+      size_t errors_before = state->errors;
       slp_process_group(scanner, '[', ']', "LIST_B", SLP_TYPE_LIST_B, state,
                         stops, depth, callbacks);
       state->current_depth--;
+      if (state->errors > errors_before) {
+        break;
+      }
       continue;
     } else if (current == '{') {
       state->current_depth++;
+      size_t errors_before = state->errors;
       slp_process_group(scanner, '{', '}', "LIST_C", SLP_TYPE_LIST_C, state,
                         stops, depth, callbacks);
       state->current_depth--;
+      if (state->errors > errors_before) {
+        break;
+      }
       continue;
     } else if (current == '"') {
       slp_process_group(scanner, '"', '"', "LIST_S", SLP_TYPE_LIST_S, state,
@@ -252,9 +306,18 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
         slp_scanner_find_group_result_t group = slp_scanner_find_group(
             scanner, start_delim, end_delim, NULL, false);
         if (!group.success) {
-          fprintf(stderr,
-                  "[ERROR] Failed to find closing '%c' for quoted group\n",
-                  end_delim);
+          if (callbacks->on_error) {
+            char msg[128];
+            snprintf(msg, sizeof(msg),
+                     "Failed to find closing '%c' for quoted group", end_delim);
+            callbacks->on_error(SLP_ERROR_UNCLOSED_QUOTED_GROUP, msg,
+                                scanner->position, scanner->buffer,
+                                callbacks->context);
+          } else {
+            fprintf(stderr,
+                    "[ERROR] Failed to find closing '%c' for quoted group\n",
+                    end_delim);
+          }
           state->errors++;
           break;
         }
@@ -305,9 +368,17 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
 
           state->tokens_processed++;
         } else {
-          fprintf(stderr,
-                  "[ERROR] Failed to parse quoted token at position %zu\n",
-                  result.error_position);
+          if (callbacks->on_error) {
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Failed to parse quoted token");
+            callbacks->on_error(SLP_ERROR_PARSE_QUOTED_TOKEN, msg,
+                                result.error_position, scanner->buffer,
+                                callbacks->context);
+          } else {
+            fprintf(stderr,
+                    "[ERROR] Failed to parse quoted token at position %zu\n",
+                    result.error_position);
+          }
           state->errors++;
           break;
         }
@@ -320,15 +391,28 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
         slp_scanner_read_static_base_type(scanner, stops);
 
     if (!result.success) {
-      fprintf(stderr, "[ERROR] Failed to parse token at position %zu\n",
-              result.error_position);
+      if (callbacks->on_error) {
+        char msg[128];
+        snprintf(msg, sizeof(msg), "Failed to parse token");
+        callbacks->on_error(SLP_ERROR_PARSE_TOKEN, msg, result.error_position,
+                            scanner->buffer, callbacks->context);
+      } else {
+        fprintf(stderr, "[ERROR] Failed to parse token at position %zu\n",
+                result.error_position);
+      }
       state->errors++;
       break;
     }
 
     slp_object_t *object = malloc(sizeof(slp_object_t));
     if (!object) {
-      fprintf(stderr, "[ERROR] Failed to allocate object\n");
+      if (callbacks->on_error) {
+        callbacks->on_error(SLP_ERROR_ALLOCATION, "Failed to allocate object",
+                            scanner->position, scanner->buffer,
+                            callbacks->context);
+      } else {
+        fprintf(stderr, "[ERROR] Failed to allocate object\n");
+      }
       state->errors++;
       break;
     }
@@ -342,6 +426,15 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
         object->value.integer = strtoll(temp, NULL, 10);
         free(temp);
       } else {
+        if (callbacks->on_error) {
+          callbacks->on_error(SLP_ERROR_ALLOCATION,
+                              "Failed to allocate temp buffer for integer",
+                              scanner->position, scanner->buffer,
+                              callbacks->context);
+        } else {
+          fprintf(stderr,
+                  "[ERROR] Failed to allocate temp buffer for integer\n");
+        }
         free(object);
         state->errors++;
         break;
@@ -355,6 +448,13 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
         object->value.real = strtod(temp, NULL);
         free(temp);
       } else {
+        if (callbacks->on_error) {
+          callbacks->on_error(
+              SLP_ERROR_ALLOCATION, "Failed to allocate temp buffer for real",
+              scanner->position, scanner->buffer, callbacks->context);
+        } else {
+          fprintf(stderr, "[ERROR] Failed to allocate temp buffer for real\n");
+        }
         free(object);
         state->errors++;
         break;
@@ -369,6 +469,13 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
       if (symbol_buffer && bytes_copied > 0) {
         object->value.buffer = symbol_buffer;
       } else {
+        if (callbacks->on_error) {
+          callbacks->on_error(
+              SLP_ERROR_BUFFER_OPERATION, "Failed to create symbol buffer",
+              scanner->position, scanner->buffer, callbacks->context);
+        } else {
+          fprintf(stderr, "[ERROR] Failed to create symbol buffer\n");
+        }
         free(object);
         if (symbol_buffer) {
           slp_buffer_destroy(symbol_buffer);

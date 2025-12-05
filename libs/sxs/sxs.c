@@ -52,6 +52,7 @@ sxs_runtime_t *sxs_runtime_new(void) {
   }
 
   runtime->next_context_id = 1;
+  runtime->runtime_has_error = false;
 
   for (size_t i = 0; i < SXS_OBJECT_STORAGE_SIZE; i++) {
     runtime->object_storage[i] = NULL;
@@ -93,8 +94,54 @@ int sxs_runtime_process_file(sxs_runtime_t *runtime, char *file_name) {
   return slp_process_file(file_name, callbacks);
 }
 
-/*
-=========================
+slp_object_t *sxs_runtime_get_last_eval_obj(sxs_runtime_t *runtime) {
+  if (!runtime) {
+    fprintf(stderr, "Failed to get last eval obj (nil runtime)\n");
+    slp_object_t *none = malloc(sizeof(slp_object_t));
+    if (none) {
+      none->type = SLP_TYPE_NONE;
+    }
+    return none;
+  }
 
+  if (!runtime->current_context) {
+    fprintf(stderr, "Failed to get last eval obj (nil current context)\n");
+    slp_object_t *none = malloc(sizeof(slp_object_t));
+    if (none) {
+      none->type = SLP_TYPE_NONE;
+    }
+    return none;
+  }
 
-*/
+  if (runtime->current_context->proc_list_count == 0) {
+    slp_object_t *none = malloc(sizeof(slp_object_t));
+    if (none) {
+      none->type = SLP_TYPE_NONE;
+    }
+    return none;
+  }
+
+  slp_object_t *last_object =
+      runtime->current_context
+          ->object_proc_list[runtime->current_context->proc_list_count - 1];
+
+  if (!last_object) {
+    slp_object_t *none = malloc(sizeof(slp_object_t));
+    if (none) {
+      none->type = SLP_TYPE_NONE;
+    }
+    return none;
+  }
+
+  slp_object_t *result = slp_object_copy(last_object);
+
+  if (!result) {
+    slp_object_t *none = malloc(sizeof(slp_object_t));
+    if (none) {
+      none->type = SLP_TYPE_NONE;
+    }
+    return none;
+  }
+
+  return result;
+}
