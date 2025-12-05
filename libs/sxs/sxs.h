@@ -54,6 +54,7 @@ typedef struct sxs_runtime_s {
   size_t next_context_id;
   slp_object_t *object_storage[SXS_OBJECT_STORAGE_SIZE];
   bool runtime_has_error;
+  bool parsing_quoted_expression;
   slp_buffer_unowned_ptr_t source_buffer;
 } sxs_runtime_t;
 

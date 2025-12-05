@@ -120,9 +120,13 @@ slp_object_t *sxs_eval_object(sxs_runtime_t *runtime, slp_object_t *object) {
     }
 
     bool prev_error_state = runtime->runtime_has_error;
+    bool prev_quoted_state = runtime->parsing_quoted_expression;
     runtime->runtime_has_error = false;
+    runtime->parsing_quoted_expression = true;
 
     int result = slp_process_buffer(object->value.buffer, callbacks);
+
+    runtime->parsing_quoted_expression = prev_quoted_state;
 
     if (result != 0 || runtime->runtime_has_error) {
       runtime->runtime_has_error = prev_error_state;

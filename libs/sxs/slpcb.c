@@ -267,7 +267,7 @@ static void sxs_handle_list_end_from_slp_callback(slp_type_e list_type,
 
   slp_object_t *result_to_hand_to_parent = NULL;
 
-  if (list_type == SLP_TYPE_LIST_P) {
+  if (list_type == SLP_TYPE_LIST_P && !runtime->parsing_quoted_expression) {
     result_to_hand_to_parent = sxs_eval_object(runtime, list_object);
     if (!result_to_hand_to_parent) {
       fprintf(stderr, "Failed to evaluate object\n");
@@ -340,14 +340,19 @@ static void sxs_handle_virtual_list_end_from_slp_callback(void *context) {
     return;
   }
 
-  slp_object_t *result_to_hand_to_parent =
-      sxs_eval_object(runtime, list_object);
-  if (!result_to_hand_to_parent) {
-    fprintf(stderr, "Failed to evaluate object\n");
+  slp_object_t *result_to_hand_to_parent = NULL;
+
+  if (!runtime->parsing_quoted_expression) {
+    result_to_hand_to_parent = sxs_eval_object(runtime, list_object);
+    if (!result_to_hand_to_parent) {
+      fprintf(stderr, "Failed to evaluate object\n");
+      slp_object_free(list_object);
+      return;
+    }
     slp_object_free(list_object);
-    return;
+  } else {
+    result_to_hand_to_parent = list_object;
   }
-  slp_object_free(list_object);
 
   if (NULL == sxs_context->parent) {
     sxs_context_push_object(sxs_context, result_to_hand_to_parent);

@@ -24,9 +24,4 @@ In this case object `7` will be of type list-p as its arguments are evaluated on
 ($ 7 :list-p)   -> 1
 ```
 
-`_` none runner. this will evaluate each object in the arguments and then yield a `:none`
-the purpose of this is to serialize the execution of objects and leave yield a ":none"
-`_` can take 0 arguments "(_)" to yield a `:none`
-
-`(_)`
-
+ALl operations are done in 

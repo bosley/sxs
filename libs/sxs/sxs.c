@@ -225,6 +225,7 @@ sxs_runtime_t *sxs_runtime_new(void) {
 
   runtime->next_context_id = 1;
   runtime->runtime_has_error = false;
+  runtime->parsing_quoted_expression = false;
   runtime->source_buffer = NULL;
 
   for (size_t i = 0; i < SXS_OBJECT_STORAGE_SIZE; i++) {
