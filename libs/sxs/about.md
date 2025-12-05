@@ -219,6 +219,57 @@ Errors are first-class objects in SXS:
 
 When an error occurs during parsing, the runtime clears the current context's processing list and creates an error object.
 
+## Builtin Command Implementation
+
+### Architecture
+
+Builtin commands are implemented through a three-layer architecture:
+
+1. **Handler Functions**: Individual implementation files in `impls/` directory containing the command logic
+2. **Callable Definitions**: Type metadata structures that define function signatures, parameter forms, and variants
+3. **Registry Integration**: A runtime registry that maps symbols to handler functions
+
+The `sxs_command_impl_t` structure pairs a symbol string with its handler function, allowing the runtime to resolve symbols to implementations during evaluation.
+
+### Current Implementations
+
+The system includes three builtin commands:
+
+**`@` (load_store)**: The primary storage interface with three variants based on argument count:
+- Single argument: Get operation retrieving a value from storage
+- Two arguments: Set operation storing a value
+- Three arguments: Compare-and-swap atomic operation
+
+**`d` (debug_simple)**: A variadic debugging command that accepts any number of arguments and prints simplified object representations showing type and basic value information.
+
+**`D` (debug_full)**: A variadic debugging command that prints detailed recursive dumps of objects, including memory addresses, buffer contents in hex, and nested structure traversal.
+
+### Implementation Pattern
+
+Creating a new builtin command follows this pattern:
+
+1. **Define Handler Function**: Create a function matching the signature `(runtime, callable, args, arg_count) -> object`. The handler receives unevaluated arguments.
+
+2. **Evaluate Arguments**: Iterate through arguments, evaluate each one, and check for errors. Propagate any errors immediately.
+
+3. **Type Checking**: Use the variant system to match evaluated arguments against form definitions. The runtime selects the appropriate variant based on argument count and types.
+
+4. **Execute Logic**: Perform the command's operation and return a result object.
+
+5. **Define Callable**: In `builtins.c`, create an initialization function that allocates a callable structure, defines variants with parameter forms, and links to the handler.
+
+6. **Register Command**: Add the command to the registry with its symbol, and include initialization/deinitialization in the global init/deinit functions.
+
+### Key Concepts
+
+**Variants**: Commands can have multiple signatures (overloading). Each variant specifies parameter count and form constraints. The runtime matches arguments to variants after evaluation.
+
+**Form-Based Typing**: The forms system defines expected types for parameters. Forms can be specific (int, real, symbol) or flexible (any, variadic forms with `..` suffix).
+
+**Error Propagation**: Handler functions must check for evaluation errors and propagate them. Any command that can produce errors should return `FORM_TYPE_ANY` rather than a specific type.
+
+**Argument Evaluation**: Handlers receive unevaluated arguments and must evaluate them explicitly. This allows commands to control evaluation order and handle special evaluation semantics.
+
 ## Processing Flow
 
 1. **File Loading**: Source file is loaded into a buffer
@@ -233,4 +284,4 @@ When an error occurs during parsing, the runtime clears the current context's pr
 - Variable binding and lookup not yet implemented
 - Lambda function evaluation not yet implemented
 - User-defined forms not yet implemented
-- Limited builtin function library (only `@` currently available)
+
