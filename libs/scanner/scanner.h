@@ -91,6 +91,8 @@ found returns false if the end of the buffer is reached
 */
 bool slp_scanner_goto_next_non_white(slp_scanner_t *scanner);
 
+bool slp_scanner_skip_whitespace_and_comments(slp_scanner_t *scanner);
+
 /*
 Skips to the next byte matching the given target_byte and returns true if found
 returns false if the end of the buffer is reached

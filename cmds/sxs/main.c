@@ -13,8 +13,8 @@ extern void print_error(slp_object_t *object);
 
 /*
 sxs uses slp and slp buffers to make runtime objects that are then evaluated
-the slp has a simple state machine that consumes a lisp-like language that permits
-an optinal "outer" set of parens. see "min.sxs" for minimal examples
+the slp has a simple state machine that consumes a lisp-like language that
+permits an optinal "outer" set of parens. see "min.sxs" for minimal examples
 */
 int main(int argc, char **argv) {
   if (argc < 2) {

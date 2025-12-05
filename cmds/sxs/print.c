@@ -1,14 +1,14 @@
 
 
+#include "slp/slp.h"
 #include <stdio.h>
 #include <string.h>
-#include "slp/slp.h"
 
 #define COLOR_RESET "\033[0m"
 #define COLOR_RED "\033[31m"
 #define COLOR_GRAY "\033[90m"
 
-static void print_source_context(slp_buffer_t *buffer, size_t error_position) {
+void print_source_context(slp_buffer_t *buffer, size_t error_position) {
   if (!buffer || !buffer->data || error_position >= buffer->count) {
     return;
   }
@@ -53,7 +53,7 @@ static void print_source_context(slp_buffer_t *buffer, size_t error_position) {
   printf("%s└─ here%s\n", COLOR_RED, COLOR_RESET);
 }
 
-static void print_error(slp_object_t *object) {
+void print_error(slp_object_t *object) {
   printf("\n");
   printf("╔════════════════════════════════════════════════════════════════════"
          "════════╗\n");
@@ -85,7 +85,7 @@ static void print_error(slp_object_t *object) {
   printf("\n");
 }
 
-static void print_object(slp_object_t *object) {
+void print_object(slp_object_t *object) {
   if (!object) {
     printf("(nil)\n");
     return;

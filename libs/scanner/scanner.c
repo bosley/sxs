@@ -338,6 +338,45 @@ bool slp_scanner_goto_next_non_white(slp_scanner_t *scanner) {
   return true;
 }
 
+bool slp_scanner_skip_whitespace_and_comments(slp_scanner_t *scanner) {
+  if (!scanner) {
+    return false;
+  }
+
+  slp_buffer_t *buf = scanner->buffer;
+  if (!buf) {
+    return false;
+  }
+
+  size_t pos = scanner->position;
+
+  while (pos < buf->count) {
+    if (is_whitespace(buf->data[pos])) {
+      pos++;
+      continue;
+    }
+
+    if (buf->data[pos] == ';') {
+      while (pos < buf->count && buf->data[pos] != '\n') {
+        pos++;
+      }
+      if (pos < buf->count && buf->data[pos] == '\n') {
+        pos++;
+      }
+      continue;
+    }
+
+    break;
+  }
+
+  if (pos >= buf->count) {
+    return false;
+  }
+
+  scanner->position = pos;
+  return true;
+}
+
 bool slp_scanner_goto_next_target(slp_scanner_t *scanner, uint8_t target_byte) {
   if (!scanner) {
     return false;

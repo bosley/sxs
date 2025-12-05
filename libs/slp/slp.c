@@ -341,7 +341,7 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
       continue;
     }
 
-    if (!slp_scanner_goto_next_non_white(scanner)) {
+    if (!slp_scanner_skip_whitespace_and_comments(scanner)) {
       break;
     }
 
@@ -390,7 +390,7 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
     case '\'': {
       scanner->position++;
 
-      if (!slp_scanner_goto_next_non_white(scanner)) {
+      if (!slp_scanner_skip_whitespace_and_comments(scanner)) {
         break;
       }
 
