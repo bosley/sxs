@@ -16,23 +16,16 @@ commands"
 */
 
 static sxs_callable_t *g_builtin_load_store_callable = NULL;
-static sxs_callable_t *g_builtin_debug_simple_callable = NULL;
-static sxs_callable_t *g_builtin_debug_full_callable = NULL;
+static sxs_callable_t *g_builtin_debug_callable = NULL;
 
 extern slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
                                             sxs_callable_t *callable,
                                             slp_object_t **args,
                                             size_t arg_count);
 
-extern slp_object_t *sxs_builtin_debug_simple(sxs_runtime_t *runtime,
-                                              sxs_callable_t *callable,
-                                              slp_object_t **args,
-                                              size_t arg_count);
-
-extern slp_object_t *sxs_builtin_debug_full(sxs_runtime_t *runtime,
-                                            sxs_callable_t *callable,
-                                            slp_object_t **args,
-                                            size_t arg_count);
+extern slp_object_t *sxs_builtin_debug(sxs_runtime_t *runtime,
+                                       sxs_callable_t *callable,
+                                       slp_object_t **args, size_t arg_count);
 
 static form_definition_t *create_form_def(form_type_e type) {
   form_definition_t *def = malloc(sizeof(form_definition_t));
@@ -190,86 +183,49 @@ static void sxs_deinit_load_store_callable(void) {
   }
 }
 
-static void sxs_init_debug_simple_callable(void) {
-  if (g_builtin_debug_simple_callable) {
+static void sxs_init_debug_callable(void) {
+  if (g_builtin_debug_callable) {
     return;
   }
 
-  g_builtin_debug_simple_callable = malloc(sizeof(sxs_callable_t));
-  if (!g_builtin_debug_simple_callable) {
-    fprintf(stderr, "Failed to allocate callable for debug simple builtin\n");
+  g_builtin_debug_callable = malloc(sizeof(sxs_callable_t));
+  if (!g_builtin_debug_callable) {
+    fprintf(stderr, "Failed to allocate callable for debug builtin\n");
     return;
   }
 
-  g_builtin_debug_simple_callable->is_builtin = true;
-  g_builtin_debug_simple_callable->variant_count = 1;
+  g_builtin_debug_callable->is_builtin = true;
+  g_builtin_debug_callable->variant_count = 1;
 
-  g_builtin_debug_simple_callable->variants[0].param_count = 1;
-  g_builtin_debug_simple_callable->variants[0].params =
+  g_builtin_debug_callable->variants[0].param_count = 1;
+  g_builtin_debug_callable->variants[0].params =
       malloc(sizeof(sxs_callable_param_t) * 1);
-  if (g_builtin_debug_simple_callable->variants[0].params) {
-    g_builtin_debug_simple_callable->variants[0].params[0].name = NULL;
-    g_builtin_debug_simple_callable->variants[0].params[0].form =
+  if (g_builtin_debug_callable->variants[0].params) {
+    g_builtin_debug_callable->variants[0].params[0].name = NULL;
+    g_builtin_debug_callable->variants[0].params[0].form =
         create_form_def(FORM_TYPE_ANY_VARIADIC);
   }
-  g_builtin_debug_simple_callable->variants[0].return_type = create_form_def(
-      FORM_TYPE_ANY); // <-------------------------- Return ANY (can err)
+  g_builtin_debug_callable->variants[0].return_type =
+      create_form_def(FORM_TYPE_ANY);
 
-  g_builtin_debug_simple_callable->impl.builtin_fn = sxs_builtin_debug_simple;
+  g_builtin_debug_callable->impl.builtin_fn = sxs_builtin_debug;
 }
 
-static void sxs_deinit_debug_simple_callable(void) {
-  if (g_builtin_debug_simple_callable) {
-    sxs_callable_free(g_builtin_debug_simple_callable);
-    g_builtin_debug_simple_callable = NULL;
-  }
-}
-
-static void sxs_init_debug_full_callable(void) {
-  if (g_builtin_debug_full_callable) {
-    return;
-  }
-
-  g_builtin_debug_full_callable = malloc(sizeof(sxs_callable_t));
-  if (!g_builtin_debug_full_callable) {
-    fprintf(stderr, "Failed to allocate callable for debug full builtin\n");
-    return;
-  }
-
-  g_builtin_debug_full_callable->is_builtin = true;
-  g_builtin_debug_full_callable->variant_count = 1;
-
-  g_builtin_debug_full_callable->variants[0].param_count = 1;
-  g_builtin_debug_full_callable->variants[0].params =
-      malloc(sizeof(sxs_callable_param_t) * 1);
-  if (g_builtin_debug_full_callable->variants[0].params) {
-    g_builtin_debug_full_callable->variants[0].params[0].name = NULL;
-    g_builtin_debug_full_callable->variants[0].params[0].form =
-        create_form_def(FORM_TYPE_ANY_VARIADIC);
-  }
-  g_builtin_debug_full_callable->variants[0].return_type = create_form_def(
-      FORM_TYPE_ANY); // <-------------------------- Return ANY (can err)
-
-  g_builtin_debug_full_callable->impl.builtin_fn = sxs_builtin_debug_full;
-}
-
-static void sxs_deinit_debug_full_callable(void) {
-  if (g_builtin_debug_full_callable) {
-    sxs_callable_free(g_builtin_debug_full_callable);
-    g_builtin_debug_full_callable = NULL;
+static void sxs_deinit_debug_callable(void) {
+  if (g_builtin_debug_callable) {
+    sxs_callable_free(g_builtin_debug_callable);
+    g_builtin_debug_callable = NULL;
   }
 }
 
 void sxs_builtins_init(void) {
   sxs_init_load_store_callable();
-  sxs_init_debug_simple_callable();
-  sxs_init_debug_full_callable();
+  sxs_init_debug_callable();
 }
 
 void sxs_builtins_deinit(void) {
   sxs_deinit_load_store_callable();
-  sxs_deinit_debug_simple_callable();
-  sxs_deinit_debug_full_callable();
+  sxs_deinit_debug_callable();
 }
 
 slp_object_t *sxs_get_builtin_load_store_object(void) {
@@ -285,29 +241,15 @@ slp_object_t *sxs_get_builtin_load_store_object(void) {
   return builtin;
 }
 
-slp_object_t *sxs_get_builtin_debug_simple_object(void) {
+slp_object_t *sxs_get_builtin_debug_object(void) {
   slp_object_t *builtin = malloc(sizeof(slp_object_t));
   if (!builtin) {
-    fprintf(stderr,
-            "Failed to get builtin debug simple object (nil builtin)\n");
+    fprintf(stderr, "Failed to get builtin debug object (nil builtin)\n");
     return NULL;
   }
 
   builtin->type = SLP_TYPE_BUILTIN;
-  builtin->value.fn_data = (void *)g_builtin_debug_simple_callable;
-
-  return builtin;
-}
-
-slp_object_t *sxs_get_builtin_debug_full_object(void) {
-  slp_object_t *builtin = malloc(sizeof(slp_object_t));
-  if (!builtin) {
-    fprintf(stderr, "Failed to get builtin debug full object (nil builtin)\n");
-    return NULL;
-  }
-
-  builtin->type = SLP_TYPE_BUILTIN;
-  builtin->value.fn_data = (void *)g_builtin_debug_full_callable;
+  builtin->value.fn_data = (void *)g_builtin_debug_callable;
 
   return builtin;
 }
@@ -319,27 +261,18 @@ sxs_command_impl_t sxs_impl_get_load_store(void) {
   return impl;
 }
 
-sxs_command_impl_t sxs_impl_get_debug_simple(void) {
+sxs_command_impl_t sxs_impl_get_debug(void) {
   sxs_command_impl_t impl;
-  impl.command = "d";
-  impl.handler = sxs_builtin_debug_simple;
-  return impl;
-}
-
-sxs_command_impl_t sxs_impl_get_debug_full(void) {
-  sxs_command_impl_t impl;
-  impl.command = "D";
-  impl.handler = sxs_builtin_debug_full;
+  impl.command = "debug";
+  impl.handler = sxs_builtin_debug;
   return impl;
 }
 
 sxs_callable_t *sxs_get_callable_for_handler(sxs_handler_fn_t handler) {
   if (handler == sxs_builtin_load_store) {
     return g_builtin_load_store_callable;
-  } else if (handler == sxs_builtin_debug_simple) {
-    return g_builtin_debug_simple_callable;
-  } else if (handler == sxs_builtin_debug_full) {
-    return g_builtin_debug_full_callable;
+  } else if (handler == sxs_builtin_debug) {
+    return g_builtin_debug_callable;
   }
   return NULL;
 }

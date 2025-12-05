@@ -7,9 +7,29 @@
 ; access
 (@ 0 [9 8 7 6 5])
 
-; Get the data from storage object 0 and "D"ebug it 
-(D (@ 0))
+; Store an integer in slot 1
+(@ 1 42)
 
-; Debug the data from storage object 0
-(d (@ 0))
+; Store a real number in slot 2
+(@ 2 3.14159)
+
+; Get the data from storage object 0 and debug it 
+(debug (@ 0))
+
+; Get and display the integer from slot 1
+(debug (@ 1))
+
+; Compare-And-Swap: try to swap slot 1 if it equals 42 with value 100
+; This should succeed and return 1
+(debug (@ 1 42 100))
+
+; Get slot 1 again to verify it changed to 100
+(debug (@ 1))
+
+; Compare-And-Swap: try to swap slot 1 if it equals 42 with value 200
+; This should fail (slot 1 is now 100, not 42) and return 0
+(debug (@ 1 42 200))
+
+; Verify slot 1 is still 100 (CAS failed so no change)
+(debug (@ 1))
 

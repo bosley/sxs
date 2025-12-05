@@ -237,101 +237,15 @@ static void print_object_full(slp_object_t *obj, size_t index) {
   printf("\n");
 }
 
-slp_object_t *sxs_builtin_debug_simple(sxs_runtime_t *runtime,
-                                       sxs_callable_t *callable,
-                                       slp_object_t **args, size_t arg_count) {
+slp_object_t *sxs_builtin_debug(sxs_runtime_t *runtime,
+                                sxs_callable_t *callable, slp_object_t **args,
+                                size_t arg_count) {
   if (!runtime) {
     return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                   "d builtin: nil runtime", 0, NULL);
+                                   "debug builtin: nil runtime", 0, NULL);
   }
 
-  printf("[DEBUG SIMPLE] %zu argument%s\n", arg_count,
-         arg_count == 1 ? "" : "s");
-
-  if (arg_count == 0) {
-    slp_object_t *none = malloc(sizeof(slp_object_t));
-    if (none) {
-      none->type = SLP_TYPE_NONE;
-      none->source_position = 0;
-    }
-    return none;
-  }
-
-  slp_object_t **eval_args = malloc(sizeof(slp_object_t *) * arg_count);
-  if (!eval_args) {
-    return sxs_create_error_object(SLP_ERROR_ALLOCATION,
-                                   "d builtin: failed to allocate eval_args", 0,
-                                   runtime->source_buffer);
-  }
-
-  for (size_t i = 0; i < arg_count; i++) {
-    eval_args[i] = NULL;
-  }
-
-  for (size_t i = 0; i < arg_count; i++) {
-    if (!args[i]) {
-      for (size_t j = 0; j < i; j++) {
-        if (eval_args[j]) {
-          slp_object_free(eval_args[j]);
-        }
-      }
-      free(eval_args);
-      return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                     "d builtin: nil argument", 0,
-                                     runtime->source_buffer);
-    }
-    eval_args[i] = sxs_eval_object(runtime, args[i]);
-    if (!eval_args[i]) {
-      for (size_t j = 0; j < i; j++) {
-        if (eval_args[j]) {
-          slp_object_free(eval_args[j]);
-        }
-      }
-      free(eval_args);
-      return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                     "d builtin: eval failed", 0,
-                                     runtime->source_buffer);
-    }
-    if (eval_args[i]->type == SLP_TYPE_ERROR) {
-      slp_object_t *error = eval_args[i];
-      for (size_t j = 0; j < i; j++) {
-        if (eval_args[j]) {
-          slp_object_free(eval_args[j]);
-        }
-      }
-      free(eval_args);
-      return error;
-    }
-  }
-
-  for (size_t i = 0; i < arg_count; i++) {
-    print_object_simple(eval_args[i], i);
-  }
-
-  for (size_t i = 0; i < arg_count; i++) {
-    if (eval_args[i]) {
-      slp_object_free(eval_args[i]);
-    }
-  }
-  free(eval_args);
-
-  slp_object_t *none = malloc(sizeof(slp_object_t));
-  if (none) {
-    none->type = SLP_TYPE_NONE;
-    none->source_position = 0;
-  }
-  return none;
-}
-
-slp_object_t *sxs_builtin_debug_full(sxs_runtime_t *runtime,
-                                     sxs_callable_t *callable,
-                                     slp_object_t **args, size_t arg_count) {
-  if (!runtime) {
-    return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                   "D builtin: nil runtime", 0, NULL);
-  }
-
-  printf("[DEBUG FULL] %zu argument%s\n", arg_count, arg_count == 1 ? "" : "s");
+  printf("[DEBUG] %zu argument%s\n", arg_count, arg_count == 1 ? "" : "s");
   printf("========================================\n");
 
   if (arg_count == 0) {
@@ -347,9 +261,9 @@ slp_object_t *sxs_builtin_debug_full(sxs_runtime_t *runtime,
 
   slp_object_t **eval_args = malloc(sizeof(slp_object_t *) * arg_count);
   if (!eval_args) {
-    return sxs_create_error_object(SLP_ERROR_ALLOCATION,
-                                   "D builtin: failed to allocate eval_args", 0,
-                                   runtime->source_buffer);
+    return sxs_create_error_object(
+        SLP_ERROR_ALLOCATION, "debug builtin: failed to allocate eval_args", 0,
+        runtime->source_buffer);
   }
 
   for (size_t i = 0; i < arg_count; i++) {
@@ -365,7 +279,7 @@ slp_object_t *sxs_builtin_debug_full(sxs_runtime_t *runtime,
       }
       free(eval_args);
       return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                     "D builtin: nil argument", 0,
+                                     "debug builtin: nil argument", 0,
                                      runtime->source_buffer);
     }
     eval_args[i] = sxs_eval_object(runtime, args[i]);
@@ -377,7 +291,7 @@ slp_object_t *sxs_builtin_debug_full(sxs_runtime_t *runtime,
       }
       free(eval_args);
       return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                     "D builtin: eval failed", 0,
+                                     "debug builtin: eval failed", 0,
                                      runtime->source_buffer);
     }
     if (eval_args[i]->type == SLP_TYPE_ERROR) {

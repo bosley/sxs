@@ -233,16 +233,14 @@ The `sxs_command_impl_t` structure pairs a symbol string with its handler functi
 
 ### Current Implementations
 
-The system includes three builtin commands:
+The system includes two builtin commands:
 
 **`@` (load_store)**: The primary storage interface with three variants based on argument count:
 - Single argument: Get operation retrieving a value from storage
 - Two arguments: Set operation storing a value
 - Three arguments: Compare-and-swap atomic operation
 
-**`d` (debug_simple)**: A variadic debugging command that accepts any number of arguments and prints simplified object representations showing type and basic value information.
-
-**`D` (debug_full)**: A variadic debugging command that prints detailed recursive dumps of objects, including memory addresses, buffer contents in hex, and nested structure traversal.
+**`debug`**: A variadic debugging command that accepts any number of arguments and prints detailed recursive dumps of objects, including memory addresses, buffer contents in hex, and nested structure traversal.
 
 ### Implementation Pattern
 
