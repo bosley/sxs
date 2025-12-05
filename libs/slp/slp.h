@@ -22,6 +22,9 @@ typedef enum slp_type_e {
   SLP_TYPE_LAMBDA,  // A lambda function
 } slp_type_e;
 
+/*
+
+*/
 typedef struct slp_object_s {
   slp_type_e type;
   union {
@@ -33,12 +36,17 @@ typedef struct slp_object_s {
 
 typedef void (*slp_object_consumer_fn)(slp_object_t *object, void *context);
 
+void slp_free_object(slp_object_t *object);
+slp_object_t *slp_object_copy(slp_object_t *object);
+
+/*
+
+*/
 typedef struct slp_processor_state_s {
   size_t tokens_processed;
   size_t errors;
 } slp_processor_state_t;
 
-void slp_free_object(slp_object_t *object);
 void slp_process_group(slp_scanner_t *scanner, uint8_t start, uint8_t end,
                        const char *group_name, slp_processor_state_t *state,
                        slp_scanner_stop_symbols_t *stops, int depth,

@@ -15,6 +15,45 @@ void slp_free_object(slp_object_t *object) {
   free(object);
 }
 
+slp_object_t *slp_object_copy(slp_object_t *object) {
+  if (!object) {
+    return NULL;
+  }
+
+  slp_object_t *clone = malloc(sizeof(slp_object_t));
+  if (!clone) {
+    return NULL;
+  }
+
+  clone->type = object->type;
+
+  switch (object->type) {
+  case SLP_TYPE_INTEGER:
+    clone->value.integer = object->value.integer;
+    break;
+  case SLP_TYPE_REAL:
+    clone->value.real = object->value.real;
+    break;
+  case SLP_TYPE_SYMBOL:
+  case SLP_TYPE_QUOTED:
+    if (object->value.buffer) {
+      clone->value.buffer = slp_buffer_copy(object->value.buffer);
+      if (!clone->value.buffer) {
+        free(clone);
+        return NULL;
+      }
+    } else {
+      clone->value.buffer = NULL;
+    }
+    break;
+  default:
+    clone->value.buffer = NULL;
+    break;
+  }
+
+  return clone;
+}
+
 void slp_process_group(slp_scanner_t *scanner, uint8_t start, uint8_t end,
                        const char *group_name, slp_processor_state_t *state,
                        slp_scanner_stop_symbols_t *stops, int depth,

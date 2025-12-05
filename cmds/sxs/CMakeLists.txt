@@ -4,6 +4,7 @@ target_link_libraries(sxs PRIVATE
     buffer
     scanner
     slp
+    libsxs
     ${LIBTCC_LIBRARY}
 )
 

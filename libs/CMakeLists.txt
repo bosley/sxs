@@ -2,4 +2,4 @@ add_subdirectory(testlib)
 add_subdirectory(buffer)
 add_subdirectory(slp)
 add_subdirectory(scanner)
-
+add_subdirectory(sxs)
