@@ -1,4 +1,4 @@
-add_library(libsxs SHARED sxs.c eval.c slpcb.c)
+add_library(libsxs SHARED sxs.c eval.c slpcb.c forms.c builtins.c)
 
 target_include_directories(libsxs PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -16,3 +16,4 @@ install(FILES sxs.h
     DESTINATION libs/sxs/include
 )
 
+add_subdirectory(tests)

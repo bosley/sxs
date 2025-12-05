@@ -15,7 +15,6 @@ typedef enum slp_type_e {
   SLP_TYPE_LIST_P,  // ()
   SLP_TYPE_LIST_C,  // {}
   SLP_TYPE_LIST_B,  // []
-  SLP_TYPE_LIST_Q,  // ''
   SLP_TYPE_LIST_S,  // ""
   SLP_TYPE_QUOTED,  // ' prefixed
   SLP_TYPE_BUILTIN, // A C function

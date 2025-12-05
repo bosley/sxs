@@ -9,41 +9,11 @@ extern void sxs_context_free(sxs_context_t *context);
 extern slp_object_t *sxs_eval_object(sxs_runtime_t *runtime,
                                      slp_object_t *object);
 
-static slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
-                                            slp_object_t **args,
-                                            size_t arg_count) {
-  printf("[BUILTIN LOAD_STORE] called with %zu args\n", arg_count);
-
-  slp_object_t *none = malloc(sizeof(slp_object_t));
-  if (none) {
-    none->type = SLP_TYPE_INTEGER;
-    none->value.integer = 42;
-  }
-  return none;
-}
-
-slp_object_t *
-sxs_get_builtin_load_store_object_for_context(sxs_context_t *context) {
-  if (!context) {
-    fprintf(
-        stderr,
-        "Failed to get builtin load store object for context (nil context)\n");
-    return NULL;
-  }
-
-  slp_object_t *builtin = malloc(sizeof(slp_object_t));
-  if (!builtin) {
-    fprintf(
-        stderr,
-        "Failed to get builtin load store object for context (nil builtin)\n");
-    return NULL;
-  }
-
-  builtin->type = SLP_TYPE_BUILTIN;
-  builtin->value.fn_data = (void *)sxs_builtin_load_store;
-
-  return builtin;
-}
+/*
+builtins defined in builtins.c
+*/
+extern slp_object_t *
+sxs_get_builtin_load_store_object_for_context(sxs_context_t *context);
 
 int sxs_context_push_object(sxs_context_t *context, slp_object_t *object) {
   if (!context) {
