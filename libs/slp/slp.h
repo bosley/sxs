@@ -1,12 +1,9 @@
 #ifndef SXS_SLP_SLP_H
 #define SXS_SLP_SLP_H
 
-#define SLP_PROCESSOR_COUNT 16 // for consistence . dont change
-#define SLP_REGISTER_COUNT 32  // for consistence . dont change
-
 #include "buffer/buffer.h"
 #include "scanner/scanner.h"
-#include "types/types.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -25,22 +22,33 @@ typedef enum slp_type_e {
   SLP_TYPE_LAMBDA,  // A lambda function
 } slp_type_e;
 
-typedef struct slp_cell_s {
+typedef struct slp_object_s {
+  slp_type_e type;
+  union {
+    int64_t integer;
+    double real;
+    slp_buffer_t *buffer;
+  } value;
+} slp_object_t;
 
-} slp_type_t;
+typedef void (*slp_object_consumer_fn)(slp_object_t *object, void *context);
 
 typedef struct slp_processor_state_s {
   size_t tokens_processed;
   size_t errors;
 } slp_processor_state_t;
 
-void slp_print_static_type(slp_static_type_t *type, int depth);
+void slp_free_object(slp_object_t *object);
 void slp_process_group(slp_scanner_t *scanner, uint8_t start, uint8_t end,
                        const char *group_name, slp_processor_state_t *state,
-                       slp_scanner_stop_symbols_t *stops, int depth);
+                       slp_scanner_stop_symbols_t *stops, int depth,
+                       slp_object_consumer_fn consumer, void *context);
 void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
-                        slp_scanner_stop_symbols_t *stops, int depth);
-int slp_process_buffer(slp_buffer_t *buffer);
-int slp_process_file(char *file_name);
+                        slp_scanner_stop_symbols_t *stops, int depth,
+                        slp_object_consumer_fn consumer, void *context);
+int slp_process_buffer(slp_buffer_t *buffer, slp_object_consumer_fn consumer,
+                       void *context);
+int slp_process_file(char *file_name, slp_object_consumer_fn consumer,
+                     void *context);
 
 #endif
