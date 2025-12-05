@@ -8,6 +8,7 @@ typedef struct slp_buffer_s {
   uint8_t *data;
   size_t capacity;
   size_t count;
+  size_t origin_offset;
 } slp_buffer_t;
 
 typedef slp_buffer_t *slp_buffer_unowned_ptr_t;

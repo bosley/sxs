@@ -23,6 +23,7 @@ slp_buffer_t *slp_buffer_new(size_t initial_size) {
 
   buffer->capacity = initial_size;
   buffer->count = 0;
+  buffer->origin_offset = 0;
 
   return buffer;
 }
@@ -215,6 +216,9 @@ slp_buffer_t *slp_buffer_sub_buffer(slp_buffer_t *buffer, size_t offset,
       *bytes_copied = 0;
     }
     slp_buffer_t *sub_buffer = slp_buffer_new(MIN_BUFFER_SIZE);
+    if (sub_buffer) {
+      sub_buffer->origin_offset = buffer->origin_offset + offset;
+    }
     return sub_buffer;
   }
 
@@ -228,6 +232,7 @@ slp_buffer_t *slp_buffer_sub_buffer(slp_buffer_t *buffer, size_t offset,
 
   memcpy(sub_buffer->data, buffer->data + offset, actual_length);
   sub_buffer->count = actual_length;
+  sub_buffer->origin_offset = buffer->origin_offset + offset;
 
   if (bytes_copied) {
     *bytes_copied = (int)actual_length;
@@ -347,6 +352,8 @@ slp_buffer_t *slp_buffer_copy(slp_buffer_t *buffer) {
     memcpy(copy->data, buffer->data, buffer->count);
     copy->count = buffer->count;
   }
+
+  copy->origin_offset = buffer->origin_offset;
 
   return copy;
 }

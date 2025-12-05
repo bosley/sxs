@@ -454,7 +454,8 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
           slp_object_t *object = malloc(sizeof(slp_object_t));
           if (object) {
             object->type = SLP_TYPE_QUOTED;
-            object->source_position = group.index_of_start_symbol;
+            object->source_position =
+                scanner->buffer->origin_offset + group.index_of_start_symbol;
             object->value.buffer = quoted_buffer;
             if (callbacks->on_object) {
               callbacks->on_object(object, callbacks->context);
@@ -479,8 +480,9 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
             slp_object_t *object = malloc(sizeof(slp_object_t));
             if (object) {
               object->type = SLP_TYPE_QUOTED;
-              object->source_position =
-                  scanner->position - result.data.byte_length;
+              object->source_position = scanner->buffer->origin_offset +
+                                        scanner->position -
+                                        result.data.byte_length;
               object->value.buffer = quoted_buffer;
               if (callbacks->on_object) {
                 callbacks->on_object(object, callbacks->context);
@@ -551,7 +553,8 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
       goto error_exit;
     }
 
-    object->source_position = scanner->position - result.data.byte_length;
+    object->source_position = scanner->buffer->origin_offset +
+                              scanner->position - result.data.byte_length;
 
     switch (result.data.base) {
     case SLP_STATIC_BASE_INTEGER: {
