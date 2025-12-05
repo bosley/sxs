@@ -8,11 +8,6 @@ extern sxs_context_t *sxs_context_new(size_t context_id, sxs_context_t *parent);
 extern void sxs_context_free(sxs_context_t *context);
 extern slp_object_t *sxs_eval_object(sxs_runtime_t *runtime,
                                      slp_object_t *object);
-extern slp_object_t *sxs_create_error_object(slp_error_type_e error_type,
-                                             const char *message,
-                                             size_t position,
-                                             slp_buffer_unowned_ptr_t source_buffer);
-
 extern slp_object_t *sxs_get_builtin_load_store_object(void);
 
 int sxs_context_push_object(sxs_context_t *context, slp_object_t *object) {
@@ -97,7 +92,8 @@ static void sxs_handle_object_from_slp_callback(slp_object_t *object,
       printf("[BUILTIN LOAD STORE SYMBOL FOUND - UPDATING OBJECT]\n");
       slp_object_t *builtin = sxs_get_builtin_load_store_object();
       if (!builtin) {
-        fprintf(stderr, "Failed to get builtin load store object (nil builtin)\n");
+        fprintf(stderr,
+                "Failed to get builtin load store object (nil builtin)\n");
         return;
       }
       slp_free_object(object);
@@ -178,7 +174,7 @@ slp_object_t *sxs_convert_proc_list_to_objects_and_free(sxs_context_t *context,
 
   if (context->proc_list_count > 0) {
     list->source_position = context->object_proc_list[0]->source_position;
-    
+
     list->value.list.items =
         malloc(sizeof(slp_object_t *) * context->proc_list_count);
     if (!list->value.list.items) {

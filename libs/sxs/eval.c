@@ -4,10 +4,6 @@
 #include <string.h>
 
 extern slp_callbacks_t *sxs_runtime_get_callbacks(sxs_runtime_t *runtime);
-extern slp_object_t *sxs_create_error_object(slp_error_type_e error_type,
-                                             const char *message,
-                                             size_t position,
-                                             slp_buffer_unowned_ptr_t source_buffer);
 
 static slp_object_t *sxs_eval_list(sxs_runtime_t *runtime, slp_object_t *list) {
   if (!list || list->type != SLP_TYPE_LIST_P) {
@@ -53,7 +49,8 @@ static slp_object_t *sxs_eval_list(sxs_runtime_t *runtime, slp_object_t *list) {
                                      "nil lambda callable", 0, NULL);
     }
     return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                   "lambda evaluation not yet implemented", 0, NULL);
+                                   "lambda evaluation not yet implemented", 0,
+                                   NULL);
   }
 
   if (first->type == SLP_TYPE_SYMBOL) {
@@ -111,13 +108,15 @@ slp_object_t *sxs_eval_object(sxs_runtime_t *runtime, slp_object_t *object) {
 
     if (!object->value.buffer) {
       return sxs_create_error_object(SLP_ERROR_PARSE_QUOTED_TOKEN,
-                                     "quoted expression has nil buffer", 0, NULL);
+                                     "quoted expression has nil buffer", 0,
+                                     NULL);
     }
 
     slp_callbacks_t *callbacks = sxs_runtime_get_callbacks(runtime);
     if (!callbacks) {
-      return sxs_create_error_object(
-          SLP_ERROR_ALLOCATION, "failed to get callbacks for quoted eval", 0, NULL);
+      return sxs_create_error_object(SLP_ERROR_ALLOCATION,
+                                     "failed to get callbacks for quoted eval",
+                                     0, NULL);
     }
 
     bool prev_error_state = runtime->runtime_has_error;
@@ -128,7 +127,8 @@ slp_object_t *sxs_eval_object(sxs_runtime_t *runtime, slp_object_t *object) {
     if (result != 0 || runtime->runtime_has_error) {
       runtime->runtime_has_error = prev_error_state;
       return sxs_create_error_object(SLP_ERROR_PARSE_QUOTED_TOKEN,
-                                     "quoted expression evaluation failed", 0, NULL);
+                                     "quoted expression evaluation failed", 0,
+                                     NULL);
     }
 
     runtime->runtime_has_error = prev_error_state;

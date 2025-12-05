@@ -138,7 +138,8 @@ slp_object_t *slp_object_copy(slp_object_t *object) {
         cloned_error->message = NULL;
       }
       if (original_error->source_buffer) {
-        cloned_error->source_buffer = slp_buffer_copy(original_error->source_buffer);
+        cloned_error->source_buffer =
+            slp_buffer_copy(original_error->source_buffer);
         if (!cloned_error->source_buffer) {
           if (cloned_error->message) {
             free(cloned_error->message);
@@ -396,7 +397,8 @@ void slp_process_tokens(slp_scanner_t *scanner, slp_processor_state_t *state,
             slp_object_t *object = malloc(sizeof(slp_object_t));
             if (object) {
               object->type = SLP_TYPE_QUOTED;
-              object->source_position = scanner->position - result.data.byte_length;
+              object->source_position =
+                  scanner->position - result.data.byte_length;
               object->value.buffer = quoted_buffer;
               if (callbacks->on_object) {
                 callbacks->on_object(object, callbacks->context);

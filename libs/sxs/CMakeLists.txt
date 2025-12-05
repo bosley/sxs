@@ -1,4 +1,4 @@
-add_library(libsxs SHARED sxs.c eval.c slpcb.c forms.c builtins.c)
+add_library(libsxs SHARED sxs.c eval.c slpcb.c forms.c builtins.c errors.c)
 
 target_include_directories(libsxs PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
