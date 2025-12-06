@@ -1,6 +1,8 @@
 ; This is a comment at the start
 ; Comments are ignored by the parser
 
+
+
 ; store a data list in storage object 0. there re a #defined number of storage objects
 ; at the time of writing this there are 8192 storage objects, meaning 0-8191 is valid
 ; this value is set at SXS_OBJECT_STORAGE_SIZE and the interpreter runtime bound checks
@@ -44,3 +46,5 @@ debug "hshshsh"
 })
 
 do 800
+
+debug (@ 800)

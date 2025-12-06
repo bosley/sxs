@@ -23,7 +23,7 @@ make -j${NCPUS}
 
 echo ""
 echo "=== Running TCC tests ==="
-export DYLD_LIBRARY_PATH="${BUILD_DIR_TCC}/libs/buffer:${BUILD_DIR_TCC}/libs/slp:${BUILD_DIR_TCC}/libs/scanner:${BUILD_DIR_TCC}/libs/sxs:${DYLD_LIBRARY_PATH}"
+export DYLD_LIBRARY_PATH="${BUILD_DIR_TCC}/libs/buffer:${BUILD_DIR_TCC}/libs/map:${BUILD_DIR_TCC}/libs/ctx:${BUILD_DIR_TCC}/libs/slp:${BUILD_DIR_TCC}/libs/scanner:${BUILD_DIR_TCC}/libs/sxs:${DYLD_LIBRARY_PATH}"
 cmake -DUSE_TCC=ON -DEXEC_TESTS=ON ..
 ctest --output-on-failure
 

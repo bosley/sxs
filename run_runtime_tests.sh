@@ -12,8 +12,8 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEST_DIR="${PROJECT_ROOT}/tests/runtime_tests"
 SXS_BIN="${BUILD_DIR}/cmds/sxs/sxs"
 
-export DYLD_LIBRARY_PATH="${BUILD_DIR}/libs/buffer:${BUILD_DIR}/libs/map:${BUILD_DIR}/libs/slp:${BUILD_DIR}/libs/scanner:${BUILD_DIR}/libs/sxs:${DYLD_LIBRARY_PATH}"
-export LD_LIBRARY_PATH="${BUILD_DIR}/libs/buffer:${BUILD_DIR}/libs/map:${BUILD_DIR}/libs/slp:${BUILD_DIR}/libs/scanner:${BUILD_DIR}/libs/sxs:${LD_LIBRARY_PATH}"
+export DYLD_LIBRARY_PATH="${BUILD_DIR}/libs/buffer:${BUILD_DIR}/libs/map:${BUILD_DIR}/libs/ctx:${BUILD_DIR}/libs/slp:${BUILD_DIR}/libs/scanner:${BUILD_DIR}/libs/sxs:${DYLD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH="${BUILD_DIR}/libs/buffer:${BUILD_DIR}/libs/map:${BUILD_DIR}/libs/ctx:${BUILD_DIR}/libs/slp:${BUILD_DIR}/libs/scanner:${BUILD_DIR}/libs/sxs:${LD_LIBRARY_PATH}"
 
 if [ ! -f "$SXS_BIN" ]; then
     echo "Error: sxs binary not found at $SXS_BIN"

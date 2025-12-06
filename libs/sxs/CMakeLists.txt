@@ -5,7 +5,7 @@ target_include_directories(libsxs PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(libsxs PUBLIC slp map)
+target_link_libraries(libsxs PUBLIC slp map ctx)
 
 install(TARGETS libsxs
     LIBRARY DESTINATION libs/sxs/lib

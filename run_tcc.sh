@@ -8,7 +8,7 @@ if [ ! -f "${BUILD_DIR_TCC}/cmds/sxs/sxs" ]; then
     exit 1
 fi
 
-export DYLD_LIBRARY_PATH="${BUILD_DIR_TCC}/libs/buffer:${BUILD_DIR_TCC}/libs/slp:${BUILD_DIR_TCC}/libs/scanner:${BUILD_DIR_TCC}/libs/sxs:${DYLD_LIBRARY_PATH}"
+export DYLD_LIBRARY_PATH="${BUILD_DIR_TCC}/libs/buffer:${BUILD_DIR_TCC}/libs/map:${BUILD_DIR_TCC}/libs/ctx:${BUILD_DIR_TCC}/libs/slp:${BUILD_DIR_TCC}/libs/scanner:${BUILD_DIR_TCC}/libs/sxs:${DYLD_LIBRARY_PATH}"
 
 exec "${BUILD_DIR_TCC}/cmds/sxs/sxs" "$@"
 
