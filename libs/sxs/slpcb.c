@@ -70,9 +70,6 @@ static void sxs_clear_context_proc_list(sxs_context_t *context) {
   context->proc_list_count = 0;
 }
 
-/*
-  This is
-*/
 static void sxs_handle_object_from_slp_callback(slp_object_t *object,
                                                 void *context) {
   if (!object) {
