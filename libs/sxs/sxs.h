@@ -54,7 +54,7 @@ struct sxs_callable_s {
   bool is_builtin;
   union {
     sxs_builtin_fn builtin_fn;
-    slp_buffer_t *lambda_body;
+    slp_object_t *lambda_body;
   } impl;
   sxs_typecheck_fn typecheck_fn;
 };
@@ -109,5 +109,7 @@ slp_object_t *sxs_get_builtin_rotl_object(void);
 slp_object_t *sxs_get_builtin_rotr_object(void);
 slp_object_t *sxs_get_builtin_insist_object(void);
 slp_object_t *sxs_get_builtin_catch_object(void);
+slp_object_t *sxs_get_builtin_proc_object(void);
+slp_object_t *sxs_get_builtin_do_object(void);
 
 #endif

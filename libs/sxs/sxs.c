@@ -165,7 +165,7 @@ static void *sxs_callable_copy_impl(void *fn_data) {
   }
 
   if (original->impl.lambda_body) {
-    cloned->impl.lambda_body = slp_buffer_copy(original->impl.lambda_body);
+    cloned->impl.lambda_body = slp_object_copy(original->impl.lambda_body);
     if (!cloned->impl.lambda_body) {
       for (size_t v = 0; v < cloned->variant_count; v++) {
         if (cloned->variants[v].params) {
@@ -207,13 +207,8 @@ static bool sxs_callable_equal_impl(void *fn_data_a, void *fn_data_b) {
   if (!a_callable->impl.lambda_body || !b_callable->impl.lambda_body) {
     return false;
   }
-  if (a_callable->impl.lambda_body->count !=
-      b_callable->impl.lambda_body->count) {
-    return false;
-  }
-  return memcmp(a_callable->impl.lambda_body->data,
-                b_callable->impl.lambda_body->data,
-                a_callable->impl.lambda_body->count) == 0;
+  return slp_objects_equal(a_callable->impl.lambda_body,
+                           b_callable->impl.lambda_body);
 }
 
 slp_object_t *sxs_create_error_object(slp_error_type_e error_type,
@@ -462,7 +457,7 @@ void sxs_callable_free(sxs_callable_t *callable) {
   }
 
   if (!callable->is_builtin && callable->impl.lambda_body) {
-    slp_buffer_free(callable->impl.lambda_body);
+    slp_object_free(callable->impl.lambda_body);
   }
 
   free(callable);

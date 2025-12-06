@@ -37,3 +37,10 @@
 debug "hshshsh"
 
 (debug (catch (insist :int (@ 1))))
+
+(proc 800 {
+
+  (debug "AUASDASDAS")
+})
+
+do 800
