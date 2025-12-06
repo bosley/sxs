@@ -6,5 +6,3 @@ rotl
 rotr
 insist
 catch
-
-d

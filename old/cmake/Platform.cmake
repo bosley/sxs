@@ -1,5 +1,0 @@
-if(WIN32)
-elseif(APPLE)
-  include_directories(/usr/local/include)
-elseif(UNIX)
-endif()

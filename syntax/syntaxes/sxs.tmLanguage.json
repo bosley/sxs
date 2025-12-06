@@ -1,0 +1,149 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "SXS",
+  "scopeName": "source.sxs",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#variant-prefixes" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#type-symbols" },
+    { "include": "#special-variables" },
+    { "include": "#imported-identifiers" },
+    { "include": "#scoped-identifiers" },
+    { "include": "#core-keywords" },
+    { "include": "#brackets" },
+    { "include": "#symbols" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.semicolon.sxs",
+          "match": ";.*$"
+        }
+      ]
+    },
+    "variant-prefixes": {
+      "patterns": [
+        {
+          "name": "constant.language.variant.quoted.sxs",
+          "match": "'"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.sxs",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.sxs",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.sxs",
+          "match": "\\b-?[0-9]+\\.[0-9]+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.sxs",
+          "match": "\\b-?[0-9]+\\b"
+        }
+      ]
+    },
+    "type-symbols": {
+      "patterns": [
+        {
+          "name": "storage.type.sxs",
+          "match": ":[a-z][a-z0-9-]*(\\.\\.)?\\b"
+        }
+      ]
+    },
+    "special-variables": {
+      "patterns": [
+        {
+          "name": "variable.language.special.sxs",
+          "match": "\\$[a-z][a-z0-9_-]*"
+        }
+      ]
+    },
+    "imported-identifiers": {
+      "patterns": [
+        {
+          "name": "entity.name.function.import.sxs",
+          "match": "\\b[a-z][a-z0-9_-]*/[a-z][a-z0-9_-]*\\b"
+        }
+      ]
+    },
+    "scoped-identifiers": {
+      "patterns": [
+        {
+          "match": "\\b[a-z][a-z0-9_-]*(:[a-z0-9_-]+)+\\b",
+          "captures": {
+            "0": {
+              "patterns": [
+                {
+                  "name": "variable.other.sxs",
+                  "match": "[a-z][a-z0-9_-]+"
+                },
+                {
+                  "name": "keyword.operator.scope.sxs",
+                  "match": ":"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "core-keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.sxs",
+          "match": "\\b(proc|do|catch|insist)\\b"
+        },
+        {
+          "name": "keyword.other.sxs",
+          "match": "\\b(debug|rotl|rotr)\\b"
+        },
+        {
+          "name": "entity.name.function.builtin.sxs",
+          "match": "@"
+        }
+      ]
+    },
+    "brackets": {
+      "patterns": [
+        {
+          "name": "meta.brace.round.sxs",
+          "match": "[\\(\\)]"
+        },
+        {
+          "name": "meta.brace.square.sxs",
+          "match": "[\\[\\]]"
+        },
+        {
+          "name": "meta.brace.curly.sxs",
+          "match": "[\\{\\}]"
+        }
+      ]
+    },
+    "symbols": {
+      "patterns": [
+        {
+          "name": "variable.other.sxs",
+          "match": "\\b[a-z][a-z0-9_-]*\\b"
+        }
+      ]
+    }
+  }
+}
+

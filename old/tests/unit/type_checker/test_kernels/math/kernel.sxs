@@ -1,7 +1,0 @@
-#(define-kernel math "libkernel_math.dylib" [
-    (define-function add (a :int b :int) :int)
-    (define-function sub (a :int b :int) :int)
-    (define-function mul (a :int b :int) :int)
-    (define-function div (a :int b :int) :int)
-])
-

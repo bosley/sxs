@@ -1,3 +1,0 @@
-Kernels loaded successfully before any code execution
-10 + 20 = 30
-Test passed: kernels can be loaded in datum expressions
