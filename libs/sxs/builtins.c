@@ -71,7 +71,13 @@ static form_definition_t *create_form_def(form_type_e type) {
   def->types[0] = type;
   def->type_count = 1;
   def->list_constraint = SLP_TYPE_NONE;
-  def->is_variadic = false;
+
+  def->is_variadic =
+      (type == FORM_TYPE_INTEGER_VARIADIC || type == FORM_TYPE_REAL_VARIADIC ||
+       type == FORM_TYPE_SYMBOL_VARIADIC || type == FORM_TYPE_LIST_S_VARIADIC ||
+       type == FORM_TYPE_LIST_P_VARIADIC || type == FORM_TYPE_LIST_B_VARIADIC ||
+       type == FORM_TYPE_LIST_C_VARIADIC || type == FORM_TYPE_SOME_VARIADIC ||
+       type == FORM_TYPE_FN_VARIADIC || type == FORM_TYPE_ANY_VARIADIC);
 
   return def;
 }
