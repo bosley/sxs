@@ -2,6 +2,7 @@
 #define SXS_SXS_H
 
 #include "forms.h"
+#include "map/map.h"
 #include "slp/slp.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -31,9 +32,7 @@ typedef struct sxs_command_impl_s {
 } sxs_command_impl_t;
 
 struct sxs_builtin_registry_s {
-  sxs_command_impl_t *commands;
-  size_t count;
-  size_t capacity;
+  map_void_t command_map;
 };
 
 typedef struct sxs_callable_param_s {

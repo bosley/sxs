@@ -1,4 +1,5 @@
 #include "forms.h"
+#include "map/map.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -69,6 +70,8 @@ symbol_forms_t *sxs_forms_new(void) {
   forms->count = 0;
   forms->capacity = INITIAL_FORMS_CAPACITY;
 
+  map_init(&forms->form_map);
+
   struct {
     const char *name;
     form_type_e type;
@@ -106,6 +109,11 @@ symbol_forms_t *sxs_forms_new(void) {
       sxs_forms_free(forms);
       return NULL;
     }
+
+    if (map_set(&forms->form_map, def->name, def) != 0) {
+      sxs_forms_free(forms);
+      return NULL;
+    }
   }
 
   return forms;
@@ -115,6 +123,8 @@ void sxs_forms_free(symbol_forms_t *forms) {
   if (!forms) {
     return;
   }
+
+  map_deinit(&forms->form_map);
 
   if (forms->forms) {
     for (size_t i = 0; i < forms->count; i++) {
@@ -202,18 +212,21 @@ form_definition_t *sxs_forms_lookup(symbol_forms_t *forms,
   size_t name_len = symbol->value.buffer->count - 1;
   const char *name_start = (const char *)&symbol->value.buffer->data[1];
 
-  for (size_t i = 0; i < forms->count; i++) {
-    form_definition_t *def = forms->forms[i];
-    if (def && def->name) {
-      size_t def_name_len = strlen(def->name);
-      if (def_name_len == name_len &&
-          memcmp(def->name, name_start, name_len) == 0) {
-        return def;
-      }
-    }
+  char *key = malloc(name_len + 1);
+  if (!key) {
+    return NULL;
+  }
+  memcpy(key, name_start, name_len);
+  key[name_len] = '\0';
+
+  void **result = map_get(&forms->form_map, key);
+  free(key);
+
+  if (!result) {
+    return NULL;
   }
 
-  return NULL;
+  return (form_definition_t *)*result;
 }
 
 const char *sxs_forms_get_form_type_name(form_type_e type) {

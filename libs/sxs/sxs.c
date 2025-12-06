@@ -1,4 +1,5 @@
 #include "sxs/sxs.h"
+#include "map/map.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,9 +9,7 @@
 extern slp_callbacks_t *sxs_runtime_get_callbacks(sxs_runtime_t *runtime);
 
 sxs_builtin_registry_t *sxs_builtin_registry_create(size_t initial_capacity) {
-  if (initial_capacity == 0) {
-    initial_capacity = BUILTIN_REGISTRY_INITIAL_CAPACITY;
-  }
+  (void)initial_capacity;
 
   sxs_builtin_registry_t *registry = malloc(sizeof(sxs_builtin_registry_t));
   if (!registry) {
@@ -18,15 +17,7 @@ sxs_builtin_registry_t *sxs_builtin_registry_create(size_t initial_capacity) {
     return NULL;
   }
 
-  registry->commands = malloc(sizeof(sxs_command_impl_t) * initial_capacity);
-  if (!registry->commands) {
-    fprintf(stderr, "Failed to allocate builtin registry commands\n");
-    free(registry);
-    return NULL;
-  }
-
-  registry->count = 0;
-  registry->capacity = initial_capacity;
+  map_init(&registry->command_map);
 
   return registry;
 }
@@ -36,9 +27,16 @@ void sxs_builtin_registry_free(sxs_builtin_registry_t *registry) {
     return;
   }
 
-  if (registry->commands) {
-    free(registry->commands);
+  map_iter_t iter = map_iter(&registry->command_map);
+  const char *key;
+  while ((key = map_next(&registry->command_map, &iter))) {
+    void **value = map_get(&registry->command_map, key);
+    if (value && *value) {
+      free(*value);
+    }
   }
+
+  map_deinit(&registry->command_map);
 
   free(registry);
 }
@@ -50,20 +48,29 @@ int sxs_builtin_registry_add(sxs_builtin_registry_t *registry,
     return 1;
   }
 
-  if (registry->count >= registry->capacity) {
-    size_t new_capacity = registry->capacity * 2;
-    sxs_command_impl_t *new_commands =
-        realloc(registry->commands, sizeof(sxs_command_impl_t) * new_capacity);
-    if (!new_commands) {
-      fprintf(stderr, "Failed to resize builtin registry\n");
-      return 1;
-    }
-    registry->commands = new_commands;
-    registry->capacity = new_capacity;
+  if (!impl.command) {
+    fprintf(stderr, "Failed to add to builtin registry (nil command)\n");
+    return 1;
   }
 
-  registry->commands[registry->count] = impl;
-  registry->count++;
+  void **existing = map_get(&registry->command_map, impl.command);
+  if (existing && *existing) {
+    free(*existing);
+  }
+
+  sxs_command_impl_t *cmd = malloc(sizeof(sxs_command_impl_t));
+  if (!cmd) {
+    fprintf(stderr, "Failed to allocate command impl\n");
+    return 1;
+  }
+
+  *cmd = impl;
+
+  if (map_set(&registry->command_map, impl.command, cmd) != 0) {
+    fprintf(stderr, "Failed to add command to map: %s\n", impl.command);
+    free(cmd);
+    return 1;
+  }
 
   return 0;
 }
@@ -75,19 +82,21 @@ sxs_builtin_registry_lookup(sxs_builtin_registry_t *registry,
     return NULL;
   }
 
-  for (size_t i = 0; i < registry->count; i++) {
-    const char *cmd = registry->commands[i].command;
-    if (!cmd) {
-      continue;
-    }
-    size_t cmd_len = strlen(cmd);
+  char *key = malloc(symbol->count + 1);
+  if (!key) {
+    return NULL;
+  }
+  memcpy(key, symbol->data, symbol->count);
+  key[symbol->count] = '\0';
 
-    if (cmd_len == symbol->count && memcmp(cmd, symbol->data, cmd_len) == 0) {
-      return &registry->commands[i];
-    }
+  void **result = map_get(&registry->command_map, key);
+  free(key);
+
+  if (!result) {
+    return NULL;
   }
 
-  return NULL;
+  return (sxs_command_impl_t *)*result;
 }
 
 static void *sxs_callable_copy_impl(void *fn_data) {

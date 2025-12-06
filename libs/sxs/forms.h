@@ -1,6 +1,7 @@
 #ifndef SXS_FORMS_H
 #define SXS_FORMS_H
 
+#include "map/map.h"
 #include "slp/slp.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -74,6 +75,7 @@ typedef struct symbol_forms_s {
   form_definition_t **forms;
   size_t count;
   size_t capacity;
+  map_void_t form_map;
 } symbol_forms_t;
 
 symbol_forms_t *sxs_forms_new(void);
