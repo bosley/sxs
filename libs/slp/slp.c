@@ -32,7 +32,8 @@ void slp_object_free(slp_object_t *object) {
     }
   } else if (object->type == SLP_TYPE_LIST_P ||
              object->type == SLP_TYPE_LIST_B ||
-             object->type == SLP_TYPE_LIST_C) {
+             object->type == SLP_TYPE_LIST_C ||
+             object->type == SLP_TYPE_LIST_S) {
     if (object->value.list.items) {
       for (size_t i = 0; i < object->value.list.count; i++) {
         slp_object_free(object->value.list.items[i]);
@@ -162,6 +163,7 @@ slp_object_t *slp_object_copy(slp_object_t *object) {
   case SLP_TYPE_LIST_P:
   case SLP_TYPE_LIST_B:
   case SLP_TYPE_LIST_C:
+  case SLP_TYPE_LIST_S:
     if (object->value.list.items && object->value.list.count > 0) {
       clone->value.list.count = object->value.list.count;
       clone->value.list.items =

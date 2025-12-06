@@ -209,6 +209,9 @@ static void test_parse_string_list(void) {
   ASSERT_EQ(ctx->list_start_count, 1);
   ASSERT_EQ(ctx->list_end_count, 1);
   ASSERT_EQ(ctx->last_list_type, SLP_TYPE_LIST_S);
+  ASSERT_EQ(ctx->count, 2);
+  ASSERT_EQ(ctx->objects[0]->type, SLP_TYPE_SYMBOL);
+  ASSERT_EQ(ctx->objects[1]->type, SLP_TYPE_SYMBOL);
 
   slp_buffer_free(buffer);
   test_context_free(ctx);

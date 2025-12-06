@@ -132,6 +132,7 @@ static void sxs_handle_object_from_slp_callback(slp_object_t *object,
   case SLP_TYPE_LIST_P:
   case SLP_TYPE_LIST_B:
   case SLP_TYPE_LIST_C:
+  case SLP_TYPE_LIST_S:
     printf("[LIST] count=%zu\n", object->value.list.count);
     break;
   default:

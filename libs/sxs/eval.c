@@ -155,6 +155,10 @@ slp_object_t *sxs_eval_object(sxs_runtime_t *runtime, slp_object_t *object) {
     printf("[EVAL LIST_P] count=%zu\n", object->value.list.count);
     return sxs_eval_list(runtime, object);
 
+  case SLP_TYPE_LIST_S:
+    printf("[EVAL LIST_S] count=%zu\n", object->value.list.count);
+    return slp_object_copy(object);
+
   case SLP_TYPE_LIST_B:
     printf("[EVAL LIST_B] count=%zu\n", object->value.list.count);
     return slp_object_copy(object);
