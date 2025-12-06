@@ -247,6 +247,7 @@ static void test_empty_nested_lists(void) {
 
   ASSERT_EQ(result, 0);
   ASSERT_EQ(ctx->error_count, 0);
+  ASSERT_EQ(ctx->count, 0);
 
   slp_buffer_free(buffer);
   test_context_free(ctx);

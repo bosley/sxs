@@ -83,6 +83,9 @@ static void test_single_line_virtual_list(void) {
   ASSERT_EQ(ctx->virtual_list_start_count, 1);
   ASSERT_EQ(ctx->virtual_list_end_count, 1);
   ASSERT_EQ(ctx->count, 3);
+  ASSERT_EQ(ctx->objects[0]->type, SLP_TYPE_SYMBOL);
+  ASSERT_EQ(ctx->objects[1]->type, SLP_TYPE_SYMBOL);
+  ASSERT_EQ(ctx->objects[2]->type, SLP_TYPE_SYMBOL);
 
   slp_buffer_free(buffer);
   test_context_free(ctx);
@@ -102,6 +105,10 @@ static void test_multiple_virtual_lists_separated_by_newlines(void) {
   ASSERT_EQ(ctx->virtual_list_start_count, 2);
   ASSERT_EQ(ctx->virtual_list_end_count, 2);
   ASSERT_EQ(ctx->count, 4);
+  ASSERT_EQ(ctx->objects[0]->type, SLP_TYPE_SYMBOL);
+  ASSERT_EQ(ctx->objects[1]->type, SLP_TYPE_SYMBOL);
+  ASSERT_EQ(ctx->objects[2]->type, SLP_TYPE_SYMBOL);
+  ASSERT_EQ(ctx->objects[3]->type, SLP_TYPE_SYMBOL);
 
   slp_buffer_free(buffer);
   test_context_free(ctx);
@@ -141,6 +148,9 @@ static void test_virtual_list_ends_at_newline(void) {
   ASSERT_EQ(ctx->virtual_list_start_count, 1);
   ASSERT_EQ(ctx->virtual_list_end_count, 1);
   ASSERT_EQ(ctx->count, 3);
+  ASSERT_EQ(ctx->objects[0]->type, SLP_TYPE_SYMBOL);
+  ASSERT_EQ(ctx->objects[1]->type, SLP_TYPE_SYMBOL);
+  ASSERT_EQ(ctx->objects[2]->type, SLP_TYPE_SYMBOL);
 
   slp_buffer_free(buffer);
   test_context_free(ctx);

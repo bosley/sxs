@@ -167,6 +167,9 @@ static void test_comment_in_virtual_list(void) {
   ASSERT_EQ(result, 0);
   ASSERT_EQ(ctx->error_count, 0);
   ASSERT_EQ(ctx->count, 3);
+  ASSERT_EQ(ctx->objects[0]->type, SLP_TYPE_INTEGER);
+  ASSERT_EQ(ctx->objects[1]->type, SLP_TYPE_INTEGER);
+  ASSERT_EQ(ctx->objects[2]->type, SLP_TYPE_INTEGER);
   ASSERT_EQ(ctx->objects[0]->value.integer, 1);
   ASSERT_EQ(ctx->objects[1]->value.integer, 2);
   ASSERT_EQ(ctx->objects[2]->value.integer, 3);
@@ -188,6 +191,9 @@ static void test_comment_inside_parenthesized_list(void) {
   ASSERT_EQ(result, 0);
   ASSERT_EQ(ctx->error_count, 0);
   ASSERT_EQ(ctx->count, 3);
+  ASSERT_EQ(ctx->objects[0]->type, SLP_TYPE_INTEGER);
+  ASSERT_EQ(ctx->objects[1]->type, SLP_TYPE_INTEGER);
+  ASSERT_EQ(ctx->objects[2]->type, SLP_TYPE_INTEGER);
   ASSERT_EQ(ctx->objects[0]->value.integer, 1);
   ASSERT_EQ(ctx->objects[1]->value.integer, 2);
   ASSERT_EQ(ctx->objects[2]->value.integer, 3);
@@ -255,6 +261,7 @@ static void test_empty_comment(void) {
   ASSERT_EQ(result, 0);
   ASSERT_EQ(ctx->error_count, 0);
   ASSERT_EQ(ctx->count, 1);
+  ASSERT_EQ(ctx->objects[0]->type, SLP_TYPE_INTEGER);
   ASSERT_EQ(ctx->objects[0]->value.integer, 42);
 
   slp_buffer_free(buffer);
@@ -274,6 +281,7 @@ static void test_comment_with_special_characters(void) {
   ASSERT_EQ(result, 0);
   ASSERT_EQ(ctx->error_count, 0);
   ASSERT_EQ(ctx->count, 1);
+  ASSERT_EQ(ctx->objects[0]->type, SLP_TYPE_INTEGER);
   ASSERT_EQ(ctx->objects[0]->value.integer, 99);
 
   slp_buffer_free(buffer);
@@ -354,6 +362,9 @@ static void test_nested_lists_with_comments(void) {
   ASSERT_EQ(result, 0);
   ASSERT_EQ(ctx->error_count, 0);
   ASSERT_EQ(ctx->count, 3);
+  ASSERT_EQ(ctx->objects[0]->type, SLP_TYPE_INTEGER);
+  ASSERT_EQ(ctx->objects[1]->type, SLP_TYPE_INTEGER);
+  ASSERT_EQ(ctx->objects[2]->type, SLP_TYPE_INTEGER);
   ASSERT_EQ(ctx->objects[0]->value.integer, 1);
   ASSERT_EQ(ctx->objects[1]->value.integer, 2);
   ASSERT_EQ(ctx->objects[2]->value.integer, 3);
@@ -393,6 +404,7 @@ static void test_comment_without_newline_at_eof(void) {
   ASSERT_EQ(result, 0);
   ASSERT_EQ(ctx->error_count, 0);
   ASSERT_EQ(ctx->count, 1);
+  ASSERT_EQ(ctx->objects[0]->type, SLP_TYPE_INTEGER);
   ASSERT_EQ(ctx->objects[0]->value.integer, 42);
 
   slp_buffer_free(buffer);
@@ -412,6 +424,9 @@ static void test_multiple_values_with_inline_comments(void) {
   ASSERT_EQ(result, 0);
   ASSERT_EQ(ctx->error_count, 0);
   ASSERT_EQ(ctx->count, 3);
+  ASSERT_EQ(ctx->objects[0]->type, SLP_TYPE_INTEGER);
+  ASSERT_EQ(ctx->objects[1]->type, SLP_TYPE_INTEGER);
+  ASSERT_EQ(ctx->objects[2]->type, SLP_TYPE_INTEGER);
   ASSERT_EQ(ctx->objects[0]->value.integer, 1);
   ASSERT_EQ(ctx->objects[1]->value.integer, 2);
   ASSERT_EQ(ctx->objects[2]->value.integer, 3);
