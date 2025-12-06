@@ -96,6 +96,8 @@ static void test_deeply_nested_lists(void) {
 
   ASSERT_EQ(result, 0);
   ASSERT_EQ(ctx->error_count, 0);
+  ASSERT_EQ(ctx->count, 1);
+  ASSERT_EQ(ctx->objects[0]->type, SLP_TYPE_SYMBOL);
 
   slp_buffer_free(buffer);
   test_context_free(ctx);
@@ -131,6 +133,7 @@ static void test_adjacent_delimiters(void) {
 
   ASSERT_EQ(result, 0);
   ASSERT_EQ(ctx->error_count, 0);
+  ASSERT_EQ(ctx->count, 0);
 
   slp_buffer_free(buffer);
   test_context_free(ctx);

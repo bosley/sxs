@@ -85,6 +85,7 @@ static void test_parse_empty_paren_list(void) {
   ASSERT_EQ(ctx->list_start_count, 1);
   ASSERT_EQ(ctx->list_end_count, 1);
   ASSERT_EQ(ctx->last_list_type, SLP_TYPE_LIST_P);
+  ASSERT_EQ(ctx->count, 0);
 
   slp_buffer_free(buffer);
   test_context_free(ctx);
@@ -104,6 +105,7 @@ static void test_parse_empty_bracket_list(void) {
   ASSERT_EQ(ctx->list_start_count, 1);
   ASSERT_EQ(ctx->list_end_count, 1);
   ASSERT_EQ(ctx->last_list_type, SLP_TYPE_LIST_B);
+  ASSERT_EQ(ctx->count, 0);
 
   slp_buffer_free(buffer);
   test_context_free(ctx);
@@ -123,6 +125,7 @@ static void test_parse_empty_curly_list(void) {
   ASSERT_EQ(ctx->list_start_count, 1);
   ASSERT_EQ(ctx->list_end_count, 1);
   ASSERT_EQ(ctx->last_list_type, SLP_TYPE_LIST_C);
+  ASSERT_EQ(ctx->count, 0);
 
   slp_buffer_free(buffer);
   test_context_free(ctx);
@@ -230,6 +233,7 @@ static void test_parse_empty_string(void) {
   ASSERT_EQ(result, 0);
   ASSERT_EQ(ctx->list_start_count, 1);
   ASSERT_EQ(ctx->list_end_count, 1);
+  ASSERT_EQ(ctx->count, 0);
 
   slp_buffer_free(buffer);
   test_context_free(ctx);
@@ -248,6 +252,9 @@ static void test_parse_nested_lists_simple(void) {
   ASSERT_EQ(result, 0);
   ASSERT_EQ(ctx->list_start_count, 2);
   ASSERT_EQ(ctx->list_end_count, 2);
+  ASSERT_EQ(ctx->count, 2);
+  ASSERT_EQ(ctx->objects[0]->type, SLP_TYPE_SYMBOL);
+  ASSERT_EQ(ctx->objects[1]->type, SLP_TYPE_SYMBOL);
 
   slp_buffer_free(buffer);
   test_context_free(ctx);
@@ -266,6 +273,10 @@ static void test_parse_nested_lists_complex(void) {
   ASSERT_EQ(result, 0);
   ASSERT_EQ(ctx->list_start_count, 3);
   ASSERT_EQ(ctx->list_end_count, 3);
+  ASSERT_EQ(ctx->count, 3);
+  ASSERT_EQ(ctx->objects[0]->type, SLP_TYPE_SYMBOL);
+  ASSERT_EQ(ctx->objects[1]->type, SLP_TYPE_SYMBOL);
+  ASSERT_EQ(ctx->objects[2]->type, SLP_TYPE_SYMBOL);
 
   slp_buffer_free(buffer);
   test_context_free(ctx);
@@ -285,6 +296,7 @@ static void test_parse_deeply_nested_lists(void) {
   ASSERT_EQ(ctx->list_start_count, 3);
   ASSERT_EQ(ctx->list_end_count, 3);
   ASSERT_EQ(ctx->count, 1);
+  ASSERT_EQ(ctx->objects[0]->type, SLP_TYPE_SYMBOL);
 
   slp_buffer_free(buffer);
   test_context_free(ctx);
@@ -303,6 +315,7 @@ static void test_parse_adjacent_lists(void) {
   ASSERT_EQ(result, 0);
   ASSERT_EQ(ctx->list_start_count, 3);
   ASSERT_EQ(ctx->list_end_count, 3);
+  ASSERT_EQ(ctx->count, 0);
 
   slp_buffer_free(buffer);
   test_context_free(ctx);
