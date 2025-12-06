@@ -80,7 +80,8 @@ int sxs_typecheck_proc(sxs_typecheck_context_t *ctx, sxs_callable_t *callable,
 
   if (!args[0] || args[0]->type != SLP_TYPE_INTEGER) {
     size_t pos = args[0] ? args[0]->source_position : 0;
-    sxs_typecheck_add_error(ctx, "proc builtin: first arg must be integer", pos);
+    sxs_typecheck_add_error(ctx, "proc builtin: first arg must be integer",
+                            pos);
     return 1;
   }
 

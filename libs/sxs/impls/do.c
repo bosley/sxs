@@ -23,10 +23,9 @@ slp_object_t *sxs_builtin_do(sxs_runtime_t *runtime, sxs_callable_t *callable,
 
   slp_object_t *index_obj = sxs_eval_object(runtime, args[0]);
   if (!index_obj) {
-    return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                   "do builtin: eval failed",
-                                   args[0]->source_position,
-                                   runtime->source_buffer);
+    return sxs_create_error_object(
+        SLP_ERROR_PARSE_TOKEN, "do builtin: eval failed",
+        args[0]->source_position, runtime->source_buffer);
   }
 
   if (index_obj->type == SLP_TYPE_ERROR) {
@@ -45,25 +44,22 @@ slp_object_t *sxs_builtin_do(sxs_runtime_t *runtime, sxs_callable_t *callable,
   slp_object_free(index_obj);
 
   if (proc_index < 0 || (size_t)proc_index >= SXS_OBJECT_STORAGE_SIZE) {
-    return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                   "do builtin: index out of bounds",
-                                   args[0]->source_position,
-                                   runtime->source_buffer);
+    return sxs_create_error_object(
+        SLP_ERROR_PARSE_TOKEN, "do builtin: index out of bounds",
+        args[0]->source_position, runtime->source_buffer);
   }
 
   slp_object_t *proc_obj = runtime->object_storage[proc_index];
   if (!proc_obj) {
-    return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                   "do builtin: no proc at index",
-                                   args[0]->source_position,
-                                   runtime->source_buffer);
+    return sxs_create_error_object(
+        SLP_ERROR_PARSE_TOKEN, "do builtin: no proc at index",
+        args[0]->source_position, runtime->source_buffer);
   }
 
   if (proc_obj->type != SLP_TYPE_LAMBDA) {
-    return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                   "do builtin: object is not a lambda",
-                                   args[0]->source_position,
-                                   runtime->source_buffer);
+    return sxs_create_error_object(
+        SLP_ERROR_PARSE_TOKEN, "do builtin: object is not a lambda",
+        args[0]->source_position, runtime->source_buffer);
   }
 
   sxs_callable_t *lambda_callable = (sxs_callable_t *)proc_obj->value.fn_data;
@@ -108,18 +104,16 @@ slp_object_t *sxs_builtin_do(sxs_runtime_t *runtime, sxs_callable_t *callable,
 
     slp_object_t *item = lambda_body->value.list.items[i];
     if (!item) {
-      return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                     "do builtin: nil item in lambda body",
-                                     args[0]->source_position,
-                                     runtime->source_buffer);
+      return sxs_create_error_object(
+          SLP_ERROR_PARSE_TOKEN, "do builtin: nil item in lambda body",
+          args[0]->source_position, runtime->source_buffer);
     }
 
     last_result = sxs_eval_object(runtime, item);
     if (!last_result) {
-      return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                     "do builtin: eval failed on item",
-                                     item->source_position,
-                                     runtime->source_buffer);
+      return sxs_create_error_object(
+          SLP_ERROR_PARSE_TOKEN, "do builtin: eval failed on item",
+          item->source_position, runtime->source_buffer);
     }
 
     if (runtime->exception_active) {

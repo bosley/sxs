@@ -1,0 +1,4 @@
+.*TYPECHECK.*Validating.*
+.*TYPECHECK.*Passed
+.*FINAL RESULT.*
+42

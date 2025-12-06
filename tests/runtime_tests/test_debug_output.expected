@@ -1,0 +1,8 @@
+.*TYPECHECK.*Validating.*
+.*TYPECHECK.*Passed
+.*DEBUG.*1 argument
+.*Argument 0.*
+.*type.*INTEGER
+.*value.*42
+.*FINAL RESULT.*
+.*none.*

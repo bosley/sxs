@@ -18,17 +18,16 @@ slp_object_t *sxs_builtin_proc(sxs_runtime_t *runtime, sxs_callable_t *callable,
   if (!args[0] || args[0]->type != SLP_TYPE_INTEGER) {
     size_t pos = args[0] ? args[0]->source_position : 0;
     return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                   "proc builtin: first arg must be integer", pos,
-                                   runtime->source_buffer);
+                                   "proc builtin: first arg must be integer",
+                                   pos, runtime->source_buffer);
   }
 
   int64_t dest_index = args[0]->value.integer;
 
   if (dest_index < 0 || (size_t)dest_index >= SXS_OBJECT_STORAGE_SIZE) {
-    return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                   "proc builtin: index out of bounds",
-                                   args[0]->source_position,
-                                   runtime->source_buffer);
+    return sxs_create_error_object(
+        SLP_ERROR_PARSE_TOKEN, "proc builtin: index out of bounds",
+        args[0]->source_position, runtime->source_buffer);
   }
 
   if (!args[1]) {
@@ -39,10 +38,9 @@ slp_object_t *sxs_builtin_proc(sxs_runtime_t *runtime, sxs_callable_t *callable,
 
   slp_object_t *body_arg = sxs_eval_object(runtime, args[1]);
   if (!body_arg) {
-    return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                   "proc builtin: eval failed on body",
-                                   args[1]->source_position,
-                                   runtime->source_buffer);
+    return sxs_create_error_object(
+        SLP_ERROR_PARSE_TOKEN, "proc builtin: eval failed on body",
+        args[1]->source_position, runtime->source_buffer);
   }
 
   if (body_arg->type == SLP_TYPE_ERROR) {
@@ -53,8 +51,8 @@ slp_object_t *sxs_builtin_proc(sxs_runtime_t *runtime, sxs_callable_t *callable,
     size_t pos = args[1]->source_position;
     slp_object_free(body_arg);
     return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                   "proc builtin: second arg must be list-c", pos,
-                                   runtime->source_buffer);
+                                   "proc builtin: second arg must be list-c",
+                                   pos, runtime->source_buffer);
   }
 
   sxs_callable_t *lambda_callable = malloc(sizeof(sxs_callable_t));

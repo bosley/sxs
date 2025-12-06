@@ -1,0 +1,14 @@
+.*TYPECHECK.*Validating.*
+.*TYPECHECK.*Passed
+.*Argument 0.*
+.*value.*42
+.*Argument 0.*
+.*value.*1
+.*Argument 0.*
+.*value.*100
+.*Argument 0.*
+.*value.*0
+.*Argument 0.*
+.*value.*100
+.*FINAL RESULT.*
+.*none.*

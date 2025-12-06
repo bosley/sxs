@@ -28,6 +28,11 @@ cmake -DUSE_TCC=ON -DEXEC_TESTS=ON ..
 ctest --output-on-failure
 
 echo ""
+echo "=== Running TCC runtime integration tests ==="
+cd "$PROJECT_ROOT"
+./run_runtime_tests.sh "$BUILD_DIR_TCC"
+
+echo ""
 echo "========================================"
 echo "=== Building with Clang (with ASan) ==="
 echo "========================================"
@@ -46,9 +51,14 @@ echo "=== Running Clang tests with leak detection ==="
 ctest --output-on-failure
 
 echo ""
+echo "=== Running Clang runtime integration tests (with ASan) ==="
+cd "$PROJECT_ROOT"
+./run_runtime_tests.sh "$BUILD_DIR_CLANG"
+
+echo ""
 echo "========================================"
 echo "=== All tests passed! ==="
-echo "=== TCC: Build + Tests ✓"
-echo "=== Clang: Build + Tests + Leak Detection ✓"
+echo "=== TCC: Build + Unit Tests + Runtime Tests ✓"
+echo "=== Clang: Build + Unit Tests + Runtime Tests + Leak Detection ✓"
 echo "========================================"
 
