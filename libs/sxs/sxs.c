@@ -279,6 +279,13 @@ sxs_context_t *sxs_context_new(size_t context_id, sxs_context_t *parent) {
     context->object_proc_list[i] = NULL;
   }
 
+  context->symbols = ctx_create(NULL);
+  if (!context->symbols) {
+    fprintf(stderr, "Failed to create symbols context (nil)\n");
+    free(context);
+    return NULL;
+  }
+
   return context;
 }
 
@@ -292,6 +299,10 @@ void sxs_context_free(sxs_context_t *context) {
     if (context->object_proc_list[i]) {
       slp_object_free(context->object_proc_list[i]);
     }
+  }
+
+  if (context->symbols) {
+    ctx_free(context->symbols);
   }
 
   free(context);

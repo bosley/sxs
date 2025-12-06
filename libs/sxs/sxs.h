@@ -1,6 +1,7 @@
 #ifndef SXS_SXS_H
 #define SXS_SXS_H
 
+#include "ctx/ctx.h"
 #include "forms.h"
 #include "map/map.h"
 #include "slp/slp.h"
@@ -64,6 +65,7 @@ typedef struct sxs_context_s {
 
   slp_object_t *object_proc_list[SXS_OBJECT_PROC_LIST_SIZE];
   size_t proc_list_count;
+  ctx_t *symbols;
 } sxs_context_t;
 
 typedef struct sxs_runtime_s {
@@ -92,6 +94,7 @@ int sxs_runtime_process_file(sxs_runtime_t *runtime, char *file_name);
 slp_object_t *sxs_runtime_get_last_eval_obj(sxs_runtime_t *runtime);
 
 slp_object_t *sxs_eval_object(sxs_runtime_t *runtime, slp_object_t *object);
+slp_object_t *sxs_resolve_symbol(sxs_runtime_t *runtime, slp_object_t *symbol);
 slp_object_t *sxs_create_error_object(slp_error_type_e error_type,
                                       const char *message, size_t position,
                                       slp_buffer_unowned_ptr_t source_buffer);

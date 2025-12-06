@@ -5,6 +5,58 @@
 
 extern slp_callbacks_t *sxs_runtime_get_callbacks(sxs_runtime_t *runtime);
 
+static slp_object_t *sxs_exec_builtin(sxs_runtime_t *runtime,
+                                      slp_object_t *first, slp_object_t **args,
+                                      size_t arg_count) {
+
+  sxs_callable_t *callable = (sxs_callable_t *)first->value.fn_data;
+  if (!callable) {
+    return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
+                                   "nil builtin callable", 0, NULL);
+  }
+  if (!callable->impl.builtin_fn) {
+    return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
+                                   "nil builtin function pointer", 0, NULL);
+  }
+  slp_object_t *result =
+      callable->impl.builtin_fn(runtime, callable, args, arg_count);
+  if (result && result->type == SLP_TYPE_ERROR && runtime->exception_active) {
+    return result;
+  }
+  return result;
+}
+
+static slp_object_t *sxs_exec_lambda(sxs_runtime_t *runtime,
+                                     slp_object_t *first, slp_object_t **args,
+                                     size_t arg_count) {
+
+  sxs_callable_t *callable = (sxs_callable_t *)first->value.fn_data;
+  if (!callable) {
+    return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN, "nil lambda callable",
+                                   0, NULL);
+  }
+  return sxs_create_error_object(
+      SLP_ERROR_PARSE_TOKEN, "lambda evaluation not yet implemented", 0, NULL);
+}
+
+static slp_object_t *sxs_unmatched_symbol_for_list_eval(sxs_runtime_t *runtime,
+                                                        slp_object_t *first,
+                                                        slp_object_t **args,
+                                                        size_t arg_count) {
+  char error_msg[256];
+  snprintf(error_msg, sizeof(error_msg), "unknown function: ");
+  size_t prefix_len = strlen(error_msg);
+  if (first->value.buffer && first->value.buffer->count > 0) {
+    size_t copy_len = first->value.buffer->count;
+    if (prefix_len + copy_len >= sizeof(error_msg)) {
+      copy_len = sizeof(error_msg) - prefix_len - 1;
+    }
+    memcpy(error_msg + prefix_len, first->value.buffer->data, copy_len);
+    error_msg[prefix_len + copy_len] = '\0';
+  }
+  return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN, error_msg, 0, NULL);
+}
+
 static slp_object_t *sxs_eval_list(sxs_runtime_t *runtime, slp_object_t *list) {
   if (!list || list->type != SLP_TYPE_LIST_P) {
     return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
@@ -29,52 +81,46 @@ static slp_object_t *sxs_eval_list(sxs_runtime_t *runtime, slp_object_t *list) {
     args = &list->value.list.items[1];
   }
 
-  if (first->type == SLP_TYPE_BUILTIN) {
-    sxs_callable_t *callable = (sxs_callable_t *)first->value.fn_data;
-    if (!callable) {
-      return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                     "nil builtin callable", 0, NULL);
-    }
-    if (!callable->impl.builtin_fn) {
-      return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                     "nil builtin function pointer", 0, NULL);
-    }
-    slp_object_t *result =
-        callable->impl.builtin_fn(runtime, callable, args, arg_count);
-    if (result && result->type == SLP_TYPE_ERROR && runtime->exception_active) {
-      return result;
-    }
-    return result;
-  }
-
-  if (first->type == SLP_TYPE_LAMBDA) {
-    sxs_callable_t *callable = (sxs_callable_t *)first->value.fn_data;
-    if (!callable) {
-      return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                     "nil lambda callable", 0, NULL);
-    }
+  switch (first->type) {
+  case SLP_TYPE_BUILTIN:
+    return sxs_exec_builtin(runtime, first, args, arg_count);
+  case SLP_TYPE_LAMBDA:
+    return sxs_exec_lambda(runtime, first, args, arg_count);
+  case SLP_TYPE_SYMBOL:
+    return sxs_unmatched_symbol_for_list_eval(runtime, first, args, arg_count);
+  default:
     return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                   "lambda evaluation not yet implemented", 0,
-                                   NULL);
+                                   "expected builtin or lambda for list eval",
+                                   0, NULL);
+  }
+}
+
+slp_object_t *sxs_resolve_symbol(sxs_runtime_t *runtime, slp_object_t *symbol) {
+  if (!runtime || !runtime->current_context) {
+    return NULL;
+  }
+  if (!symbol || !symbol->value.buffer) {
+    return NULL;
   }
 
-  if (first->type == SLP_TYPE_SYMBOL) {
-    char error_msg[256];
-    snprintf(error_msg, sizeof(error_msg), "unknown function: ");
-    size_t prefix_len = strlen(error_msg);
-    if (first->value.buffer && first->value.buffer->count > 0) {
-      size_t copy_len = first->value.buffer->count;
-      if (prefix_len + copy_len >= sizeof(error_msg)) {
-        copy_len = sizeof(error_msg) - prefix_len - 1;
-      }
-      memcpy(error_msg + prefix_len, first->value.buffer->data, copy_len);
-      error_msg[prefix_len + copy_len] = '\0';
-    }
-    return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN, error_msg, 0, NULL);
+  ctx_t *symbols = runtime->current_context->symbols;
+  if (!symbols) {
+    return NULL;
   }
 
-  return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN, "invalid function type",
-                                 0, NULL);
+  char *symbol_name = (char *)symbol->value.buffer->data;
+
+  ctx_t *found_ctx = ctx_get_context_if_exists(symbols, symbol_name, true);
+  if (!found_ctx) {
+    return NULL;
+  }
+
+  slp_object_t *result = ctx_get(found_ctx, symbol_name);
+  if (!result) {
+    return NULL;
+  }
+
+  return result;
 }
 
 slp_object_t *sxs_eval_object(sxs_runtime_t *runtime, slp_object_t *object) {
