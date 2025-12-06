@@ -93,5 +93,11 @@ void sxs_builtins_init(void);
 void sxs_builtins_deinit(void);
 
 void sxs_callable_free(sxs_callable_t *callable);
+sxs_callable_t *sxs_get_callable_for_handler(sxs_handler_fn_t handler);
+
+slp_object_t *sxs_get_builtin_load_store_object(void);
+slp_object_t *sxs_get_builtin_debug_object(void);
+slp_object_t *sxs_get_builtin_rotl_object(void);
+slp_object_t *sxs_get_builtin_rotr_object(void);
 
 #endif
