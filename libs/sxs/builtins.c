@@ -1,6 +1,7 @@
 #include "sxs/errors.h"
 #include "sxs/impls/impls.h"
 #include "sxs/sxs.h"
+#include "sxs/typecheck.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -138,6 +139,7 @@ static void sxs_init_load_store_callable(void) {
     return;
   }
 
+  g_builtin_load_store_callable->name = "@";
   g_builtin_load_store_callable->is_builtin = true;
   g_builtin_load_store_callable->variant_count = 3;
 
@@ -184,6 +186,7 @@ static void sxs_init_load_store_callable(void) {
       create_form_def(FORM_TYPE_ANY); // <-------------------------- Return ANY
 
   g_builtin_load_store_callable->impl.builtin_fn = sxs_builtin_load_store;
+  g_builtin_load_store_callable->typecheck_fn = sxs_typecheck_generic;
 }
 
 static void sxs_deinit_load_store_callable(void) {
@@ -204,6 +207,7 @@ static void sxs_init_debug_callable(void) {
     return;
   }
 
+  g_builtin_debug_callable->name = "debug";
   g_builtin_debug_callable->is_builtin = true;
   g_builtin_debug_callable->variant_count = 1;
 
@@ -219,6 +223,7 @@ static void sxs_init_debug_callable(void) {
       create_form_def(FORM_TYPE_ANY);
 
   g_builtin_debug_callable->impl.builtin_fn = sxs_builtin_debug;
+  g_builtin_debug_callable->typecheck_fn = sxs_typecheck_generic;
 }
 
 static void sxs_deinit_debug_callable(void) {
@@ -239,6 +244,7 @@ static void sxs_init_rotl_callable(void) {
     return;
   }
 
+  g_builtin_rotl_callable->name = "rotl";
   g_builtin_rotl_callable->is_builtin = true;
   g_builtin_rotl_callable->variant_count = 1;
 
@@ -257,6 +263,7 @@ static void sxs_init_rotl_callable(void) {
       create_form_def(FORM_TYPE_ANY);
 
   g_builtin_rotl_callable->impl.builtin_fn = sxs_builtin_rotl;
+  g_builtin_rotl_callable->typecheck_fn = sxs_typecheck_generic;
 }
 
 static void sxs_deinit_rotl_callable(void) {
@@ -277,6 +284,7 @@ static void sxs_init_rotr_callable(void) {
     return;
   }
 
+  g_builtin_rotr_callable->name = "rotr";
   g_builtin_rotr_callable->is_builtin = true;
   g_builtin_rotr_callable->variant_count = 1;
 
@@ -295,6 +303,7 @@ static void sxs_init_rotr_callable(void) {
       create_form_def(FORM_TYPE_ANY);
 
   g_builtin_rotr_callable->impl.builtin_fn = sxs_builtin_rotr;
+  g_builtin_rotr_callable->typecheck_fn = sxs_typecheck_generic;
 }
 
 static void sxs_deinit_rotr_callable(void) {

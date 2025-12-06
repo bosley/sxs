@@ -1,5 +1,6 @@
 #include "sxs/impls/impls.h"
 #include "sxs/sxs.h"
+#include "sxs/typecheck.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -35,6 +36,18 @@ int main(int argc, char **argv) {
   sxs_builtin_registry_add(registry, sxs_impl_get_debug());
   sxs_builtin_registry_add(registry, sxs_impl_get_rotl());
   sxs_builtin_registry_add(registry, sxs_impl_get_rotr());
+
+  printf("[TYPECHECK] Validating %s\n", argv[1]);
+  sxs_typecheck_context_t *typecheck_ctx = NULL;
+  if (sxs_typecheck_file(argv[1], registry, &typecheck_ctx) != 0) {
+    fprintf(stderr, "\n[TYPECHECK FAILED]\n");
+    sxs_typecheck_print_errors(typecheck_ctx);
+    sxs_typecheck_context_free(typecheck_ctx);
+    sxs_builtin_registry_free(registry);
+    sxs_builtins_deinit();
+    return 1;
+  }
+  printf("[TYPECHECK] Passed\n\n");
 
   sxs_runtime_t *runtime = sxs_runtime_new(registry);
   if (!runtime) {

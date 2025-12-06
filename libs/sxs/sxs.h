@@ -13,12 +13,17 @@
 typedef struct sxs_runtime_s sxs_runtime_t;
 typedef struct sxs_callable_s sxs_callable_t;
 typedef struct sxs_builtin_registry_s sxs_builtin_registry_t;
+typedef struct sxs_typecheck_context_s sxs_typecheck_context_t;
 
 typedef slp_object_t *(*sxs_builtin_fn)(sxs_runtime_t *runtime,
                                         sxs_callable_t *callable,
                                         slp_object_t **args, size_t arg_count);
 
 typedef sxs_builtin_fn sxs_handler_fn_t;
+
+typedef int (*sxs_typecheck_fn)(sxs_typecheck_context_t *ctx,
+                                sxs_callable_t *callable, slp_object_t **args,
+                                size_t arg_count);
 
 typedef struct sxs_command_impl_s {
   const char *command;
@@ -43,6 +48,7 @@ typedef struct sxs_callable_variant_s {
 } sxs_callable_variant_t;
 
 struct sxs_callable_s {
+  const char *name;
   sxs_callable_variant_t variants[SXS_CALLABLE_MAX_VARIANTS];
   size_t variant_count;
   bool is_builtin;
@@ -50,6 +56,7 @@ struct sxs_callable_s {
     sxs_builtin_fn builtin_fn;
     slp_buffer_t *lambda_body;
   } impl;
+  sxs_typecheck_fn typecheck_fn;
 };
 
 typedef struct sxs_context_s {

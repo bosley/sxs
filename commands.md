@@ -24,7 +24,7 @@ Functions:
 ;  Tales 2 ints (evaluated and checked before call at runtime)
 ;
 ;
-(@ 0 (fn (a :int b :int) :int {
+(@ 0 (fn [a :int b :int] :int {
 
 
 }))
