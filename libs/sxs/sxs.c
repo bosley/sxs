@@ -312,6 +312,7 @@ sxs_runtime_t *sxs_runtime_new(sxs_builtin_registry_t *registry) {
 
   runtime->next_context_id = 1;
   runtime->runtime_has_error = false;
+  runtime->exception_active = false;
   runtime->parsing_quoted_expression = false;
   runtime->source_buffer = NULL;
   runtime->builtin_registry = registry;

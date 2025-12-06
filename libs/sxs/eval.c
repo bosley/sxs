@@ -39,7 +39,12 @@ static slp_object_t *sxs_eval_list(sxs_runtime_t *runtime, slp_object_t *list) {
       return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
                                      "nil builtin function pointer", 0, NULL);
     }
-    return callable->impl.builtin_fn(runtime, callable, args, arg_count);
+    slp_object_t *result =
+        callable->impl.builtin_fn(runtime, callable, args, arg_count);
+    if (result && result->type == SLP_TYPE_ERROR && runtime->exception_active) {
+      return result;
+    }
+    return result;
   }
 
   if (first->type == SLP_TYPE_LAMBDA) {

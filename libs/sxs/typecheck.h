@@ -69,4 +69,11 @@ int sxs_typecheck_generic(sxs_typecheck_context_t *ctx,
                           sxs_callable_t *callable, slp_object_t **args,
                           size_t arg_count);
 
+int sxs_typecheck_insist(sxs_typecheck_context_t *ctx, sxs_callable_t *callable,
+                         slp_object_t **args, size_t arg_count);
+
+int sxs_typecheck_load_store(sxs_typecheck_context_t *ctx,
+                             sxs_callable_t *callable, slp_object_t **args,
+                             size_t arg_count);
+
 #endif

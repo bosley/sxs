@@ -20,6 +20,8 @@ static sxs_callable_t *g_builtin_load_store_callable = NULL;
 static sxs_callable_t *g_builtin_debug_callable = NULL;
 static sxs_callable_t *g_builtin_rotl_callable = NULL;
 static sxs_callable_t *g_builtin_rotr_callable = NULL;
+static sxs_callable_t *g_builtin_insist_callable = NULL;
+static sxs_callable_t *g_builtin_catch_callable = NULL;
 
 extern slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
                                             sxs_callable_t *callable,
@@ -37,6 +39,22 @@ extern slp_object_t *sxs_builtin_rotl(sxs_runtime_t *runtime,
 extern slp_object_t *sxs_builtin_rotr(sxs_runtime_t *runtime,
                                       sxs_callable_t *callable,
                                       slp_object_t **args, size_t arg_count);
+
+extern slp_object_t *sxs_builtin_insist(sxs_runtime_t *runtime,
+                                        sxs_callable_t *callable,
+                                        slp_object_t **args, size_t arg_count);
+
+extern slp_object_t *sxs_builtin_catch(sxs_runtime_t *runtime,
+                                       sxs_callable_t *callable,
+                                       slp_object_t **args, size_t arg_count);
+
+extern int sxs_typecheck_insist(sxs_typecheck_context_t *ctx,
+                                sxs_callable_t *callable, slp_object_t **args,
+                                size_t arg_count);
+
+extern int sxs_typecheck_load_store(sxs_typecheck_context_t *ctx,
+                                    sxs_callable_t *callable,
+                                    slp_object_t **args, size_t arg_count);
 
 static form_definition_t *create_form_def(form_type_e type) {
   form_definition_t *def = malloc(sizeof(form_definition_t));
@@ -186,7 +204,7 @@ static void sxs_init_load_store_callable(void) {
       create_form_def(FORM_TYPE_ANY); // <-------------------------- Return ANY
 
   g_builtin_load_store_callable->impl.builtin_fn = sxs_builtin_load_store;
-  g_builtin_load_store_callable->typecheck_fn = sxs_typecheck_generic;
+  g_builtin_load_store_callable->typecheck_fn = sxs_typecheck_load_store;
 }
 
 static void sxs_deinit_load_store_callable(void) {
@@ -313,11 +331,90 @@ static void sxs_deinit_rotr_callable(void) {
   }
 }
 
+static void sxs_init_insist_callable(void) {
+  if (g_builtin_insist_callable) {
+    return;
+  }
+
+  g_builtin_insist_callable = malloc(sizeof(sxs_callable_t));
+  if (!g_builtin_insist_callable) {
+    fprintf(stderr, "Failed to allocate callable for insist builtin\n");
+    return;
+  }
+
+  g_builtin_insist_callable->name = "insist";
+  g_builtin_insist_callable->is_builtin = true;
+  g_builtin_insist_callable->variant_count = 1;
+
+  g_builtin_insist_callable->variants[0].param_count = 2;
+  g_builtin_insist_callable->variants[0].params =
+      malloc(sizeof(sxs_callable_param_t) * 2);
+  if (g_builtin_insist_callable->variants[0].params) {
+    g_builtin_insist_callable->variants[0].params[0].name = NULL;
+    g_builtin_insist_callable->variants[0].params[0].form =
+        create_form_def(FORM_TYPE_SYMBOL);
+    g_builtin_insist_callable->variants[0].params[1].name = NULL;
+    g_builtin_insist_callable->variants[0].params[1].form =
+        create_form_def(FORM_TYPE_ANY);
+  }
+  g_builtin_insist_callable->variants[0].return_type =
+      create_form_def(FORM_TYPE_ANY);
+
+  g_builtin_insist_callable->impl.builtin_fn = sxs_builtin_insist;
+  g_builtin_insist_callable->typecheck_fn = sxs_typecheck_insist;
+}
+
+static void sxs_deinit_insist_callable(void) {
+  if (g_builtin_insist_callable) {
+    sxs_callable_free(g_builtin_insist_callable);
+    g_builtin_insist_callable = NULL;
+  }
+}
+
+static void sxs_init_catch_callable(void) {
+  if (g_builtin_catch_callable) {
+    return;
+  }
+
+  g_builtin_catch_callable = malloc(sizeof(sxs_callable_t));
+  if (!g_builtin_catch_callable) {
+    fprintf(stderr, "Failed to allocate callable for catch builtin\n");
+    return;
+  }
+
+  g_builtin_catch_callable->name = "catch";
+  g_builtin_catch_callable->is_builtin = true;
+  g_builtin_catch_callable->variant_count = 1;
+
+  g_builtin_catch_callable->variants[0].param_count = 1;
+  g_builtin_catch_callable->variants[0].params =
+      malloc(sizeof(sxs_callable_param_t) * 1);
+  if (g_builtin_catch_callable->variants[0].params) {
+    g_builtin_catch_callable->variants[0].params[0].name = NULL;
+    g_builtin_catch_callable->variants[0].params[0].form =
+        create_form_def(FORM_TYPE_ANY_VARIADIC);
+  }
+  g_builtin_catch_callable->variants[0].return_type =
+      create_form_def(FORM_TYPE_ANY);
+
+  g_builtin_catch_callable->impl.builtin_fn = sxs_builtin_catch;
+  g_builtin_catch_callable->typecheck_fn = sxs_typecheck_generic;
+}
+
+static void sxs_deinit_catch_callable(void) {
+  if (g_builtin_catch_callable) {
+    sxs_callable_free(g_builtin_catch_callable);
+    g_builtin_catch_callable = NULL;
+  }
+}
+
 void sxs_builtins_init(void) {
   sxs_init_load_store_callable();
   sxs_init_debug_callable();
   sxs_init_rotl_callable();
   sxs_init_rotr_callable();
+  sxs_init_insist_callable();
+  sxs_init_catch_callable();
 }
 
 void sxs_builtins_deinit(void) {
@@ -325,6 +422,8 @@ void sxs_builtins_deinit(void) {
   sxs_deinit_debug_callable();
   sxs_deinit_rotl_callable();
   sxs_deinit_rotr_callable();
+  sxs_deinit_insist_callable();
+  sxs_deinit_catch_callable();
 }
 
 slp_object_t *sxs_get_builtin_load_store_object(void) {
@@ -379,6 +478,32 @@ slp_object_t *sxs_get_builtin_rotr_object(void) {
   return builtin;
 }
 
+slp_object_t *sxs_get_builtin_insist_object(void) {
+  slp_object_t *builtin = malloc(sizeof(slp_object_t));
+  if (!builtin) {
+    fprintf(stderr, "Failed to get builtin insist object (nil builtin)\n");
+    return NULL;
+  }
+
+  builtin->type = SLP_TYPE_BUILTIN;
+  builtin->value.fn_data = (void *)g_builtin_insist_callable;
+
+  return builtin;
+}
+
+slp_object_t *sxs_get_builtin_catch_object(void) {
+  slp_object_t *builtin = malloc(sizeof(slp_object_t));
+  if (!builtin) {
+    fprintf(stderr, "Failed to get builtin catch object (nil builtin)\n");
+    return NULL;
+  }
+
+  builtin->type = SLP_TYPE_BUILTIN;
+  builtin->value.fn_data = (void *)g_builtin_catch_callable;
+
+  return builtin;
+}
+
 sxs_command_impl_t sxs_impl_get_load_store(void) {
   sxs_command_impl_t impl;
   impl.command = "@";
@@ -407,6 +532,20 @@ sxs_command_impl_t sxs_impl_get_rotr(void) {
   return impl;
 }
 
+sxs_command_impl_t sxs_impl_get_insist(void) {
+  sxs_command_impl_t impl;
+  impl.command = "insist";
+  impl.handler = sxs_builtin_insist;
+  return impl;
+}
+
+sxs_command_impl_t sxs_impl_get_catch(void) {
+  sxs_command_impl_t impl;
+  impl.command = "catch";
+  impl.handler = sxs_builtin_catch;
+  return impl;
+}
+
 sxs_callable_t *sxs_get_callable_for_handler(sxs_handler_fn_t handler) {
   if (handler == sxs_builtin_load_store) {
     return g_builtin_load_store_callable;
@@ -416,6 +555,10 @@ sxs_callable_t *sxs_get_callable_for_handler(sxs_handler_fn_t handler) {
     return g_builtin_rotl_callable;
   } else if (handler == sxs_builtin_rotr) {
     return g_builtin_rotr_callable;
+  } else if (handler == sxs_builtin_insist) {
+    return g_builtin_insist_callable;
+  } else if (handler == sxs_builtin_catch) {
+    return g_builtin_catch_callable;
   }
   return NULL;
 }
