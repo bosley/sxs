@@ -33,6 +33,8 @@ int main(int argc, char **argv) {
 
   sxs_builtin_registry_add(registry, sxs_impl_get_load_store());
   sxs_builtin_registry_add(registry, sxs_impl_get_debug());
+  sxs_builtin_registry_add(registry, sxs_impl_get_rotl());
+  sxs_builtin_registry_add(registry, sxs_impl_get_rotr());
 
   sxs_runtime_t *runtime = sxs_runtime_new(registry);
   if (!runtime) {

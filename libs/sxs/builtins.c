@@ -17,6 +17,8 @@ commands"
 
 static sxs_callable_t *g_builtin_load_store_callable = NULL;
 static sxs_callable_t *g_builtin_debug_callable = NULL;
+static sxs_callable_t *g_builtin_rotl_callable = NULL;
+static sxs_callable_t *g_builtin_rotr_callable = NULL;
 
 extern slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
                                             sxs_callable_t *callable,
@@ -26,6 +28,14 @@ extern slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
 extern slp_object_t *sxs_builtin_debug(sxs_runtime_t *runtime,
                                        sxs_callable_t *callable,
                                        slp_object_t **args, size_t arg_count);
+
+extern slp_object_t *sxs_builtin_rotl(sxs_runtime_t *runtime,
+                                      sxs_callable_t *callable,
+                                      slp_object_t **args, size_t arg_count);
+
+extern slp_object_t *sxs_builtin_rotr(sxs_runtime_t *runtime,
+                                      sxs_callable_t *callable,
+                                      slp_object_t **args, size_t arg_count);
 
 static form_definition_t *create_form_def(form_type_e type) {
   form_definition_t *def = malloc(sizeof(form_definition_t));
@@ -218,14 +228,94 @@ static void sxs_deinit_debug_callable(void) {
   }
 }
 
+static void sxs_init_rotl_callable(void) {
+  if (g_builtin_rotl_callable) {
+    return;
+  }
+
+  g_builtin_rotl_callable = malloc(sizeof(sxs_callable_t));
+  if (!g_builtin_rotl_callable) {
+    fprintf(stderr, "Failed to allocate callable for rotl builtin\n");
+    return;
+  }
+
+  g_builtin_rotl_callable->is_builtin = true;
+  g_builtin_rotl_callable->variant_count = 1;
+
+  g_builtin_rotl_callable->variants[0].param_count = 2;
+  g_builtin_rotl_callable->variants[0].params =
+      malloc(sizeof(sxs_callable_param_t) * 2);
+  if (g_builtin_rotl_callable->variants[0].params) {
+    g_builtin_rotl_callable->variants[0].params[0].name = NULL;
+    g_builtin_rotl_callable->variants[0].params[0].form =
+        create_form_def(FORM_TYPE_ANY);
+    g_builtin_rotl_callable->variants[0].params[1].name = NULL;
+    g_builtin_rotl_callable->variants[0].params[1].form =
+        create_form_def(FORM_TYPE_INTEGER);
+  }
+  g_builtin_rotl_callable->variants[0].return_type =
+      create_form_def(FORM_TYPE_ANY);
+
+  g_builtin_rotl_callable->impl.builtin_fn = sxs_builtin_rotl;
+}
+
+static void sxs_deinit_rotl_callable(void) {
+  if (g_builtin_rotl_callable) {
+    sxs_callable_free(g_builtin_rotl_callable);
+    g_builtin_rotl_callable = NULL;
+  }
+}
+
+static void sxs_init_rotr_callable(void) {
+  if (g_builtin_rotr_callable) {
+    return;
+  }
+
+  g_builtin_rotr_callable = malloc(sizeof(sxs_callable_t));
+  if (!g_builtin_rotr_callable) {
+    fprintf(stderr, "Failed to allocate callable for rotr builtin\n");
+    return;
+  }
+
+  g_builtin_rotr_callable->is_builtin = true;
+  g_builtin_rotr_callable->variant_count = 1;
+
+  g_builtin_rotr_callable->variants[0].param_count = 2;
+  g_builtin_rotr_callable->variants[0].params =
+      malloc(sizeof(sxs_callable_param_t) * 2);
+  if (g_builtin_rotr_callable->variants[0].params) {
+    g_builtin_rotr_callable->variants[0].params[0].name = NULL;
+    g_builtin_rotr_callable->variants[0].params[0].form =
+        create_form_def(FORM_TYPE_ANY);
+    g_builtin_rotr_callable->variants[0].params[1].name = NULL;
+    g_builtin_rotr_callable->variants[0].params[1].form =
+        create_form_def(FORM_TYPE_INTEGER);
+  }
+  g_builtin_rotr_callable->variants[0].return_type =
+      create_form_def(FORM_TYPE_ANY);
+
+  g_builtin_rotr_callable->impl.builtin_fn = sxs_builtin_rotr;
+}
+
+static void sxs_deinit_rotr_callable(void) {
+  if (g_builtin_rotr_callable) {
+    sxs_callable_free(g_builtin_rotr_callable);
+    g_builtin_rotr_callable = NULL;
+  }
+}
+
 void sxs_builtins_init(void) {
   sxs_init_load_store_callable();
   sxs_init_debug_callable();
+  sxs_init_rotl_callable();
+  sxs_init_rotr_callable();
 }
 
 void sxs_builtins_deinit(void) {
   sxs_deinit_load_store_callable();
   sxs_deinit_debug_callable();
+  sxs_deinit_rotl_callable();
+  sxs_deinit_rotr_callable();
 }
 
 slp_object_t *sxs_get_builtin_load_store_object(void) {
@@ -254,6 +344,32 @@ slp_object_t *sxs_get_builtin_debug_object(void) {
   return builtin;
 }
 
+slp_object_t *sxs_get_builtin_rotl_object(void) {
+  slp_object_t *builtin = malloc(sizeof(slp_object_t));
+  if (!builtin) {
+    fprintf(stderr, "Failed to get builtin rotl object (nil builtin)\n");
+    return NULL;
+  }
+
+  builtin->type = SLP_TYPE_BUILTIN;
+  builtin->value.fn_data = (void *)g_builtin_rotl_callable;
+
+  return builtin;
+}
+
+slp_object_t *sxs_get_builtin_rotr_object(void) {
+  slp_object_t *builtin = malloc(sizeof(slp_object_t));
+  if (!builtin) {
+    fprintf(stderr, "Failed to get builtin rotr object (nil builtin)\n");
+    return NULL;
+  }
+
+  builtin->type = SLP_TYPE_BUILTIN;
+  builtin->value.fn_data = (void *)g_builtin_rotr_callable;
+
+  return builtin;
+}
+
 sxs_command_impl_t sxs_impl_get_load_store(void) {
   sxs_command_impl_t impl;
   impl.command = "@";
@@ -268,11 +384,29 @@ sxs_command_impl_t sxs_impl_get_debug(void) {
   return impl;
 }
 
+sxs_command_impl_t sxs_impl_get_rotl(void) {
+  sxs_command_impl_t impl;
+  impl.command = "rotl";
+  impl.handler = sxs_builtin_rotl;
+  return impl;
+}
+
+sxs_command_impl_t sxs_impl_get_rotr(void) {
+  sxs_command_impl_t impl;
+  impl.command = "rotr";
+  impl.handler = sxs_builtin_rotr;
+  return impl;
+}
+
 sxs_callable_t *sxs_get_callable_for_handler(sxs_handler_fn_t handler) {
   if (handler == sxs_builtin_load_store) {
     return g_builtin_load_store_callable;
   } else if (handler == sxs_builtin_debug) {
     return g_builtin_debug_callable;
+  } else if (handler == sxs_builtin_rotl) {
+    return g_builtin_rotl_callable;
+  } else if (handler == sxs_builtin_rotr) {
+    return g_builtin_rotr_callable;
   }
   return NULL;
 }
