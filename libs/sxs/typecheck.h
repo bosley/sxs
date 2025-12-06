@@ -1,6 +1,7 @@
 #ifndef SXS_TYPECHECK_H
 #define SXS_TYPECHECK_H
 
+#include "ctx/ctx.h"
 #include "forms.h"
 #include "slp/slp.h"
 #include "sxs.h"
@@ -40,6 +41,7 @@ struct sxs_typecheck_context_s {
   size_t error_capacity;
   bool has_error;
   bool parsing_quoted_expression;
+  ctx_t *symbols;
 };
 
 sxs_typecheck_context_t *
@@ -75,5 +77,9 @@ int sxs_typecheck_insist(sxs_typecheck_context_t *ctx, sxs_callable_t *callable,
 int sxs_typecheck_load_store(sxs_typecheck_context_t *ctx,
                              sxs_callable_t *callable, slp_object_t **args,
                              size_t arg_count);
+
+int sxs_typecheck_dot_map(sxs_typecheck_context_t *ctx,
+                          sxs_callable_t *callable, slp_object_t **args,
+                          size_t arg_count);
 
 #endif

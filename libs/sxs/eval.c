@@ -96,26 +96,34 @@ static slp_object_t *sxs_eval_list(sxs_runtime_t *runtime, slp_object_t *list) {
 }
 
 slp_object_t *sxs_resolve_symbol(sxs_runtime_t *runtime, slp_object_t *symbol) {
-  if (!runtime || !runtime->current_context) {
+  if (!runtime) {
     return NULL;
   }
   if (!symbol || !symbol->value.buffer) {
     return NULL;
   }
 
-  ctx_t *symbols = runtime->current_context->symbols;
+  ctx_t *symbols = runtime->symbols;
   if (!symbols) {
     return NULL;
   }
 
-  char *symbol_name = (char *)symbol->value.buffer->data;
+  char *symbol_name = malloc(symbol->value.buffer->count + 1);
+  if (!symbol_name) {
+    return NULL;
+  }
+  memcpy(symbol_name, symbol->value.buffer->data, symbol->value.buffer->count);
+  symbol_name[symbol->value.buffer->count] = '\0';
 
   ctx_t *found_ctx = ctx_get_context_if_exists(symbols, symbol_name, true);
   if (!found_ctx) {
+    free(symbol_name);
     return NULL;
   }
 
   slp_object_t *result = ctx_get(found_ctx, symbol_name);
+  free(symbol_name);
+
   if (!result) {
     return NULL;
   }

@@ -279,13 +279,6 @@ sxs_context_t *sxs_context_new(size_t context_id, sxs_context_t *parent) {
     context->object_proc_list[i] = NULL;
   }
 
-  context->symbols = ctx_create(NULL);
-  if (!context->symbols) {
-    fprintf(stderr, "Failed to create symbols context (nil)\n");
-    free(context);
-    return NULL;
-  }
-
   return context;
 }
 
@@ -299,10 +292,6 @@ void sxs_context_free(sxs_context_t *context) {
     if (context->object_proc_list[i]) {
       slp_object_free(context->object_proc_list[i]);
     }
-  }
-
-  if (context->symbols) {
-    ctx_free(context->symbols);
   }
 
   free(context);
@@ -332,6 +321,13 @@ sxs_runtime_t *sxs_runtime_new(sxs_builtin_registry_t *registry) {
   runtime->source_buffer = NULL;
   runtime->builtin_registry = registry;
 
+  runtime->symbols = ctx_create(NULL);
+  if (!runtime->symbols) {
+    sxs_context_free(runtime->current_context);
+    free(runtime);
+    return NULL;
+  }
+
   for (size_t i = 0; i < SXS_OBJECT_STORAGE_SIZE; i++) {
     runtime->object_storage[i] = NULL;
   }
@@ -354,6 +350,10 @@ void sxs_runtime_free(sxs_runtime_t *runtime) {
 
   if (runtime->builtin_registry) {
     sxs_builtin_registry_free(runtime->builtin_registry);
+  }
+
+  if (runtime->symbols) {
+    ctx_free(runtime->symbols);
   }
 
   for (size_t i = 0; i < SXS_OBJECT_STORAGE_SIZE; i++) {

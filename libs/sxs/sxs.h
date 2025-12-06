@@ -65,7 +65,6 @@ typedef struct sxs_context_s {
 
   slp_object_t *object_proc_list[SXS_OBJECT_PROC_LIST_SIZE];
   size_t proc_list_count;
-  ctx_t *symbols;
 } sxs_context_t;
 
 typedef struct sxs_runtime_s {
@@ -77,6 +76,7 @@ typedef struct sxs_runtime_s {
   bool parsing_quoted_expression;
   slp_buffer_unowned_ptr_t source_buffer;
   sxs_builtin_registry_t *builtin_registry;
+  ctx_t *symbols;
 } sxs_runtime_t;
 
 sxs_builtin_registry_t *sxs_builtin_registry_create(size_t initial_capacity);
@@ -113,5 +113,6 @@ slp_object_t *sxs_get_builtin_insist_object(void);
 slp_object_t *sxs_get_builtin_catch_object(void);
 slp_object_t *sxs_get_builtin_proc_object(void);
 slp_object_t *sxs_get_builtin_do_object(void);
+slp_object_t *sxs_get_builtin_dot_map_object(void);
 
 #endif

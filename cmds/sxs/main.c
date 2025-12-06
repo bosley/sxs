@@ -40,6 +40,7 @@ int main(int argc, char **argv) {
   sxs_builtin_registry_add(registry, sxs_impl_get_catch());
   sxs_builtin_registry_add(registry, sxs_impl_get_proc());
   sxs_builtin_registry_add(registry, sxs_impl_get_do());
+  sxs_builtin_registry_add(registry, sxs_impl_get_dot_map());
 
   printf("[TYPECHECK] Validating %s\n", argv[1]);
   sxs_typecheck_context_t *typecheck_ctx = NULL;

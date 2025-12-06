@@ -6,5 +6,6 @@ rotl
 rotr
 insist
 catch
+.map
 
 

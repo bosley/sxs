@@ -15,14 +15,47 @@ slp_object_t *sxs_builtin_proc(sxs_runtime_t *runtime, sxs_callable_t *callable,
                                    runtime->source_buffer);
   }
 
-  if (!args[0] || args[0]->type != SLP_TYPE_INTEGER) {
-    size_t pos = args[0] ? args[0]->source_position : 0;
+  if (!args[0]) {
     return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                   "proc builtin: first arg must be integer",
-                                   pos, runtime->source_buffer);
+                                   "proc builtin: nil first argument", 0,
+                                   runtime->source_buffer);
   }
 
-  int64_t dest_index = args[0]->value.integer;
+  slp_object_t *index_obj = NULL;
+
+  if (args[0]->type == SLP_TYPE_SYMBOL) {
+    index_obj = sxs_resolve_symbol(runtime, args[0]);
+    if (!index_obj) {
+      return sxs_create_error_object(
+          SLP_ERROR_PARSE_TOKEN, "proc builtin: symbol not found",
+          args[0]->source_position, runtime->source_buffer);
+    }
+    index_obj = slp_object_copy(index_obj);
+  } else {
+    index_obj = sxs_eval_object(runtime, args[0]);
+  }
+
+  if (!index_obj) {
+    return sxs_create_error_object(
+        SLP_ERROR_PARSE_TOKEN, "proc builtin: eval failed on first arg",
+        args[0]->source_position, runtime->source_buffer);
+  }
+
+  if (index_obj->type == SLP_TYPE_ERROR) {
+    return index_obj;
+  }
+
+  if (index_obj->type != SLP_TYPE_INTEGER) {
+    size_t pos = args[0]->source_position;
+    slp_object_free(index_obj);
+    return sxs_create_error_object(
+        SLP_ERROR_PARSE_TOKEN,
+        "proc builtin: first arg must evaluate to integer", pos,
+        runtime->source_buffer);
+  }
+
+  int64_t dest_index = index_obj->value.integer;
+  slp_object_free(index_obj);
 
   if (dest_index < 0 || (size_t)dest_index >= SXS_OBJECT_STORAGE_SIZE) {
     return sxs_create_error_object(

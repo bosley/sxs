@@ -94,6 +94,14 @@ sxs_typecheck_context_create(sxs_builtin_registry_t *registry) {
   ctx->error_count = 0;
   ctx->error_capacity = INITIAL_ERROR_CAPACITY;
 
+  ctx->symbols = ctx_create(NULL);
+  if (!ctx->symbols) {
+    free(ctx->errors);
+    sxs_typecheck_context_stack_free(ctx->current_context);
+    free(ctx);
+    return NULL;
+  }
+
   return ctx;
 }
 
@@ -138,6 +146,10 @@ void sxs_typecheck_context_free(sxs_typecheck_context_t *ctx) {
       }
       free(ctx->register_types[i]);
     }
+  }
+
+  if (ctx->symbols) {
+    ctx_free(ctx->symbols);
   }
 
   free(ctx);

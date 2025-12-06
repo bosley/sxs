@@ -78,19 +78,33 @@ int sxs_typecheck_proc(sxs_typecheck_context_t *ctx, sxs_callable_t *callable,
     return 1;
   }
 
-  if (!args[0] || args[0]->type != SLP_TYPE_INTEGER) {
-    size_t pos = args[0] ? args[0]->source_position : 0;
-    sxs_typecheck_add_error(ctx, "proc builtin: first arg must be integer",
-                            pos);
+  if (!args[0]) {
+    sxs_typecheck_add_error(ctx, "proc builtin: nil first argument", 0);
+    return 1;
+  }
+
+  form_definition_t *index_type = sxs_typecheck_object(ctx, args[0]);
+  if (!index_type) {
+    return 1;
+  }
+
+  if (index_type->type_count > 0 && index_type->types[0] != FORM_TYPE_INTEGER &&
+      index_type->types[0] != FORM_TYPE_SYMBOL) {
+    free_form_def(index_type);
+    sxs_typecheck_add_error(ctx,
+                            "proc builtin: first arg must be integer or symbol",
+                            args[0]->source_position);
     return 1;
   }
 
   if (!args[1]) {
+    free_form_def(index_type);
     sxs_typecheck_add_error(ctx, "proc builtin: nil second argument", 0);
     return 1;
   }
 
   if (args[1]->type != SLP_TYPE_LIST_C) {
+    free_form_def(index_type);
     sxs_typecheck_add_error(ctx, "proc builtin: second arg must be list-c",
                             args[1]->source_position);
     return 1;
@@ -98,17 +112,21 @@ int sxs_typecheck_proc(sxs_typecheck_context_t *ctx, sxs_callable_t *callable,
 
   form_definition_t *body_type = sxs_typecheck_object(ctx, args[1]);
   if (!body_type) {
+    free_form_def(index_type);
     return 1;
   }
 
-  int64_t reg_idx = args[0]->value.integer;
-  if (reg_idx >= 0 && (size_t)reg_idx < SXS_OBJECT_STORAGE_SIZE) {
-    if (ctx->register_types[reg_idx]) {
-      free_form_def(ctx->register_types[reg_idx]);
+  if (args[0]->type == SLP_TYPE_INTEGER) {
+    int64_t reg_idx = args[0]->value.integer;
+    if (reg_idx >= 0 && (size_t)reg_idx < SXS_OBJECT_STORAGE_SIZE) {
+      if (ctx->register_types[reg_idx]) {
+        free_form_def(ctx->register_types[reg_idx]);
+      }
+      ctx->register_types[reg_idx] = create_form_def_for_type(FORM_TYPE_FN);
     }
-    ctx->register_types[reg_idx] = create_form_def_for_type(FORM_TYPE_FN);
   }
 
+  free_form_def(index_type);
   free_form_def(body_type);
   return 0;
 }

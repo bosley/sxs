@@ -1,0 +1,7 @@
+(.map main 100)
+
+(proc main {
+    (debug "main")
+})
+
+(do main)

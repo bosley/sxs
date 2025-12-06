@@ -24,6 +24,7 @@ static sxs_callable_t *g_builtin_insist_callable = NULL;
 static sxs_callable_t *g_builtin_catch_callable = NULL;
 static sxs_callable_t *g_builtin_proc_callable = NULL;
 static sxs_callable_t *g_builtin_do_callable = NULL;
+static sxs_callable_t *g_builtin_dot_map_callable = NULL;
 
 extern slp_object_t *sxs_builtin_load_store(sxs_runtime_t *runtime,
                                             sxs_callable_t *callable,
@@ -58,6 +59,10 @@ extern slp_object_t *sxs_builtin_do(sxs_runtime_t *runtime,
                                     sxs_callable_t *callable,
                                     slp_object_t **args, size_t arg_count);
 
+extern slp_object_t *sxs_builtin_dot_map(sxs_runtime_t *runtime,
+                                         sxs_callable_t *callable,
+                                         slp_object_t **args, size_t arg_count);
+
 extern int sxs_typecheck_insist(sxs_typecheck_context_t *ctx,
                                 sxs_callable_t *callable, slp_object_t **args,
                                 size_t arg_count);
@@ -69,6 +74,14 @@ extern int sxs_typecheck_load_store(sxs_typecheck_context_t *ctx,
 extern int sxs_typecheck_proc(sxs_typecheck_context_t *ctx,
                               sxs_callable_t *callable, slp_object_t **args,
                               size_t arg_count);
+
+extern int sxs_typecheck_do(sxs_typecheck_context_t *ctx,
+                            sxs_callable_t *callable, slp_object_t **args,
+                            size_t arg_count);
+
+extern int sxs_typecheck_dot_map(sxs_typecheck_context_t *ctx,
+                                 sxs_callable_t *callable, slp_object_t **args,
+                                 size_t arg_count);
 
 static form_definition_t *create_form_def(form_type_e type) {
   form_definition_t *def = malloc(sizeof(form_definition_t));
@@ -449,7 +462,22 @@ static void sxs_init_proc_callable(void) {
   if (g_builtin_proc_callable->variants[0].params) {
     g_builtin_proc_callable->variants[0].params[0].name = NULL;
     g_builtin_proc_callable->variants[0].params[0].form =
-        create_form_def(FORM_TYPE_INTEGER);
+        malloc(sizeof(form_definition_t));
+    if (g_builtin_proc_callable->variants[0].params[0].form) {
+      g_builtin_proc_callable->variants[0].params[0].form->name = NULL;
+      g_builtin_proc_callable->variants[0].params[0].form->types =
+          malloc(sizeof(form_type_e) * 2);
+      if (g_builtin_proc_callable->variants[0].params[0].form->types) {
+        g_builtin_proc_callable->variants[0].params[0].form->types[0] =
+            FORM_TYPE_INTEGER;
+        g_builtin_proc_callable->variants[0].params[0].form->types[1] =
+            FORM_TYPE_SYMBOL;
+        g_builtin_proc_callable->variants[0].params[0].form->type_count = 2;
+      }
+      g_builtin_proc_callable->variants[0].params[0].form->list_constraint =
+          SLP_TYPE_NONE;
+      g_builtin_proc_callable->variants[0].params[0].form->is_variadic = false;
+    }
     g_builtin_proc_callable->variants[0].params[1].name = NULL;
     g_builtin_proc_callable->variants[0].params[1].form =
         create_form_def(FORM_TYPE_LIST_C);
@@ -489,19 +517,74 @@ static void sxs_init_do_callable(void) {
   if (g_builtin_do_callable->variants[0].params) {
     g_builtin_do_callable->variants[0].params[0].name = NULL;
     g_builtin_do_callable->variants[0].params[0].form =
-        create_form_def(FORM_TYPE_INTEGER);
+        malloc(sizeof(form_definition_t));
+    if (g_builtin_do_callable->variants[0].params[0].form) {
+      g_builtin_do_callable->variants[0].params[0].form->name = NULL;
+      g_builtin_do_callable->variants[0].params[0].form->types =
+          malloc(sizeof(form_type_e) * 2);
+      if (g_builtin_do_callable->variants[0].params[0].form->types) {
+        g_builtin_do_callable->variants[0].params[0].form->types[0] =
+            FORM_TYPE_INTEGER;
+        g_builtin_do_callable->variants[0].params[0].form->types[1] =
+            FORM_TYPE_SYMBOL;
+        g_builtin_do_callable->variants[0].params[0].form->type_count = 2;
+      }
+      g_builtin_do_callable->variants[0].params[0].form->list_constraint =
+          SLP_TYPE_NONE;
+      g_builtin_do_callable->variants[0].params[0].form->is_variadic = false;
+    }
   }
   g_builtin_do_callable->variants[0].return_type =
       create_form_def(FORM_TYPE_ANY);
 
   g_builtin_do_callable->impl.builtin_fn = sxs_builtin_do;
-  g_builtin_do_callable->typecheck_fn = sxs_typecheck_generic;
+  g_builtin_do_callable->typecheck_fn = sxs_typecheck_do;
 }
 
 static void sxs_deinit_do_callable(void) {
   if (g_builtin_do_callable) {
     sxs_callable_free(g_builtin_do_callable);
     g_builtin_do_callable = NULL;
+  }
+}
+
+static void sxs_init_dot_map_callable(void) {
+  if (g_builtin_dot_map_callable) {
+    return;
+  }
+
+  g_builtin_dot_map_callable = malloc(sizeof(sxs_callable_t));
+  if (!g_builtin_dot_map_callable) {
+    fprintf(stderr, "Failed to allocate callable for .map builtin\n");
+    return;
+  }
+
+  g_builtin_dot_map_callable->name = ".map";
+  g_builtin_dot_map_callable->is_builtin = true;
+  g_builtin_dot_map_callable->variant_count = 1;
+
+  g_builtin_dot_map_callable->variants[0].param_count = 2;
+  g_builtin_dot_map_callable->variants[0].params =
+      malloc(sizeof(sxs_callable_param_t) * 2);
+  if (g_builtin_dot_map_callable->variants[0].params) {
+    g_builtin_dot_map_callable->variants[0].params[0].name = NULL;
+    g_builtin_dot_map_callable->variants[0].params[0].form =
+        create_form_def(FORM_TYPE_SYMBOL);
+    g_builtin_dot_map_callable->variants[0].params[1].name = NULL;
+    g_builtin_dot_map_callable->variants[0].params[1].form =
+        create_form_def(FORM_TYPE_ANY);
+  }
+  g_builtin_dot_map_callable->variants[0].return_type =
+      create_form_def(FORM_TYPE_NONE);
+
+  g_builtin_dot_map_callable->impl.builtin_fn = sxs_builtin_dot_map;
+  g_builtin_dot_map_callable->typecheck_fn = sxs_typecheck_dot_map;
+}
+
+static void sxs_deinit_dot_map_callable(void) {
+  if (g_builtin_dot_map_callable) {
+    sxs_callable_free(g_builtin_dot_map_callable);
+    g_builtin_dot_map_callable = NULL;
   }
 }
 
@@ -514,6 +597,7 @@ void sxs_builtins_init(void) {
   sxs_init_catch_callable();
   sxs_init_proc_callable();
   sxs_init_do_callable();
+  sxs_init_dot_map_callable();
 }
 
 void sxs_builtins_deinit(void) {
@@ -525,6 +609,7 @@ void sxs_builtins_deinit(void) {
   sxs_deinit_catch_callable();
   sxs_deinit_proc_callable();
   sxs_deinit_do_callable();
+  sxs_deinit_dot_map_callable();
 }
 
 slp_object_t *sxs_get_builtin_load_store_object(void) {
@@ -631,6 +716,19 @@ slp_object_t *sxs_get_builtin_do_object(void) {
   return builtin;
 }
 
+slp_object_t *sxs_get_builtin_dot_map_object(void) {
+  slp_object_t *builtin = malloc(sizeof(slp_object_t));
+  if (!builtin) {
+    fprintf(stderr, "Failed to get builtin .map object (nil builtin)\n");
+    return NULL;
+  }
+
+  builtin->type = SLP_TYPE_BUILTIN;
+  builtin->value.fn_data = (void *)g_builtin_dot_map_callable;
+
+  return builtin;
+}
+
 sxs_command_impl_t sxs_impl_get_load_store(void) {
   sxs_command_impl_t impl;
   impl.command = "@";
@@ -687,6 +785,13 @@ sxs_command_impl_t sxs_impl_get_do(void) {
   return impl;
 }
 
+sxs_command_impl_t sxs_impl_get_dot_map(void) {
+  sxs_command_impl_t impl;
+  impl.command = ".map";
+  impl.handler = sxs_builtin_dot_map;
+  return impl;
+}
+
 sxs_callable_t *sxs_get_callable_for_handler(sxs_handler_fn_t handler) {
   if (handler == sxs_builtin_load_store) {
     return g_builtin_load_store_callable;
@@ -704,6 +809,8 @@ sxs_callable_t *sxs_get_callable_for_handler(sxs_handler_fn_t handler) {
     return g_builtin_proc_callable;
   } else if (handler == sxs_builtin_do) {
     return g_builtin_do_callable;
+  } else if (handler == sxs_builtin_dot_map) {
+    return g_builtin_dot_map_callable;
   }
   return NULL;
 }

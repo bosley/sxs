@@ -21,7 +21,20 @@ slp_object_t *sxs_builtin_do(sxs_runtime_t *runtime, sxs_callable_t *callable,
                                    runtime->source_buffer);
   }
 
-  slp_object_t *index_obj = sxs_eval_object(runtime, args[0]);
+  slp_object_t *index_obj = NULL;
+
+  if (args[0]->type == SLP_TYPE_SYMBOL) {
+    index_obj = sxs_resolve_symbol(runtime, args[0]);
+    if (!index_obj) {
+      return sxs_create_error_object(
+          SLP_ERROR_PARSE_TOKEN, "do builtin: symbol not found",
+          args[0]->source_position, runtime->source_buffer);
+    }
+    index_obj = slp_object_copy(index_obj);
+  } else {
+    index_obj = sxs_eval_object(runtime, args[0]);
+  }
+
   if (!index_obj) {
     return sxs_create_error_object(
         SLP_ERROR_PARSE_TOKEN, "do builtin: eval failed",
@@ -35,9 +48,9 @@ slp_object_t *sxs_builtin_do(sxs_runtime_t *runtime, sxs_callable_t *callable,
   if (index_obj->type != SLP_TYPE_INTEGER) {
     size_t pos = args[0]->source_position;
     slp_object_free(index_obj);
-    return sxs_create_error_object(SLP_ERROR_PARSE_TOKEN,
-                                   "do builtin: argument must be integer", pos,
-                                   runtime->source_buffer);
+    return sxs_create_error_object(
+        SLP_ERROR_PARSE_TOKEN, "do builtin: argument must evaluate to integer",
+        pos, runtime->source_buffer);
   }
 
   int64_t proc_index = index_obj->value.integer;
